@@ -73,18 +73,23 @@ let recognition: any = null;
 
 
 // --- API INITIALIZATION ---
-let ai;
+let ai: GoogleGenAI | null = null;
 try {
+    // This will throw an error if process.env.API_KEY is not set.
+    // The key is expected to be injected by the build/deployment environment.
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY environment variable not found.");
+    }
     ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 } catch (error) {
-    console.error("Failed to initialize GoogleGenAI:", error);
-    // Display an error message to the user
-    const errorDiv = document.getElementById('error-message');
-    if (errorDiv) {
-        errorDiv.textContent = 'Could not initialize AI services. Please check your API key and refresh the page.';
-        errorDiv.style.display = 'block';
-    }
+    console.warn(
+        "AI services could not be initialized. AI-powered tools will be disabled. " +
+        "This is expected if an API key is not provided in the environment configuration.",
+        error
+    );
+    // We'll proceed with `ai` as null, and disable AI features gracefully.
 }
+
 
 // --- TOOL FACTORY ---
 const createSpeechToTextTool = (languageName: string, langCode: string, icon: string): Tool => ({
@@ -148,6 +153,19 @@ const TOOLS: Record<string, Tool> = {
     'speech-to-text-hi': createSpeechToTextTool('Hindi', 'hi-IN', ICONS['flag-in']),
     'speech-to-text-ur': createSpeechToTextTool('Urdu', 'ur-PK', ICONS['flag-pk']),
 };
+
+// Gracefully disable AI tools if the API key is missing
+if (!ai) {
+    const aiToolIds = Object.keys(TOOLS).filter(id => 
+        id === 'background-remover' || id.startsWith('speech-to-text-')
+    );
+    aiToolIds.forEach(id => {
+        if (TOOLS[id]) {
+            TOOLS[id].isComingSoon = true;
+            TOOLS[id].subtitle = 'AI service unavailable. Configure API key.';
+        }
+    });
+}
 
 const CATEGORIES: Category[] = [
     { title: 'PDF Tools', tools: ['merge-pdf', 'split-pdf', 'compress-pdf', 'organize-pdf', 'sign-pdf', 'watermark', 'rotate-pdf', 'page-numbers', 'protect-pdf', 'unlock-pdf', 'ocr-pdf', 'pdfa', 'stamp-pdf'] },
@@ -833,11 +851,13 @@ const init = () => {
     renderRecentTools();
     eventListeners();
 
+    // Hide error message initially
+    hideError();
+
     setTimeout(() => {
         DOMElements.bottomAdPopup?.classList.add('visible');
     }, 5000);
 };
 
-if (ai) {
-    init();
-}
+// The app can now initialize even if AI fails
+init();
