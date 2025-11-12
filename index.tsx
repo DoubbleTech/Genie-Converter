@@ -69,8 +69,7 @@ interface Category {
 // --- GLOBAL STATE ---
 let currentTool: Tool | null = null;
 let currentFiles: File[] = [];
-let recordingInterval: number | null = null;
-let wavesurfer: any = null;
+let recognition: any = null;
 
 
 // --- API INITIALIZATION ---
@@ -412,7 +411,7 @@ const openToolModal = (tool: Tool) => {
         DOMElements.processBtnContainer.style.display = 'block';
         DOMElements.initialView.style.display = 'flex';
         DOMElements.fileInput.accept = tool.accept;
-        const isMultiple = ['merge-pdf', 'organize-pdf'].includes(tool.id);
+        const isMultiple = ['merge-pdf', 'organize-pdf', 'image-to-pdf'].includes(tool.id);
         DOMElements.fileInput.multiple = isMultiple;
         (getElement('.drop-text')).textContent = isMultiple
             ? 'or drop files here'
@@ -439,14 +438,6 @@ const closeModal = () => {
     if (recognition) {
         recognition.abort();
         recognition = null;
-    }
-    if (recordingInterval) {
-        clearInterval(recordingInterval);
-        recordingInterval = null;
-    }
-    if (wavesurfer) {
-        wavesurfer.destroy();
-        wavesurfer = null;
     }
     
     DOMElements.previewPane.innerHTML = '';
@@ -569,4 +560,284 @@ const showCompleteView = (title: string, downloads: { filename: string, url: str
             const tool = TOOLS[toolId];
             const card = document.createElement('div');
             card.className = 'continue-tool-card';
-            
+            card.innerHTML = `${tool.icon}<span>${tool.title}</span>`;
+            card.onclick = () => {
+                closeModal();
+                setTimeout(() => {
+                    openToolModal(tool);
+                    if (resultFiles) {
+                       setTimeout(() => showOptionsView(resultFiles), 50);
+                    }
+                }, 50);
+            };
+            DOMElements.continueToolsGrid.appendChild(card);
+        });
+        getElement('.continue-section', DOMElements.completeView).style.display = 'block';
+    } else {
+        getElement('.continue-section', DOMElements.completeView).style.display = 'none';
+    }
+};
+
+const loadScript = (src: string, id: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        if (document.getElementById(id)) {
+            resolve();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.id = id;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load script ${src}`));
+        document.head.appendChild(script);
+    });
+};
+
+const handleFileSelect = (files: FileList | null) => {
+    if (!files || files.length === 0 || !currentTool) return;
+    hideError();
+    currentFiles = Array.from(files);
+
+    const allowedTypes = currentTool.accept.split(',').map(t => t.trim().toLowerCase());
+    const isMultiple = DOMElements.fileInput.multiple;
+
+    if (!isMultiple && currentFiles.length > 1) {
+        showError(`The ${currentTool.title} tool can only process one file at a time.`);
+        DOMElements.fileInput.value = '';
+        return;
+    }
+
+    const invalidFiles = currentFiles.filter(file => {
+        return !allowedTypes.some(type => {
+            if (type.startsWith('.')) {
+                return file.name.toLowerCase().endsWith(type);
+            }
+            if (type.endsWith('/*')) {
+                return file.type.startsWith(type.slice(0, -1));
+            }
+            return file.type === type;
+        });
+    });
+
+    if (invalidFiles.length > 0) {
+        showError(`Invalid file type for ${currentTool.title}. Please provide: ${currentTool.accept}.`);
+        DOMElements.fileInput.value = '';
+        return;
+    }
+    
+    showOptionsView(currentFiles);
+};
+
+const showOptionsView = (files: File[]) => {
+    if (!currentTool) return;
+    
+    DOMElements.initialView.style.display = 'none';
+    DOMElements.optionsView.style.display = 'flex';
+    DOMElements.processingView.style.display = 'none';
+    DOMElements.completeView.style.display = 'none';
+    
+    DOMElements.previewPane.innerHTML = '';
+    DOMElements.optionsPane.innerHTML = '';
+
+    if (currentTool.isFileTool) {
+        DOMElements.optionsSidebarPane.style.display = 'block';
+        DOMElements.processBtnContainer.style.display = 'block';
+        DOMElements.processBtn.disabled = false;
+        
+        const fileListHTML = files.map((file, index) => `
+            <div class="file-item">
+                <span class="file-name">${file.name}</span>
+                <button class="file-preview-btn" data-file-index="${index}" title="Preview file">${ICONS['eye-preview']}</button>
+            </div>
+        `).join('');
+
+        DOMElements.optionsPane.innerHTML = `
+            <div class="file-actions">
+                <div class="file-list">${fileListHTML}</div>
+                <div class="action-buttons">
+                    <button id="clear-files-btn" class="btn-secondary danger">Start Over</button>
+                </div>
+            </div>
+        `;
+
+        DOMElements.previewPane.innerHTML = `<p class="placeholder-text">Click the eye icon to preview a file.</p>`;
+        
+        getElement('#clear-files-btn', DOMElements.optionsPane).onclick = () => openToolModal(currentTool);
+        
+        DOMElements.optionsPane.querySelectorAll('.file-preview-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt((btn as HTMLElement).dataset.fileIndex!);
+                const file = files[index];
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = e => { DOMElements.previewPane.innerHTML = `<img src="${e.target!.result as string}" alt="Preview" style="max-width:100%; max-height:100%; object-fit:contain;">`; };
+                    reader.readAsDataURL(file);
+                } else {
+                    DOMElements.previewPane.innerHTML = `<p class="placeholder-text">Preview not available for ${file.type}.</p>`;
+                }
+            });
+        });
+
+    } else {
+        DOMElements.optionsSidebarPane.style.display = 'none';
+        DOMElements.processBtnContainer.style.display = 'none';
+    }
+
+    // Specific tool options
+    switch (currentTool.id) {
+        case 'background-remover':
+            DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
+                <div class="option-group"><h4>AI Background Remover</h4><p>The AI will remove the background, making it transparent.</p></div>
+            `);
+            DOMElements.processBtn.onclick = () => showProcessingView(removeBackground);
+            break;
+        default:
+             if (currentTool.isFileTool) {
+                 DOMElements.optionsPane.insertAdjacentHTML('beforeend', `<p>This tool is not fully configured.</p>`);
+                 DOMElements.processBtn.disabled = true;
+             }
+             if (!currentTool.isFileTool) {
+                 renderSpeechToTextUI();
+             }
+            break;
+    }
+};
+
+const removeBackground = async () => {
+    if (!ai) throw new Error("AI service not available.");
+
+    DOMElements.processingText.textContent = 'Uploading and analyzing image...';
+    await sleep(200);
+    DOMElements.progressBar.style.width = '30%';
+    DOMElements.progressPercentage.textContent = '30%';
+
+    const imageFile = currentFiles[0];
+    const base64Data = await fileToBase64(imageFile);
+
+    DOMElements.processingText.textContent = 'AI is removing the background...';
+    DOMElements.progressBar.style.width = '60%';
+    DOMElements.progressPercentage.textContent = '60%';
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+            parts: [{
+                inlineData: { data: base64Data, mimeType: imageFile.type }
+            }, {
+                text: 'remove the background of this image. the output must be a png with a transparent background. maintain the original aspect ratio and dimensions.'
+            }]
+        },
+        config: { responseModalities: [Modality.IMAGE] }
+    });
+    
+    DOMElements.processingText.textContent = 'Finalizing your image...';
+    DOMElements.progressBar.style.width = '90%';
+    DOMElements.progressPercentage.textContent = '90%';
+
+    let resultBase64 = '';
+    if (response.candidates?.[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+                resultBase64 = part.inlineData.data;
+                break;
+            }
+        }
+    }
+
+    if (!resultBase64) {
+        throw new Error("AI failed to return an image. Please try another image.");
+    }
+    
+    const newFilename = imageFile.name.replace(/(\\.[\\w\\d_-]+)$/i, '_no-bg.png');
+    const blob = base64ToBlob(resultBase64, 'image/png');
+    const url = URL.createObjectURL(blob);
+    const newFile = new File([blob], newFilename, { type: 'image/png' });
+
+    await sleep(200);
+    DOMElements.progressBar.style.width = '100%';
+    DOMElements.progressPercentage.textContent = '100%';
+
+    showCompleteView('Background Removed!', [{ filename: newFilename, url }], [newFile]);
+};
+
+// --- SPEECH-TO-TEXT (STT) LOGIC ---
+const renderSpeechToTextUI = () => {
+    DOMElements.optionsView.style.display = 'block';
+    DOMElements.optionsPane.innerHTML = `<div class="speech-to-text-container"><p>Speech to text functionality is currently under development.</p></div>`;
+};
+
+// --- EVENT LISTENERS & INITIALIZATION ---
+const eventListeners = () => {
+    // Search
+    DOMElements.searchInput.addEventListener('input', () => {
+        const activeFilter = getElement<HTMLButtonElement>('.filter-btn.active')?.dataset.category || 'All';
+        renderTools(DOMElements.searchInput.value, activeFilter);
+    });
+
+    // Modal
+    DOMElements.closeModalBtn.addEventListener('click', closeModal);
+    DOMElements.modal.addEventListener('click', (e) => {
+        if (e.target === DOMElements.modal) closeModal();
+    });
+    DOMElements.selectFileBtn.addEventListener('click', () => DOMElements.fileInput.click());
+    DOMElements.fileInput.addEventListener('change', () => handleFileSelect(DOMElements.fileInput.files));
+
+    // Drag and Drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        document.body.addEventListener(eventName, e => e.preventDefault());
+    });
+    ['dragenter', 'dragover'].forEach(eventName => {
+        document.body.addEventListener(eventName, () => { document.body.classList.add('is-dragging'); });
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        document.body.addEventListener(eventName, () => { document.body.classList.remove('is-dragging'); });
+    });
+    document.body.addEventListener('drop', e => {
+        if (DOMElements.modal.classList.contains('visible') && currentTool?.isFileTool) {
+            handleFileSelect(e.dataTransfer?.files || null);
+        }
+    });
+
+    // Theme Toggle
+    DOMElements.themeToggle.addEventListener('change', () => {
+        const theme = DOMElements.themeToggle.checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('genie-theme', theme);
+    });
+    
+    // Hamburger Menu
+    DOMElements.hamburger.addEventListener('click', () => {
+        DOMElements.hamburger.classList.toggle('active');
+        DOMElements.navLinks.classList.toggle('active');
+    });
+
+    // Scroll to Top
+    window.addEventListener('scroll', () => {
+        DOMElements.scrollToTopBtn.classList.toggle('visible', window.scrollY > 300);
+    });
+    DOMElements.scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+    // Bottom Ad Popup
+    DOMElements.closeAdPopupBtn?.addEventListener('click', () => {
+        DOMElements.bottomAdPopup.classList.remove('visible');
+    });
+};
+
+const init = () => {
+    const savedTheme = localStorage.getItem('genie-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    DOMElements.themeToggle.checked = savedTheme === 'dark';
+
+    renderCategoryFilters();
+    renderTools();
+    renderRecentTools();
+    eventListeners();
+
+    setTimeout(() => {
+        DOMElements.bottomAdPopup?.classList.add('visible');
+    }, 5000);
+};
+
+if (ai) {
+    init();
+}
