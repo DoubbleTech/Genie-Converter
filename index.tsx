@@ -1,5 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 
 // --- ICON DEFINITIONS ---
 const ICONS = {
@@ -16,6 +16,7 @@ const ICONS = {
     'resize-image': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-resize" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-resize)"/><path d="M16 16h32v24H16z" fill="#fff"/><path d="M22 34l8-8 10 10 6-4V20H20z" fill="#0ea5e9"/><circle cx="26" cy="24" r="3" fill="#fff"/><path d="M12 12h8v4h-8zm32 0h8v4h-8zM12 40h8v4h-8zm32 0h8v4h-8z" fill="#fff" opacity=".8"/></svg>`,
     'png-to-jpg': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-png" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#c084fc"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-png)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28z" fill="#fff"/><path d="M22 20a4 4 0 100 8h-4v-8zm0 4h-4" fill="#a855f7"/></svg>`,
     'jpg-to-png': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-jpg-png" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#fb7185"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-jpg-png)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28z" fill="#fff"/><path d="M22 20a4 4 0 100 8V20zm-4 4a4 4 0 004 4" fill="#f43f5e"/></svg>`,
+    'background-remover': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-bg-remover" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient><pattern id="p-check" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#d1d5db"/><rect x="4" y="4" width="4" height="4" fill="#d1d5db"/><rect y="4" width="4" height="4" fill="#f3f4f6"/><rect x="4" width="4" height="4" fill="#f3f4f6"/></pattern></defs><rect width="64" height="64" rx="12" fill="url(#p-check)"/><path d="M32 12C22 12 16 18 16 28c0 6 4 10 4 10s-2 12 12 12 12-12 12-12c0 0 4-4 4-10 0-10-6-16-16-16z" fill="url(#g-bg-remover)"/><path d="M32 12C22 12 16 18 16 28c0 6 4 10 4 10s-2 12 12 12 12-12 12-12c0 0 4-4 4-10 0-10-6-16-16-16z" fill="url(#g-bg-remover)" stroke="#fff" stroke-width="2" stroke-linejoin="round" style="paint-order:stroke;"/></svg>`,
     'protect-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-protect" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#64748b"/><stop offset="100%" stop-color="#94a3b8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-protect)"/><path d="M32 12L16 20v12c0 10 16 18 16 18s16-8 16-18V20L32 12zm0 4l12 6-12 6-12-6z" fill="#fff"/><path d="M32 32a4 4 0 100 8 4 4 0 000-8zm0 2v4" fill="#64748b"/></svg>`,
     'unlock-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-unlock" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#86efac"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-unlock)"/><path d="M32 12L16 20v12c0 10 16 18 16 18s16-8 16-18V20L32 12zm0 24a4 4 0 100-8 4 4 0 000 8z" fill="#fff" opacity=".5"/><path d="M32 30a4 4 0 00-4 4h8a4 4 0 00-4-4z" fill="#4ade80"/><path d="M24 24h16v-4a8 8 0 10-16 0z" fill="#fff"/><path d="M32 20a4 4 0 100-8 4 4 0 000 8z" fill="#4ade80" opacity=".5"/></svg>`,
     'organize-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-organize" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2dd4bf"/><stop offset="100%" stop-color="#5eead4"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-organize)"/><path d="M12 12h12v12H12zm16 0h12v12H28zM12 28h12v12H12zm16 0h12v12H28zM44 12h8v28h-8z" fill="#fff"/></svg>`,
@@ -129,6 +130,7 @@ const TOOLS: Record<string, Tool> = {
     'pdf-to-jpg': { id: 'pdf-to-jpg', title: 'PDF to JPG', subtitle: 'Convert PDF pages to JPGs.', icon: ICONS['pdf-to-jpg'], accept: '.pdf', isFileTool: true },
 
     // Image Tools
+    'background-remover': { id: 'background-remover', title: 'Remove Background', subtitle: 'Erase the background from images.', icon: ICONS['background-remover'], accept: '.png,.jpg,.jpeg', isFileTool: true },
     'resize-image': { id: 'resize-image', title: 'Resize Image', subtitle: 'Change image dimensions.', icon: ICONS['resize-image'], accept: 'image/*', isFileTool: true, isComingSoon: true },
     'png-to-jpg': { id: 'png-to-jpg', title: 'PNG to JPG', subtitle: 'Convert PNG to JPG format.', icon: ICONS['png-to-jpg'], accept: '.png', isFileTool: true },
     'jpg-to-png': { id: 'jpg-to-png', title: 'JPG to PNG', subtitle: 'Convert JPG to PNG format.', icon: ICONS['jpg-to-png'], accept: '.jpg,.jpeg', isFileTool: true },
@@ -152,7 +154,7 @@ const CATEGORIES: Category[] = [
     { title: 'PDF Tools', tools: ['merge-pdf', 'split-pdf', 'compress-pdf', 'organize-pdf', 'sign-pdf', 'watermark', 'rotate-pdf', 'page-numbers', 'protect-pdf', 'unlock-pdf', 'ocr-pdf', 'pdfa', 'stamp-pdf'] },
     { title: 'Convert to PDF', tools: ['word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf', 'image-to-pdf'] },
     { title: 'Convert from PDF', tools: ['pdf-to-word', 'pdf-to-powerpoint', 'pdf-to-excel', 'pdf-to-jpg'] },
-    { title: 'Image Tools', tools: ['resize-image', 'png-to-jpg', 'jpg-to-png'] },
+    { title: 'Image Tools', tools: ['background-remover', 'resize-image', 'png-to-jpg', 'jpg-to-png'] },
     { title: 'Audio Tools', tools: ['speech-to-text-en-us', 'speech-to-text-en-gb', 'speech-to-text-es', 'speech-to-text-fr', 'speech-to-text-de', 'speech-to-text-it', 'speech-to-text-pt', 'speech-to-text-ru', 'speech-to-text-zh', 'speech-to-text-ja', 'speech-to-text-hi', 'speech-to-text-ur'] }
 ];
 
@@ -208,6 +210,23 @@ const showError = (message: string) => {
 };
 const hideError = () => { DOMElements.errorMessage.style.display = 'none'; };
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve((reader.result as string).split(',')[1]);
+    reader.onerror = error => reject(error);
+});
+
+const base64ToBlob = (base64: string, contentType: string = 'image/png'): Blob => {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: contentType });
+};
 
 // --- "RECENTLY USED" LOGIC ---
 const getRecentTools = (): string[] => {
@@ -653,6 +672,9 @@ const showOptionsView = (files: File[]) => {
         case 'image-to-pdf':
             handleImageToPdfOptions();
             break;
+        case 'background-remover':
+            handleBackgroundRemoverOptions();
+            break;
         case 'split-pdf':
         case 'organize-pdf':
             DOMElements.previewPane.innerHTML = `<div class="placeholder-text">PDF page previews will be available here soon.</div>`;
@@ -752,6 +774,105 @@ const processImageToPdf = async () => {
 
     showCompleteView('Conversion Successful!', [{ filename: 'converted.pdf', url }], [resultFile]);
 };
+
+// --- BACKGROUND REMOVER ---
+const handleBackgroundRemoverOptions = () => {
+    DOMElements.optionsPane.innerHTML = `
+        <div class="option-group">
+            <h4>Ready to Go!</h4>
+            <p>Click the button below to remove the background from your image using Gemini AI.</p>
+        </div>
+    `;
+
+    const file = currentFiles[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = document.createElement('img');
+            img.src = e.target?.result as string;
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '100%';
+            img.style.objectFit = 'contain';
+            DOMElements.previewPane.innerHTML = ''; // Clear previous
+            DOMElements.previewPane.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    DOMElements.processBtn.onclick = () => showProcessingView(processBackgroundRemoval);
+};
+
+const processBackgroundRemoval = async () => {
+    if (!ai) {
+        showError("AI Service is not available.");
+        return;
+    }
+    if (currentFiles.length === 0) {
+        showError("No file selected.");
+        return;
+    }
+
+    const file = currentFiles[0];
+
+    DOMElements.processingText.textContent = 'Preparing your image...';
+    DOMElements.progressBar.style.width = `10%`;
+    DOMElements.progressPercentage.textContent = `10%`;
+    await sleep(200);
+
+    try {
+        const base64Data = await fileToBase64(file);
+
+        DOMElements.processingText.textContent = 'Asking the AI to work its magic... (this may take a moment)';
+        DOMElements.progressBar.style.width = `30%`;
+        DOMElements.progressPercentage.textContent = `30%`;
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: {
+                parts: [
+                    { inlineData: { data: base64Data, mimeType: file.type } },
+                    { text: 'Remove the background of this image. The output should have a transparent background.' }
+                ]
+            },
+            config: {
+                responseModalities: [Modality.IMAGE],
+            }
+        });
+
+        DOMElements.processingText.textContent = 'Processing the result...';
+        DOMElements.progressBar.style.width = `80%`;
+        DOMElements.progressPercentage.textContent = `80%`;
+
+        let resultBase64: string | undefined;
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+                resultBase64 = part.inlineData.data;
+                break;
+            }
+        }
+
+        if (!resultBase64) {
+            throw new Error("The AI did not return an image. It might be that the content is not safe.");
+        }
+        
+        const originalFilename = file.name.substring(0, file.name.lastIndexOf('.'));
+        const newFilename = `${originalFilename}_no-bg.png`;
+
+        const blob = base64ToBlob(resultBase64, 'image/png');
+        const url = URL.createObjectURL(blob);
+        const resultFile = new File([blob], newFilename, { type: 'image/png' });
+
+        DOMElements.progressBar.style.width = `100%`;
+        DOMElements.progressPercentage.textContent = `100%`;
+
+        showCompleteView('Background Removed!', [{ filename: newFilename, url }], [resultFile]);
+
+    } catch (error) {
+        console.error("Background removal failed:", error);
+        throw new Error("Failed to remove background. Please try another image.");
+    }
+};
+
 
 // --- SPEECH TO TEXT ---
 let recognition: any = null;
