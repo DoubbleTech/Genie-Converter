@@ -1,1490 +1,1354 @@
+
+import { GoogleGenAI } from "@google/genai";
+
 // --- ICON DEFINITIONS ---
 const ICONS = {
     'merge-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-merge" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f87171"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-merge)"/><path d="M40 20v-4h-4v4h-4v4h4v4h4v-4h4v-4zM22 14h12v6h-6a4 4 0 01-4-4zm-4 32V16a4 4 0 014-4h14l10 10v22a4 4 0 01-4 4z" fill="#fff"/></svg>`,
     'split-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-split" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#fb923c"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-split)"/><path d="M44 12v20H20V12h24zm0 24v20H20V36h24zM16 30h32v4H16zm10-12h4v4h-4zm0 24h4v4h-4z" fill="#fff"/></svg>`,
     'compress-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-compress" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#84cc16"/><stop offset="100%" stop-color="#a3e635"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-compress)"/><path d="M22 12h20a4 4 0 014 4v20H28v8H18V16a4 4 0 014-4zm12 18V18h-8v12h8zM44 34v12H32v-8h8v-4h4zM24 46V34h8v12h-8zM18 28h8v-8h-8v8z" fill="#fff"/></svg>`,
     'word-to-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-word" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2563eb"/><stop offset="100%" stop-color="#60a5fa"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-word)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28z" fill="#fff"/><path d="M18 44V20l8 12-8 12z" fill="#2563eb"/></svg>`,
+    'powerpoint-to-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-ppt" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#d946ef"/><stop offset="100%" stop-color="#e879f9"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-ppt)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28z" fill="#fff"/><path d="M22 32a6 6 0 100-12 6 6 0 000 12zm0 4a10 10 0 110-20 10 10 0 010 20z" fill="#d946ef"/></svg>`,
     'excel-to-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-excel" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#16a34a"/><stop offset="100%" stop-color="#4ade80"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-excel)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28zM26 20h-4v4h4zm-6 6h-4v4h4zm6 0h-4v4h4zm-6 6h-4v4h4zm6 0h-4v4h4zm-6 6h-4v4h4zm6 0h-4v4h4z" fill="#fff"/></svg>`,
+    'html-to-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-html" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e11d48"/><stop offset="100%" stop-color="#f43f5e"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-html)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28zM18 24l4 2-4 2v-4zm10 0l-4 16h-3l4-16h3z" fill="#fff"/></svg>`,
+    'image-to-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-jpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#fcd34d"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-jpg)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28zM16 18h12v12H16zm12 18h-8l4-6 4 6z" fill="#fff"/><circle cx="20" cy="22" r="2" fill="#f59e0b"/></svg>`,
     'sign-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-sign" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#fcd34d"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-sign)"/><path d="M16 12h32v24H16z" fill="#fff"/><path d="M20 16h24v4H20zm0 8h24v4H20zM22 32c4-4 8-4 12 0s8 4 12 0" stroke="#f59e0b" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M16 40h32v12H16z" fill="#fff" opacity=".5"/></svg>`,
     'stamp-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-stamp" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#60a5fa"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-stamp)"/><path d="M22 22h24v24H22z" fill="#fff" opacity=".5"/><path d="M18 18h24v24H18z" fill="#fff" opacity=".7"/><path d="M14 14h24v24H14z" fill="#fff"/><rect x="38" y="34" width="16" height="6" rx="2" fill="#3b82f6"/><rect x="44" y="26" width="4" height="8" fill="#3b82f6"/><path d="M40 40c2-2 4-2 6 0s4 2 6 0" stroke="#3b82f6" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`,
     'resize-image': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-resize" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-resize)"/><path d="M16 16h32v24H16z" fill="#fff"/><path d="M22 34l8-8 10 10 6-4V20H20z" fill="#0ea5e9"/><circle cx="26" cy="24" r="3" fill="#fff"/><path d="M12 12h8v4h-8zm32 0h8v4h-8zM12 40h8v4h-8zm32 0h8v4h-8z" fill="#fff" opacity=".8"/></svg>`,
-    'png-to-jpg': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-png" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#d946ef"/><stop offset="100%" stop-color="#ec4899"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-png)"/><text x="8" y="30" font-family="sans-serif" font-size="13" fill="#fff" font-weight="bold">PNG</text><path d="M34 26l8 8-8 8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="40" y="46" font-family="sans-serif" font-size="13" fill="#fff" font-weight="bold">JPG</text></svg>`,
-    'jpg-to-png': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-jpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ec4899"/><stop offset="100%" stop-color="#d946ef"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-jpg)"/><text x="8" y="30" font-family="sans-serif" font-size="13" fill="#fff" font-weight="bold">JPG</text><path d="M34 26l8 8-8 8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="40" y="46" font-family="sans-serif" font-size="13" fill="#fff" font-weight="bold">PNG</text></svg>`,
-    'image-to-excel': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-i2e" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-i2e)"/><path d="M12 20h16v16H12zm2 12l4-4 6 6 2-1.5v-6H14z" fill="#fff"/><circle cx="17" cy="25" r="2" fill="#fff"/><path d="M32 32l6-4-6-4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 22h10v20H42zm2 2v4h6v-4zm0 6v4h2v-4zm4 0v4h2v-4zm-4 6v4h6v-4z" fill="#fff"/></svg>`,
-    'remove-bg': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-rembg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#818cf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-rembg)"/><path d="M20 52a12 12 0 0124 0z" fill="#fff"/><circle cx="32" cy="26" r="8" fill="#fff"/><path d="M12 12h8v8h-8zm8 8h8v8h-8zm8 8h8v8h-8zm8 8h8v8h-8zM20 28h8v8h-8zm8-8h8v8h-8zm-8 16h8v8h-8z" fill="#e2e8f0" opacity=".5"/></svg>`,
-    'pdf-to-word': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-p2w" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#2563eb"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-p2w)"/><path d="M16 14h12v6h-6a4 4 0 01-4-4zm-4 32V16a4 4 0 014-4h14l10 10v22a4 4 0 01-4 4z" fill="#fff" opacity=".8"/><path d="M48 24l-8 8m0-8l8 8m-4 12V32l8-6-8-6v16" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    'pdf-to-excel': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-p2e" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22c55e"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-p2e)"/><path d="M16 14h12v6h-6a4 4 0 01-4-4zm-4 32V16a4 4 0 014-4h14l10 10v22a4 4 0 01-4 4z" fill="#fff" opacity=".8"/><path d="M42 32h10v10H42zm0-2h10m-10 6h10m-10 6h10m-12-14h-2v14h2" stroke="#fff" stroke-width="2" fill="none"/></svg>`,
-    'pdf-to-jpg': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-p2j" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-p2j)"/><path d="M16 14h12v6h-6a4 4 0 01-4-4zm-4 32V16a4 4 0 014-4h14l10 10v22a4 4 0 01-4 4z" fill="#fff" opacity=".8"/><path d="M44 32h8v8h-8zm-2 10l6-6-8-8-8 8 4 4" stroke="#fff" stroke-width="2" fill="none"/><circle cx="50" cy="34" r="2" fill="#fff"/></svg>`,
-    'rotate-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-rot" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#14b8a6"/><stop offset="100%" stop-color="#0d9488"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-rot)"/><path d="M24 16h16v32H24z" fill="#fff"/><path d="M52 32a12 12 0 01-18.7 10M52 32h-8m-3.3-10a12 12 0 01-3.3 20" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
-    'unlock-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-ulk" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22c55e"/><stop offset="100%" stop-color="#4ade80"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-ulk)"/><path d="M20 20h24v24H20z" fill="#fff" opacity=".8"/><path d="M38 28a6 6 0 00-12 0v8h12zM30 28V24a2 2 0 012-2h4" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="32" cy="42" r="2" fill="#fff"/></svg>`,
-    'protect-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-lck" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f87171"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-lck)"/><path d="M20 20h24v24H20z" fill="#fff" opacity=".8"/><path d="M38 28a6 6 0 01-12 0v8h12zM30 28V24a2 2 0 012-2h4a2 2 0 012 2v4" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="32" cy="42" r="2" fill="#fff"/></svg>`,
-    'watermark-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-wtm" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-wtm)"/><path d="M20 12h24v40H20z" fill="#fff"/><path d="M26 44l6-12 6 12" stroke="#0ea5e9" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/><path d="M29 38h6" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity=".7"/></svg>`,
-    'organize-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-org" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#c084fc"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-org)"/><rect x="14" y="16" width="16" height="20" rx="2" fill="#fff"/><rect x="34" y="28" width="16" height="20" rx="2" fill="#fff"/><path d="M22 20h-4v12h4m16-4h4V24h-4m0 16h4V38h-4" stroke="#a855f7" stroke-width="2" fill="none"/></svg>`,
-    'image-converter': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-icv" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#818cf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-icv)"/><path d="M16 20h16v16H16z" fill="#fff"/><path d="M20 32l6-6 8 8 4-3v-7H18z" fill="#6366f1"/><path d="M40 28l-6 6m6-6l-6-6m16 4a6 6 0 00-6-6h-4v12h4a6 6 0 006-6z" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    'jpg-to-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-j2p" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#818cf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-j2p)"/><path d="M12 20h20v24H12zm24 6l12-8v24l-12-8h-4V26z" fill="#fff" opacity=".8"/><path d="M16 38l6-6 8 8 4-3v-7H14z" fill="#6366f1"/><circle cx="18" cy="26" r="2" fill="#6366f1"/></svg>`,
-    'ppt-to-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-ppt" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#fdba74"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-ppt)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28zM22 20a4 4 0 00-8 0v8h8zm0 12h-8v8h8z" fill="#fff"/></svg>`,
-    'html-to-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-html" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#14b8a6"/><stop offset="100%" stop-color="#2dd4bf"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-html)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28z" fill="#fff" opacity=".8"/><path d="M20 24l-6 8 6 8m4-16l6 8-6 8" stroke="#14b8a6" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    'edit-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-edit" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#c084fc"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-edit)"/><path d="M16 14h12v6h-6a4 4 0 01-4-4zm-4 32V16a4 4 0 014-4h14l10 10v22a4 4 0 01-4 4z" fill="#fff"/><path d="M42 20l10 10-20 20H22v-10z" fill="#a855f7"/><path d="M38 24l10 10" stroke="#fff" stroke-width="2"/></svg>`,
-    'excel-split': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-exs" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-exs)"/><path d="M14 20h12v24H14zm16-4h12v12H30zm0 16h12v12H30zM28 32h16v2H28" fill="#fff"/></svg>`,
-    'excel-merge': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-exm" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#16a34a"/><stop offset="100%" stop-color="#4ade80"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-exm)"/><path d="M14 16h12v12H14zm16 16h12v12H30zm0-16h12v12H30zM14 32h12v12H14zm10-4v-6h4v6h6v4h-6v6h-4v-6h-6v-4z" fill="#fff"/></svg>`,
-    'placeholder': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-place" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6b7280"/><stop offset="100%" stop-color="#9ca3af"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-place)"/><path d="M22 22h20v20H22z" fill="#fff" opacity=".7"/><path d="M26 32a6 6 0 016-6c2 0 4 2 4 4s-2 4-4 4-4 2-2 4" fill="none" stroke="#6b7280" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="42" r="2" fill="#6b7280"/></svg>`,
+    'png-to-jpg': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-png" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#c084fc"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-png)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28z" fill="#fff"/><path d="M22 20a4 4 0 100 8h-4v-8zm0 4h-4" fill="#a855f7"/></svg>`,
+    'jpg-to-png': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-jpg-png" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#fb7185"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-jpg-png)"/><path d="M12 12h20v40H12zm24 16l12-8v24l-12-8h-4V28z" fill="#fff"/><path d="M22 20a4 4 0 100 8V20zm-4 4a4 4 0 004 4" fill="#f43f5e"/></svg>`,
+    'protect-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-protect" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#64748b"/><stop offset="100%" stop-color="#94a3b8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-protect)"/><path d="M32 12L16 20v12c0 10 16 18 16 18s16-8 16-18V20L32 12zm0 4l12 6-12 6-12-6z" fill="#fff"/><path d="M32 32a4 4 0 100 8 4 4 0 000-8zm0 2v4" fill="#64748b"/></svg>`,
+    'unlock-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-unlock" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#86efac"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-unlock)"/><path d="M32 12L16 20v12c0 10 16 18 16 18s16-8 16-18V20L32 12zm0 24a4 4 0 100-8 4 4 0 000 8z" fill="#fff" opacity=".5"/><path d="M32 30a4 4 0 00-4 4h8a4 4 0 00-4-4z" fill="#4ade80"/><path d="M24 24h16v-4a8 8 0 10-16 0z" fill="#fff"/><path d="M32 20a4 4 0 100-8 4 4 0 000 8z" fill="#4ade80" opacity=".5"/></svg>`,
+    'organize-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-organize" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2dd4bf"/><stop offset="100%" stop-color="#5eead4"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-organize)"/><path d="M12 12h12v12H12zm16 0h12v12H28zM12 28h12v12H12zm16 0h12v12H28zM44 12h8v28h-8z" fill="#fff"/></svg>`,
+    'pdf-to-word': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-ptw" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#2563eb"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-ptw)"/><path d="M16 28l12-8v24l-12-8h-4V28zM36 12h20v40H36zm6 32V20l8 12-8 12z" fill="#fff"/></svg>`,
+    'pdf-to-powerpoint': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-ptp" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e879f9"/><stop offset="100%" stop-color="#d946ef"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-ptp)"/><path d="M16 28l12-8v24l-12-8h-4V28zM36 12h20v40H36zm10 20a6 6 0 100-12 6 6 0 000 12zm0 4a10 10 0 110-20 10 10 0 010 20z" fill="#fff"/></svg>`,
+    'pdf-to-excel': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-pte" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-pte)"/><path d="M16 28l12-8v24l-12-8h-4V28zM36 12h20v40H36zm10 8h-4v4h4zm-6 6h-4v4h4zm6 0h-4v4h4zm-6 6h-4v4h4zm6 0h-4v4h4zm-6 6h-4v4h4zm6 0h-4v4h4z" fill="#fff"/></svg>`,
+    'pdf-to-jpg': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-ptj" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fcd34d"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-ptj)"/><path d="M16 28l12-8v24l-12-8h-4V28zM36 12h20v40H36zm4 6h12v12H40zm12 18h-8l4-6 4 6z" fill="#fff"/><circle cx="44" cy="22" r="2" fill="#fcd34d"/></svg>`,
+    'pdfa': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-pdfa" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7e22ce"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-pdfa)"/><path d="M16 12h22l10 10v26a4 4 0 01-4 4H16a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M22 42V22h4l4 8 4-8h4v20h-4V28l-4 8-4-8v14z" fill="#7e22ce"/></svg>`,
+    'ocr-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-ocr" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0891b2"/><stop offset="100%" stop-color="#22d3ee"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-ocr)"/><path d="M16 12h22l10 10v26a4 4 0 01-4 4H16a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M20 20h24v4H20zm0 8h16v4H20zm0 8h24v4H20zm0 8h12v4H20zm20-6h2v-2l4 4-4 4v-2h-2z" fill="#0891b2"/></svg>`,
+    'watermark': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-water" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0284c7"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-water)"/><path d="M16 12h22l10 10v26a4 4 0 01-4 4H16a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M24 24h16v16H24z" fill="#0284c7" fill-opacity="0.3"/><text x="32" y="36" font-family="sans-serif" font-size="8" fill="#0284c7" text-anchor="middle" font-weight="bold">W</text></svg>`,
+    'rotate-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-rotate" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#65a30d"/><stop offset="100%" stop-color="#84cc16"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-rotate)"/><path d="M20 12h14l10 10v14L34 46H20a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M48 24a16 16 0 11-16-16v4a12 12 0 1012 12z" fill="#fff"/></svg>`,
+    'edit-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-edit" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ea580c"/><stop offset="100%" stop-color="#fb923c"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-edit)"/><path d="M16 12h22l10 10v26a4 4 0 01-4 4H16a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M24 40h16v2H24zm-2-4l10-10 4 4-10 10zm16-14l-4-4 4-4 4 4z" fill="#ea580c"/></svg>`,
+    'page-numbers': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-numbers" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#818cf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-numbers)"/><path d="M16 12h22l10 10v26a4 4 0 01-4 4H16a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M30 44a6 6 0 11-2-11.8V28h-4v-4h8v16.5A6 6 0 0130 44z" fill="#4f46e5"/></svg>`,
+    'flag-us': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="us-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#us-clip)"><rect width="64" height="64" fill="#BF0A30"/><path d="M0,8 H64 M0,18.6 H64 M0,29.2 H64 M0,39.8 H64 M0,50.4 H64 M0,61 H64" stroke="#FFF" stroke-width="5.3"/><rect width="32" height="34.5" fill="#002868"/><g fill="#FFF" transform="translate(16 17.25) scale(1.5)"><path d="M-5.2-6.4l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm-9.6 3.8l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm-3.2 3.8l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm-9.6 3.8l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2z"/></g></g></svg>`,
+    'flag-es': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="es-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#es-clip)"><rect width="64" height="64" fill="#C60B1E"/><rect y="16" width="64" height="32" fill="#FFC400"/><g transform="translate(18 25) scale(0.6)"><path d="M14 0V20M20 0V20" stroke="#C60B1E" stroke-width="3"/><path d="M17 1 a 6 6 0 0 0-6 6 v 8 a 6 6 0 0 0 12 0 v -8 a 6 6 0 0 0-6-6" fill="#C60B1E"/><circle cx="17" cy="11" r="3" fill="#003893"/><path d="M17 0 a 3 3 0 0 1 0 6 a 3 3 0 0 1 0-6" fill="#FFC400" stroke="#C60B1E" stroke-width="1"/></g></g></svg>`,
+    'flag-fr': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="fr-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#fr-clip)"><rect width="64" height="64" fill="#0055A4"/><rect x="21.33" width="21.34" height="64" fill="#FFF"/><rect x="42.67" width="21.33" height="64" fill="#EF4135"/></g></svg>`,
+    'flag-de': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="de-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#de-clip)"><rect width="64" height="64" fill="#000"/><rect y="21.33" width="64" height="21.34" fill="#DD0000"/><rect y="42.67" width="64" height="21.33" fill="#FFCE00"/></g></svg>`,
+    'flag-it': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="it-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#it-clip)"><rect width="64" height="64" fill="#009246"/><rect x="21.33" width="21.34" height="64" fill="#FFF"/><rect x="42.67" width="21.33" height="64" fill="#CE2B37"/></g></svg>`,
+    'flag-pt': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="pt-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#pt-clip)"><rect width="64" height="64" fill="#FF0000"/><rect width="25.6" height="64" fill="#006241"/><circle cx="25.6" cy="32" r="10" fill="#FFC400"/><g transform="translate(25.6 32) scale(0.8)"><path d="M0 -7.5 A 7.5 7.5 0 0 1 0 7.5 A 7.5 7.5 0 0 1 0 -7.5 Z" fill="none" stroke="#000" stroke-width="1"/><path d="M0 -5 A 5 5 0 0 1 0 5 A 5 5 0 0 1 0 -5 Z" fill="#FFF" stroke="#DA291C" stroke-width="1"/><rect x="-2" y="-2" width="4" height="4" fill="#003893" transform="rotate(45)"/></g></g></svg>`,
+    'flag-ru': `<svg class="icon" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#fff"/><path d="M0 28h64v24H0z" fill="#0039a6"/><path d="M0 40h64v12H0z" fill="#d52b1e"/></svg>`,
+    'flag-cn': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="cn-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#cn-clip)"><rect width="64" height="64" fill="#EE1C25"/><g fill="#FFFF00" transform="translate(16, 16) scale(1.2)"><polygon points="0,-8 2.47, -3.09 7.6, -2.47 3.8, 1.54 5.29, 6.47 0, 4 -5.29, 6.47 -3.8, 1.54 -7.6, -2.47 -2.47, -3.09"/><g transform="translate(12, -4) rotate(20) scale(0.3)"><polygon points="0,-8 2.47, -3.09 7.6, -2.47 3.8, 1.54 5.29, 6.47 0, 4 -5.29, 6.47 -3.8, 1.54 -7.6, -2.47 -2.47, -3.09"/></g><g transform="translate(15, 2) rotate(45) scale(0.3)"><polygon points="0,-8 2.47, -3.09 7.6, -2.47 3.8, 1.54 5.29, 6.47 0, 4 -5.29, 6.47 -3.8, 1.54 -7.6, -2.47 -2.47, -3.09"/></g><g transform="translate(15, 8) rotate(70) scale(0.3)"><polygon points="0,-8 2.47, -3.09 7.6, -2.47 3.8, 1.54 5.29, 6.47 0, 4 -5.29, 6.47 -3.8, 1.54 -7.6, -2.47 -2.47, -3.09"/></g><g transform="translate(12, 12) rotate(90) scale(0.3)"><polygon points="0,-8 2.47, -3.09 7.6, -2.47 3.8, 1.54 5.29, 6.47 0, 4 -5.29, 6.47 -3.8, 1.54 -7.6, -2.47 -2.47, -3.09"/></g></g></g></svg>`,
+    'flag-jp': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="jp-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#jp-clip)"><rect width="64" height="64" fill="#fff"/><circle cx="32" cy="32" r="19" fill="#BC002D"/></g></svg>`,
+    'flag-in': `<svg class="icon" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#ff9933"/><path d="M0 28h64v24H0z" fill="#fff"/><path d="M0 40h64v12H0z" fill="#138808"/><circle cx="32" cy="32" r="5" fill="none" stroke="#000080" stroke-width="1.5"/><path d="M32 27v10M27 32h10" stroke="#000080" stroke-width="1"/><path d="M28.5 28.5l7 7M35.5 28.5l-7 7" stroke="#000080" stroke-width="1"/></svg>`,
+    'flag-pk': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="pk-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#pk-clip)"><rect width="64" height="64" fill="#00401A"/><rect width="16" height="64" fill="#FFF"/><circle cx="42" cy="32" r="12" fill="#FFF"/><circle cx="45" cy="32" r="10" fill="#00401A"/><polygon points="52,24 53,28 57,28 54,30.5 55,34.5 52,32 49,34.5 50,30.5 47,28 51,28" fill="#FFF"/></g></svg>`,
+    'flag-uk': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="uk-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#uk-clip)"><rect width="64" height="64" fill="#012169"/><path d="M0,0 L64,64 M64,0 L0,64" stroke="#FFF" stroke-width="12.8"/><path d="M0,0 L64,64 M64,0 L0,64" stroke="#C8102E" stroke-width="7.68"/><path d="M0,25.6 V38.4 H64 V25.6 Z M25.6,0 H38.4 V64 H25.6 Z" fill="#FFF"/><path d="M0,28.8 V35.2 H64 V28.8 Z M28.8,0 H35.2 V64 H28.8 Z" fill="#C8102E"/></g></svg>`,
+
+    'mic-record': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>`,
+    'mic-pause': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>`,
+    'mic-stop': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"></path></svg>`,
+    'eye-preview': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`
 };
 
-const getIcon = (name) => ICONS[name] || ICONS['placeholder'];
-
-// --- DYNAMIC SCRIPT LOADER ---
-const loadedScripts = new Map<string, Promise<any>>();
-
-const loadScript = (url: string, globalName: string): Promise<any> => {
-    if (loadedScripts.has(url)) {
-        return loadedScripts.get(url)!;
-    }
-    const promise = new Promise((resolve, reject) => {
-        if (window[globalName]) {
-            return resolve(window[globalName]);
-        }
-        const script = document.createElement('script');
-        script.src = url;
-        script.onload = () => {
-            if (window[globalName]) {
-                resolve(window[globalName]);
-            } else {
-                reject(new Error(`Script loaded but global '${globalName}' not found.`));
-            }
-        };
-        script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
-        document.head.appendChild(script);
-    });
-    loadedScripts.set(url, promise);
-    return promise;
-};
-
-// --- TOOL IMPLEMENTATIONS ---
-interface ToolImplementation {
+// --- TYPE DEFINITIONS ---
+interface Tool {
+    id: string;
     title: string;
     subtitle: string;
     icon: string;
-    fileType: string;
-    multiple?: boolean;
-    interactive?: boolean;
-    options?: (file?: File) => string;
-    process?: (files: File[], opts: Record<string, any>) => Promise<void>;
-    onOptionsReady?: (file: File | File[]) => void;
+    accept: string;
+    isComingSoon?: boolean;
+    isFileTool: boolean;
+    language?: string;
+    continue?: string[];
 }
 
-const toolImplementations: { [key: string]: ToolImplementation } = {
-    'merge-pdf': {
-        title: 'Merge PDF',
-        subtitle: 'Combine multiple PDFs into one single document.',
-        icon: getIcon('merge-pdf'),
-        fileType: '.pdf',
-        multiple: true,
-        process: async (files, opts) => {
-            const { PDFDocument } = await import('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.esm.js');
-            const mergedPdf = await PDFDocument.create();
-            for (const file of files) {
-                const pdfBytes = await file.arrayBuffer();
-                const pdf = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-                const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-                copiedPages.forEach(page => mergedPdf.addPage(page));
-            }
-            const mergedPdfBytes = await mergedPdf.save();
-            showCompleteView(new Blob([mergedPdfBytes], { type: 'application/pdf' }), `GenieConverter Merge PDF merged.pdf`);
-        }
-    },
-    'split-pdf': {
-        title: 'Split PDF',
-        subtitle: 'Separate one page or a whole set for easy conversion into independent PDF files.',
-        icon: getIcon('split-pdf'),
-        fileType: '.pdf',
-        multiple: false,
-        options: () => `
-            <div class="option-group">
-                <h4>Split options</h4>
-                <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 1rem;">Select the pages you want to extract from the PDF file.</p>
-                <div id="split-ranges-container"></div>
-                <button id="add-range-btn" class="btn-secondary">+ Add Range</button>
-            </div>
-            <div class="option-group checkbox-group">
-                <input type="checkbox" id="merge-ranges-checkbox" style="width: auto;">
-                <label for="merge-ranges-checkbox">Merge all ranges in one PDF file.</label>
-            </div>
-        `,
-        onOptionsReady: async (file) => {
-            const singleFile = Array.isArray(file) ? file[0] : file;
-            const rangesContainer = document.getElementById('split-ranges-container')!;
-            const addRangeBtn = document.getElementById('add-range-btn')!;
-            const pdfjsLib = await loadScript('https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js', 'pdfjsLib');
-            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js`;
-            const arrayBuffer = await singleFile.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            
-            const addRange = (from = 1, to = pdf.numPages) => {
-                const rangeId = `range-${Date.now()}`;
-                const item = document.createElement('div');
-                item.className = 'split-range-item';
-                item.innerHTML = `
-                    <label for="${rangeId}-from">From page</label>
-                    <input type="number" id="${rangeId}-from" value="${from}" min="1" max="${pdf.numPages}">
-                    <label for="${rangeId}-to">to</label>
-                    <input type="number" id="${rangeId}-to" value="${to}" min="1" max="${pdf.numPages}">
-                    <button class="remove-range-btn" data-range-id="${rangeId}">&times;</button>
-                `;
-                rangesContainer.appendChild(item);
-                item.querySelector('.remove-range-btn')!.addEventListener('click', () => item.remove());
-            };
+interface Category {
+    title: string;
+    tools: string[];
+}
 
-            addRangeBtn.addEventListener('click', () => addRange(1,1));
-            addRange(); // Add initial range
-        },
-        process: async (files, opts) => {
-            const { PDFDocument } = await import('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.esm.js');
-            const file = files[0];
-            const pdfBytes = await file.arrayBuffer();
-            const pdf = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-            
-            const ranges: {from: number, to: number}[] = [];
-            document.querySelectorAll('.split-range-item').forEach(item => {
-                const from = parseInt((item.querySelector('input:first-of-type') as HTMLInputElement).value, 10);
-                const to = parseInt((item.querySelector('input:last-of-type') as HTMLInputElement).value, 10);
-                if (!isNaN(from) && !isNaN(to) && from > 0 && to >= from && to <= pdf.getPageCount()) {
-                    ranges.push({ from, to });
-                }
-            });
+// --- GLOBAL STATE ---
+let currentTool: Tool | null = null;
+let currentFiles: File[] = [];
+let recordingInterval: number | null = null;
+let wavesurfer: any = null;
 
-            if (ranges.length === 0) throw new Error('No valid ranges specified.');
 
-            const mergeRanges = (document.getElementById('merge-ranges-checkbox') as HTMLInputElement).checked;
+// --- API INITIALIZATION ---
+let ai;
+try {
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+} catch (error) {
+    console.error("Failed to initialize GoogleGenAI:", error);
+    // Display an error message to the user
+    const errorDiv = document.getElementById('error-message');
+    if (errorDiv) {
+        errorDiv.textContent = 'Could not initialize AI services. Please check your API key and refresh the page.';
+        errorDiv.style.display = 'block';
+    }
+}
 
-            if (mergeRanges) {
-                const newPdf = await PDFDocument.create();
-                const pageIndices = new Set<number>();
-                ranges.forEach(r => {
-                    for (let i = r.from; i <= r.to; i++) pageIndices.add(i - 1);
-                });
-                const sortedIndices = Array.from(pageIndices).sort((a,b) => a - b);
-                const copiedPages = await newPdf.copyPages(pdf, sortedIndices);
-                copiedPages.forEach(page => newPdf.addPage(page));
-                const newPdfBytes = await newPdf.save();
-                showCompleteView(new Blob([newPdfBytes], { type: 'application/pdf' }), `GenieConverter Split PDF ${file.name}`);
-            } else {
-                const JSZip = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip');
-                const zip = new JSZip();
-                for (let i = 0; i < ranges.length; i++) {
-                    const range = ranges[i];
-                    const newPdf = await PDFDocument.create();
-                    const indices = Array.from({length: range.to - range.from + 1}, (_, k) => k + range.from - 1);
-                    const copiedPages = await newPdf.copyPages(pdf, indices);
-                    copiedPages.forEach(page => newPdf.addPage(page));
-                    const newPdfBytes = await newPdf.save();
-                    const baseName = file.name.replace(/\.pdf$/i, '');
-                    zip.file(`${baseName}_pages_${range.from}-${range.to}.pdf`, newPdfBytes);
-                }
-                const zipBlob = await zip.generateAsync({ type: 'blob' });
-                showCompleteView(zipBlob, `GenieConverter Split PDF ${file.name.replace(/\.pdf$/i, '.zip')}`);
-            }
-        }
-    },
-    'compress-pdf': {
-        title: 'Compress PDF',
-        subtitle: 'Reduce the file size of your PDF while optimizing for maximal quality.',
-        icon: getIcon('compress-pdf'),
-        fileType: '.pdf',
-        multiple: false,
-    },
-    'word-to-pdf': {
-        title: 'Word to PDF',
-        subtitle: 'Easily convert your DOC and DOCX files to PDF.',
-        icon: getIcon('word-to-pdf'),
-        fileType: '.doc,.docx',
-        multiple: true,
-        process: async (files, opts) => {
-            const { PDFDocument } = await import('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.esm.js');
-            const mammoth = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js', 'mammoth');
-            const html2pdf = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', 'html2pdf');
-            
-            if (files.length === 1) {
-                const file = files[0];
-                const arrayBuffer = await file.arrayBuffer();
-                const { value: html } = (await mammoth.convertToHtml({ arrayBuffer })) as { value: string };
-                const element = document.createElement('div');
-                element.innerHTML = html;
-                const pdfOpts = { margin: 1, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
-                const newFilename = `GenieConverter Word to PDF ${file.name.replace(/\.(doc|docx)$/i, '.pdf')}`;
-                const pdfBlob = await html2pdf().from(element).set({...pdfOpts, filename: newFilename }).output('blob');
-                showCompleteView(pdfBlob, newFilename);
-            } else {
-                 const mergedPdf = await PDFDocument.create();
-                 for (const file of files) {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const { value: html } = (await mammoth.convertToHtml({ arrayBuffer })) as { value: string };
-                    const element = document.createElement('div');
-                    element.innerHTML = html;
-                    const pdfOpts = { margin: 1, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
-                    const pdfBytes = await html2pdf().from(element).set(pdfOpts).output('arraybuffer');
-                    const pdf = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-                    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-                    copiedPages.forEach(page => mergedPdf.addPage(page));
-                 }
-                 const mergedPdfBytes = await mergedPdf.save();
-                 showCompleteView(new Blob([mergedPdfBytes], { type: 'application/pdf' }), `GenieConverter Word to PDF merged.pdf`);
-            }
-        }
-    },
-     'excel-to-pdf': {
-        title: 'Excel to PDF',
-        subtitle: 'Convert your Excel spreadsheets to PDF.',
-        icon: getIcon('excel-to-pdf'),
-        fileType: '.xlsx',
-        multiple: false,
-        process: async (files, opts) => {
-            const XLSX = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'XLSX');
-            const html2pdf = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', 'html2pdf');
-            const file = files[0];
-            const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data, {type: 'array'});
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const html = XLSX.utils.sheet_to_html(worksheet);
-            const element = document.createElement('div');
-            element.innerHTML = `<style>table{border-collapse:collapse;width:100%;}th,td{border:1px solid #ccc;padding:8px;text-align:left;}</style>${html}`;
-            const newFilename = `GenieConverter Excel to PDF ${file.name.replace(/\.xlsx$/i, '.pdf')}`;
-            const pdfOpts = { margin: 0.5, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' } };
-            const pdfBlob = await html2pdf().from(element).set({...pdfOpts, filename: newFilename}).output('blob');
-            showCompleteView(pdfBlob, newFilename);
-        }
-    },
-    'ppt-to-pdf': { title: 'PPT to PDF', subtitle: 'Convert PowerPoint presentations to PDF.', fileType: '.pptx', icon: getIcon('ppt-to-pdf'), },
-    'html-to-pdf': { title: 'HTML to PDF', subtitle: 'Convert webpages in HTML to PDF.', fileType: '.html', icon: getIcon('html-to-pdf'), },
-    'jpg-to-pdf': {
-        title: 'JPG to PDF',
-        subtitle: 'Convert JPG images to PDF in seconds.',
-        icon: getIcon('jpg-to-pdf'),
-        fileType: '.jpg,.jpeg',
-        multiple: true,
-        process: async (files, opts) => {
-            const { PDFDocument } = await import('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.esm.js');
-            const pdfDoc = await PDFDocument.create();
-            for (const file of files) {
-                const jpgBytes = await file.arrayBuffer();
-                const jpgImage = await pdfDoc.embedJpg(jpgBytes);
-                const page = pdfDoc.addPage([jpgImage.width, jpgImage.height]);
-                page.drawImage(jpgImage, { x: 0, y: 0, width: jpgImage.width, height: jpgImage.height });
-            }
-            const pdfBytes = await pdfDoc.save();
-            const filename = files.length === 1 ? files[0].name.replace(/\.(jpg|jpeg)$/i, '.pdf') : 'images.pdf';
-            showCompleteView(new Blob([pdfBytes], { type: 'application/pdf' }), `GenieConverter JPG to PDF ${filename}`);
-        }
-    },
-    'sign-pdf': {
-        title: 'Sign PDF',
-        subtitle: 'Sign yourself or request electronic signatures from others.',
-        icon: getIcon('sign-pdf'),
-        fileType: '.pdf',
-        multiple: false,
-        interactive: true,
-        process: async (files, opts) => {
-            const { PDFDocument } = await import('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.esm.js');
-            const file = files[0];
-            const pdfBytes = await file.arrayBuffer();
-            const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-            
-            for (const sig of placedSignatures) {
-                const page = pdfDoc.getPage(sig.pageIndex);
-                const { width: pageWidth, height: pageHeight } = page.getSize();
-                const sigImageBytes = atob(sig.imageDataUrl.split(',')[1]).split('').map(c => c.charCodeAt(0));
-                const sigImage = await pdfDoc.embedPng(new Uint8Array(sigImageBytes));
+// --- TOOL FACTORY ---
+const createSpeechToTextTool = (languageName: string, langCode: string, icon: string): Tool => ({
+    id: `speech-to-text-${langCode}`,
+    title: `Speech to Text ${languageName}`,
+    subtitle: `Transcribe ${languageName} audio to text`,
+    icon,
+    accept: 'audio/*',
+    isFileTool: false,
+    language: langCode,
+});
 
-                page.drawImage(sigImage, {
-                    x: (sig.x / sig.canvasWidth) * pageWidth,
-                    y: pageHeight - ((sig.y + sig.height) / sig.canvasHeight) * pageHeight,
-                    width: (sig.width / sig.canvasWidth) * pageWidth,
-                    height: (sig.height / sig.canvasHeight) * pageHeight,
-                });
-            }
 
-            const newPdfBytes = await pdfDoc.save();
-            showCompleteView(new Blob([newPdfBytes], { type: 'application/pdf' }), `GenieConverter Sign PDF ${file.name}`);
-        }
-    },
-    'stamp-pdf': {
-        title: 'Stamp PDF',
-        subtitle: 'Apply a signature to the same spot on every page of your documents.',
-        icon: getIcon('stamp-pdf'),
-        fileType: '.pdf',
-        multiple: true,
-        interactive: true,
-        process: async (files, opts) => {
-             const { PDFDocument } = await import('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.esm.js');
-             if (placedSignatures.length === 0) throw new Error("No signature has been placed.");
-             
-             const sig = placedSignatures[0]; // Use the first placed signature as the stamp
-             const sigImageBytes = atob(sig.imageDataUrl.split(',')[1]).split('').map(c => c.charCodeAt(0));
-             
-             const JSZip = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip');
-             const zip = new JSZip();
+// --- TOOL DEFINITIONS ---
+const TOOLS: Record<string, Tool> = {
+    // PDF Tools
+    'merge-pdf': { id: 'merge-pdf', title: 'Merge PDF', subtitle: 'Combine multiple PDFs into one.', icon: ICONS['merge-pdf'], accept: '.pdf', isFileTool: true, continue: ['split-pdf', 'compress-pdf', 'sign-pdf'] },
+    'split-pdf': { id: 'split-pdf', title: 'Split PDF', subtitle: 'Extract pages from a PDF.', icon: ICONS['split-pdf'], accept: '.pdf', isFileTool: true },
+    'compress-pdf': { id: 'compress-pdf', title: 'Compress PDF', subtitle: 'Reduce the file size of your PDF.', icon: ICONS['compress-pdf'], accept: '.pdf', isFileTool: true },
+    'sign-pdf': { id: 'sign-pdf', title: 'Sign PDF', subtitle: 'Add your signature to a PDF.', icon: ICONS['sign-pdf'], accept: '.pdf', isFileTool: true },
+    'stamp-pdf': { id: 'stamp-pdf', title: 'Stamp PDF', subtitle: 'Add an image stamp to a PDF.', icon: ICONS['stamp-pdf'], accept: '.pdf', isFileTool: true, isComingSoon: true },
+    'watermark': { id: 'watermark', title: 'Watermark PDF', subtitle: 'Add text or image watermark.', icon: ICONS['watermark'], accept: '.pdf', isFileTool: true },
+    'edit-pdf': { id: 'edit-pdf', title: 'Edit PDF', subtitle: 'Add text, shapes, and annotations.', icon: ICONS['edit-pdf'], accept: '.pdf', isFileTool: true, isComingSoon: true },
+    'rotate-pdf': { id: 'rotate-pdf', title: 'Rotate PDF', subtitle: 'Rotate all or specific pages.', icon: ICONS['rotate-pdf'], accept: '.pdf', isFileTool: true },
+    'protect-pdf': { id: 'protect-pdf', title: 'Protect PDF', subtitle: 'Add password and encryption.', icon: ICONS['protect-pdf'], accept: '.pdf', isFileTool: true },
+    'unlock-pdf': { id: 'unlock-pdf', title: 'Unlock PDF', subtitle: 'Remove password from a PDF.', icon: ICONS['unlock-pdf'], accept: '.pdf', isFileTool: true },
+    'organize-pdf': { id: 'organize-pdf', title: 'Organize PDF', subtitle: 'Reorder, delete, or add pages.', icon: ICONS['organize-pdf'], accept: '.pdf', isFileTool: true },
+    'page-numbers': { id: 'page-numbers', title: 'Add Page Numbers', subtitle: 'Insert page numbers into PDF.', icon: ICONS['page-numbers'], accept: '.pdf', isFileTool: true },
+    'ocr-pdf': { id: 'ocr-pdf', title: 'OCR PDF', subtitle: 'Recognize text in scanned PDFs.', icon: ICONS['ocr-pdf'], accept: '.pdf', isFileTool: true },
+    'pdfa': { id: 'pdfa', title: 'PDF to PDF/A', subtitle: 'Convert PDF to archival format.', icon: ICONS['pdfa'], accept: '.pdf', isFileTool: true },
 
-             for (const file of files) {
-                const pdfBytes = await file.arrayBuffer();
-                const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-                const sigImage = await pdfDoc.embedPng(new Uint8Array(sigImageBytes));
+    // Conversion to PDF
+    'word-to-pdf': { id: 'word-to-pdf', title: 'Word to PDF', subtitle: 'Convert DOC, DOCX to PDF.', icon: ICONS['word-to-pdf'], accept: '.doc,.docx', isFileTool: true },
+    'powerpoint-to-pdf': { id: 'powerpoint-to-pdf', title: 'PowerPoint to PDF', subtitle: 'Convert PPT, PPTX to PDF.', icon: ICONS['powerpoint-to-pdf'], accept: '.ppt,.pptx', isFileTool: true },
+    'excel-to-pdf': { id: 'excel-to-pdf', title: 'Excel to PDF', subtitle: 'Convert XLSX to PDF.', icon: ICONS['excel-to-pdf'], accept: '.xlsx', isFileTool: true },
+    'html-to-pdf': { id: 'html-to-pdf', title: 'HTML to PDF', subtitle: 'Convert web pages to PDF.', icon: ICONS['html-to-pdf'], accept: '.html', isFileTool: true },
+    'image-to-pdf': { id: 'image-to-pdf', title: 'Image to PDF', subtitle: 'Convert JPG, PNG to PDF.', icon: ICONS['image-to-pdf'], accept: '.jpg,.jpeg,.png', isFileTool: true },
 
-                for (const page of pdfDoc.getPages()) {
-                    const { width: pageWidth, height: pageHeight } = page.getSize();
-                    page.drawImage(sigImage, {
-                        x: (sig.x / sig.canvasWidth) * pageWidth,
-                        y: pageHeight - ((sig.y + sig.height) / sig.canvasHeight) * pageHeight,
-                        width: (sig.width / sig.canvasWidth) * pageWidth,
-                        height: (sig.height / sig.canvasHeight) * pageHeight,
-                    });
-                }
-                const newPdfBytes = await pdfDoc.save();
-                zip.file(`stamped_${file.name}`, newPdfBytes);
-             }
+    // Conversion from PDF
+    'pdf-to-word': { id: 'pdf-to-word', title: 'PDF to Word', subtitle: 'Convert PDF to DOCX.', icon: ICONS['pdf-to-word'], accept: '.pdf', isFileTool: true },
+    'pdf-to-powerpoint': { id: 'pdf-to-powerpoint', title: 'PDF to PowerPoint', subtitle: 'Convert PDF to PPTX.', icon: ICONS['pdf-to-powerpoint'], accept: '.pdf', isFileTool: true },
+    'pdf-to-excel': { id: 'pdf-to-excel', title: 'PDF to Excel', subtitle: 'Convert PDF to XLSX.', icon: ICONS['pdf-to-excel'], accept: '.pdf', isFileTool: true },
+    'pdf-to-jpg': { id: 'pdf-to-jpg', title: 'PDF to JPG', subtitle: 'Convert PDF pages to JPGs.', icon: ICONS['pdf-to-jpg'], accept: '.pdf', isFileTool: true },
 
-             if (files.length === 1) {
-                const stampedFile = Object.values(zip.files)[0];
-// Fix: Cast stampedFile to any to access the 'async' method from the dynamically loaded JSZip library.
-                const blob = await (stampedFile as any).async('blob');
-                showCompleteView(blob, `GenieConverter Stamp PDF ${files[0].name}`);
-             } else {
-                const zipBlob = await zip.generateAsync({ type: 'blob' });
-                showCompleteView(zipBlob, `GenieConverter Stamp PDF stamped_files.zip`);
-             }
-        }
-    },
-    'edit-pdf': { title: 'Edit PDF', subtitle: 'Edit PDF files for free.', fileType: '.pdf', icon: getIcon('edit-pdf'), },
-    'pdf-to-word': { title: 'PDF to Word', subtitle: 'Easily convert your PDF files into editable DOC and DOCX documents.', fileType: '.pdf', icon: getIcon('pdf-to-word'), },
-    'pdf-to-excel': { title: 'PDF to Excel', subtitle: 'Convert data from PDF to Excel spreadsheets.', fileType: '.pdf', icon: getIcon('pdf-to-excel'), },
-    'pdf-to-jpg': {
-        title: 'PDF to JPG',
-        subtitle: 'Extract all images from a PDF or convert each page into a JPG image.',
-        icon: getIcon('pdf-to-jpg'),
-        fileType: '.pdf',
-        multiple: false,
-        options: () => `<div class="option-group"><h4>JPG Quality</h4><input type="range" id="pdf-to-jpg-quality" min="0.1" max="1" step="0.1" value="0.9"></div>`,
-        process: async (files, opts) => {
-            const pdfjsLib = await loadScript('https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js', 'pdfjsLib');
-            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js`;
-            const JSZip = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip');
-            
-            const quality = parseFloat((document.getElementById('pdf-to-jpg-quality') as HTMLInputElement).value);
-            const file = files[0];
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
-            const zip = new JSZip();
-            
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 2.0 });
-                const canvas = document.createElement('canvas');
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
-                const context = canvas.getContext('2d');
-                await page.render({ canvasContext: context, viewport: viewport }).promise;
-                const dataUrl = canvas.toDataURL('image/jpeg', quality);
-                zip.file(`page_${i}.jpg`, dataUrl.split(',')[1], { base64: true });
-            }
-            
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
-            const newFilename = `GenieConverter PDF to JPG ${file.name.replace(/\.pdf$/i, '.zip')}`;
-            showCompleteView(zipBlob, newFilename);
-        }
-    },
-    'rotate-pdf': {
-        title: 'Rotate PDF',
-        subtitle: 'Rotate all or just a few pages in your PDF file.',
-        icon: getIcon('rotate-pdf'),
-        fileType: '.pdf',
-        multiple: false,
-        options: () => `
-            <div class="option-group">
-                <h4>Angle</h4>
-                <select id="rotation-angle">
-                    <option value="90">90° Clockwise</option>
-                    <option value="180">180°</option>
-                    <option value="270">270° Clockwise</option>
-                </select>
-            </div>
-        `,
-        process: async (files, opts) => {
-            const { PDFDocument, degrees } = await import('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.esm.js');
-            const angle = parseInt((document.getElementById('rotation-angle') as HTMLSelectElement).value, 10);
-            const file = files[0];
-            const pdfBytes = await file.arrayBuffer();
-            const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-            const pages = pdfDoc.getPages();
-            pages.forEach(page => page.setRotation(degrees(page.getRotation().angle + angle)));
-            const newPdfBytes = await pdfDoc.save();
-            showCompleteView(new Blob([newPdfBytes], { type: 'application/pdf' }), `GenieConverter Rotate PDF ${file.name}`);
-        }
-    },
-    'watermark-pdf': {
-        title: 'Watermark PDF',
-        subtitle: 'Stamp an image or text over your PDF in seconds.',
-        icon: getIcon('watermark-pdf'),
-        fileType: '.pdf',
-        multiple: false,
-        interactive: true,
-        options: () => `
-            <div class="option-group">
-                <h4>Watermark Text</h4>
-                <input type="text" id="watermark-text" value="CONFIDENTIAL">
-            </div>
-            <div class="option-group">
-                <h4>Font Size</h4>
-                <input type="range" id="watermark-size" min="10" max="200" value="50">
-            </div>
-            <div class="option-group">
-                <h4>Color</h4>
-                <input type="color" id="watermark-color" value="#ff0000">
-            </div>
-            <div class="option-group">
-                <h4>Opacity</h4>
-                <input type="range" id="watermark-opacity" min="0" max="1" step="0.1" value="0.2">
-            </div>
-        `,
-        onOptionsReady: (file) => {
-            // This is handled by the complex renderer function in renderPreview
-        },
-        process: async (files, opts) => {
-            const { PDFDocument, rgb, StandardFonts } = await import('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.esm.js');
-            const file = files[0];
-            const pdfBytes = await file.arrayBuffer();
-            const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-            const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-            
-            const text = (document.getElementById('watermark-text') as HTMLInputElement).value;
-            const colorHex = (document.getElementById('watermark-color') as HTMLInputElement).value;
-            const opacity = parseFloat((document.getElementById('watermark-opacity') as HTMLInputElement).value);
-            const color = {
-                r: parseInt(colorHex.slice(1, 3), 16) / 255,
-                g: parseInt(colorHex.slice(3, 5), 16) / 255,
-                b: parseInt(colorHex.slice(5, 7), 16) / 255
-            };
+    // Image Tools
+    'resize-image': { id: 'resize-image', title: 'Resize Image', subtitle: 'Change image dimensions.', icon: ICONS['resize-image'], accept: 'image/*', isFileTool: true, isComingSoon: true },
+    'png-to-jpg': { id: 'png-to-jpg', title: 'PNG to JPG', subtitle: 'Convert PNG to JPG format.', icon: ICONS['png-to-jpg'], accept: '.png', isFileTool: true },
+    'jpg-to-png': { id: 'jpg-to-png', title: 'JPG to PNG', subtitle: 'Convert JPG to PNG format.', icon: ICONS['jpg-to-png'], accept: '.jpg,.jpeg', isFileTool: true },
 
-            const watermarkEl = document.getElementById('watermark-draggable')!;
-            const previewContainer = document.querySelector('.options-preview-pane')!;
-            const firstPageCanvas = previewContainer.querySelector('canvas')!;
-            
-            const firstPage = pdfDoc.getPage(0);
-            const { width: pdfWidth, height: pdfHeight } = firstPage.getSize();
-            const { width: canvasWidth, height: canvasHeight } = firstPageCanvas;
-
-            // Convert DOM position (pixels) to PDF position (points)
-            const x = (watermarkEl.offsetLeft / canvasWidth) * pdfWidth;
-            const y = ((canvasHeight - watermarkEl.offsetTop - watermarkEl.offsetHeight) / canvasHeight) * pdfHeight;
-            const pdfSize = (parseInt(watermarkEl.style.fontSize, 10) / canvasHeight) * pdfHeight;
-
-            for (const page of pdfDoc.getPages()) {
-                page.drawText(text, {
-                    x, y,
-                    font,
-                    size: pdfSize,
-                    color: rgb(color.r, color.g, color.b),
-                    opacity
-                });
-            }
-            
-            const newPdfBytes = await pdfDoc.save();
-            showCompleteView(new Blob([newPdfBytes], { type: 'application/pdf' }), `GenieConverter Watermark PDF ${file.name}`);
-        }
-    },
-    'organize-pdf': { 
-        title: 'Organize PDF', 
-        subtitle: 'Sort, add, and delete PDF pages.', 
-        fileType: '.pdf', 
-        icon: getIcon('organize-pdf'),
-        interactive: true,
-        multiple: false,
-        process: async (files, opts) => {
-            const { PDFDocument, degrees } = await import('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.esm.js');
-            const file = files[0];
-            const pdfBytes = await file.arrayBuffer();
-            const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-            const newPdfDoc = await PDFDocument.create();
-
-            const pageElements = document.querySelectorAll('.page-thumbnail-wrapper');
-            const pageIndices = Array.from(pageElements).map(el => parseInt((el as HTMLElement).dataset.pageIndex!, 10));
-            const rotations = Array.from(pageElements).map(el => parseInt((el as HTMLElement).dataset.rotation!, 10));
-
-            const copiedPages = await newPdfDoc.copyPages(pdfDoc, pageIndices);
-
-            copiedPages.forEach((page, i) => {
-                page.setRotation(degrees(rotations[i]));
-                newPdfDoc.addPage(page);
-            });
-
-            const newPdfBytes = await newPdfDoc.save();
-            showCompleteView(new Blob([newPdfBytes], { type: 'application/pdf' }), `GenieConverter Organize PDF ${file.name}`);
-        }
-    },
-    'protect-pdf': {
-        title: 'Protect PDF',
-        subtitle: 'Encrypt your PDF with a password.',
-        icon: getIcon('protect-pdf'),
-        fileType: '.pdf',
-        multiple: false,
-        options: () => `<div class="option-group"><h4>Password</h4><input type="password" id="pdf-password"></div>`,
-        process: async (files, opts) => {
-            const { PDFDocument } = await import('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.esm.js');
-            const password = (document.getElementById('pdf-password') as HTMLInputElement).value;
-            if (!password) throw new Error('Password cannot be empty.');
-            const file = files[0];
-            const pdfBytes = await file.arrayBuffer();
-            const pdfDoc = await PDFDocument.load(pdfBytes);
-            const newPdfBytes = await pdfDoc.save({
-                userPassword: password,
-                ownerPassword: password,
-                permissions: {},
-            });
-            showCompleteView(new Blob([newPdfBytes], { type: 'application/pdf' }), `GenieConverter Protect PDF ${file.name}`);
-        }
-    },
-    'unlock-pdf': { title: 'Unlock PDF', subtitle: 'Remove password, encryption, and permissions from your PDF file.', fileType: '.pdf', icon: getIcon('unlock-pdf') },
-    'image-converter': { title: 'Image Converter', subtitle: 'Convert images to and from many formats.', fileType: 'image/*', icon: getIcon('image-converter') },
-    'resize-image': { title: 'Resize Image', subtitle: 'Define your dimensions, and we will do the rest.', fileType: 'image/*', icon: getIcon('resize-image') },
-    'remove-bg': { title: 'Remove Background', subtitle: 'Remove the background from any image.', fileType: 'image/*', icon: getIcon('remove-bg') },
-    'image-to-excel': { title: 'Image to Excel', subtitle: 'Extract tables from images and convert to Excel.', fileType: 'image/*', icon: getIcon('image-to-excel') },
-    'png-to-jpg': {
-        title: 'PNG to JPG',
-        subtitle: 'Convert PNG images to JPG format.',
-        icon: getIcon('png-to-jpg'),
-        fileType: '.png',
-        multiple: true,
-        process: (files) => processImageConversion(files, 'image/jpeg', '.jpg', 'PNG to JPG')
-    },
-    'jpg-to-png': {
-        title: 'JPG to PNG',
-        subtitle: 'Convert JPG images to PNG format.',
-        icon: getIcon('jpg-to-png'),
-        fileType: '.jpg,.jpeg',
-        multiple: true,
-        process: (files) => processImageConversion(files, 'image/png', '.png', 'JPG to PNG')
-    },
-    'excel-split-sheets': {
-        title: 'Excel Split Sheets',
-        subtitle: 'Split one Excel file into separate files, one per sheet.',
-        icon: getIcon('excel-split'),
-        fileType: '.xlsx',
-        multiple: false,
-        process: async (files, opts) => {
-            const XLSX = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'XLSX');
-            const JSZip = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip');
-            const file = files[0];
-            const data = await file.arrayBuffer();
-            const originalWorkbook = XLSX.read(data, {type: 'array'});
-            const zip = new JSZip();
-
-            for (const sheetName of originalWorkbook.SheetNames) {
-                const newWorkbook = XLSX.utils.book_new();
-                const sheet = originalWorkbook.Sheets[sheetName];
-                XLSX.utils.book_append_sheet(newWorkbook, sheet, sheetName);
-                const newXlsxData = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
-                zip.file(`${sheetName}.xlsx`, newXlsxData);
-            }
-
-            const zipBlob = await zip.generateAsync({type: 'blob'});
-            const newFilename = `GenieConverter Excel Split Sheets ${file.name.replace(/\.xlsx$/i, '.zip')}`;
-            showCompleteView(zipBlob, newFilename);
-        }
-    },
-    'excel-merge-sheets': {
-        title: 'Excel Merge Sheets',
-        subtitle: 'Combine multiple Excel files into a single workbook with multiple sheets.',
-        icon: getIcon('excel-merge'),
-        fileType: '.xlsx',
-        multiple: true,
-        process: async (files, opts) => {
-            const XLSX = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'XLSX');
-            const newWorkbook = XLSX.utils.book_new();
-            
-            for (const file of files) {
-                const data = await file.arrayBuffer();
-                const workbook = XLSX.read(data, {type: 'array'});
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                
-                let sheetName = file.name.replace(/\.xlsx$/i, '').substring(0, 31);
-                let counter = 1;
-                let finalSheetName = sheetName;
-                while(newWorkbook.SheetNames.includes(finalSheetName)) {
-                    finalSheetName = `${sheetName.substring(0, 30 - String(counter).length)}-${counter}`;
-                    counter++;
-                }
-                
-                XLSX.utils.book_append_sheet(newWorkbook, worksheet, finalSheetName);
-            }
-
-            const newXlsxData = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
-            const blob = new Blob([newXlsxData], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-            showCompleteView(blob, `GenieConverter Excel Merge Sheets merged.xlsx`);
-        }
-    },
+    // Audio Tools
+    'speech-to-text-en-us': createSpeechToTextTool('English (US)', 'en-US', ICONS['flag-us']),
+    'speech-to-text-en-gb': createSpeechToTextTool('English (UK)', 'en-GB', ICONS['flag-uk']),
+    'speech-to-text-es': createSpeechToTextTool('Spanish', 'es-ES', ICONS['flag-es']),
+    'speech-to-text-fr': createSpeechToTextTool('French', 'fr-FR', ICONS['flag-fr']),
+    'speech-to-text-de': createSpeechToTextTool('German', 'de-DE', ICONS['flag-de']),
+    'speech-to-text-it': createSpeechToTextTool('Italian', 'it-IT', ICONS['flag-it']),
+    'speech-to-text-pt': createSpeechToTextTool('Portuguese', 'pt-PT', ICONS['flag-pt']),
+    'speech-to-text-ru': createSpeechToTextTool('Russian', 'ru-RU', ICONS['flag-ru']),
+    'speech-to-text-zh': createSpeechToTextTool('Chinese', 'zh-CN', ICONS['flag-cn']),
+    'speech-to-text-ja': createSpeechToTextTool('Japanese', 'ja-JP', ICONS['flag-jp']),
+    'speech-to-text-hi': createSpeechToTextTool('Hindi', 'hi-IN', ICONS['flag-in']),
+    'speech-to-text-ur': createSpeechToTextTool('Urdu', 'ur-PK', ICONS['flag-pk']),
 };
 
-const processImageConversion = async (files: File[], format: 'image/jpeg' | 'image/png', extension: string, toolName: string) => {
-    const JSZip = await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip');
-    const zip = new JSZip();
+const CATEGORIES: Category[] = [
+    { title: 'PDF Tools', tools: ['merge-pdf', 'split-pdf', 'compress-pdf', 'organize-pdf', 'sign-pdf', 'watermark', 'rotate-pdf', 'page-numbers', 'protect-pdf', 'unlock-pdf', 'ocr-pdf', 'pdfa', 'stamp-pdf', 'edit-pdf'] },
+    { title: 'Convert to PDF', tools: ['word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf', 'image-to-pdf'] },
+    { title: 'Convert from PDF', tools: ['pdf-to-word', 'pdf-to-powerpoint', 'pdf-to-excel', 'pdf-to-jpg'] },
+    { title: 'Image Tools', tools: ['resize-image', 'png-to-jpg', 'jpg-to-png'] },
+    { title: 'Audio Tools', tools: ['speech-to-text-en-us', 'speech-to-text-en-gb', 'speech-to-text-es', 'speech-to-text-fr', 'speech-to-text-de', 'speech-to-text-it', 'speech-to-text-pt', 'speech-to-text-ru', 'speech-to-text-zh', 'speech-to-text-ja', 'speech-to-text-hi', 'speech-to-text-ur'] }
+];
 
-    const conversionPromises = files.map(file => {
-        return new Promise<void>((resolve, reject) => {
-            const image = new Image();
-            const reader = new FileReader();
-            
-            reader.onload = e => {
-                image.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = image.width;
-                    canvas.height = image.height;
-                    const ctx = canvas.getContext('2d')!;
-                    if (format === 'image/jpeg') {
-                        ctx.fillStyle = '#FFFFFF';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    }
-                    ctx.drawImage(image, 0, 0);
-                    canvas.toBlob(blob => {
-                        if (blob) {
-                            const newFilename = file.name.replace(/\.[^/.]+$/, "") + extension;
-                            zip.file(newFilename, blob);
-                        }
-                        resolve();
-                    }, format, 0.95);
-                };
-                image.onerror = reject;
-                image.src = e.target!.result as string;
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
+// --- DOM ELEMENTS ---
+const getElement = <T extends HTMLElement>(selector: string, parent: Document | Element = document) => parent.querySelector(selector) as T;
+
+const DOMElements = {
+    toolsGrid: getElement('#tools-grid'),
+    toolSkeletons: getElement('#tool-skeletons'),
+    recentToolsGrid: getElement('#recent-tools-grid'),
+    recentToolsSection: getElement('#recent-tools'),
+    searchInput: getElement<HTMLInputElement>('#search-input'),
+    categoryFilters: getElement('#category-filters'),
+    modal: getElement('#tool-modal'),
+    modalTitle: getElement('#modal-title'),
+    modalSubtitle: getElement('#modal-subtitle'),
+    modalContent: getElement('#tool-modal .modal-content'),
+    closeModalBtn: getElement<HTMLButtonElement>('#tool-modal .close-modal'),
+    initialView: getElement('#modal-initial-view'),
+    optionsView: getElement('#modal-options-view'),
+    processingView: getElement('#modal-processing-view'),
+    completeView: getElement('#modal-complete-view'),
+    selectFileBtn: getElement<HTMLButtonElement>('#select-file-btn'),
+    fileInput: getElement<HTMLInputElement>('#file-input'),
+    processBtnContainer: getElement('.process-btn-container'),
+    processBtn: getElement<HTMLButtonElement>('#process-btn'),
+    previewPane: getElement('.options-preview-pane'),
+    optionsPane: getElement('#tool-options'),
+    optionsSidebarPane: getElement('.options-sidebar-pane'),
+    progressBar: getElement('#progress-bar'),
+    progressPercentage: getElement('#progress-percentage'),
+    processingText: getElement('#processing-text'),
+    completeTitle: getElement('#complete-title'),
+    downloadArea: getElement('#download-area'),
+    continueToolsGrid: getElement('#continue-tools-grid'),
+    errorMessage: getElement('#error-message'),
+    dropOverlay: getElement('#drop-overlay'),
+    serviceSelectorModal: getElement('#service-selector-modal'),
+    serviceList: getElement('#service-list'),
+    selectorSearchInput: getElement<HTMLInputElement>('#selector-search-input'),
+    letGenieConvertBtn: getElement<HTMLButtonElement>('#let-genie-convert-btn'),
+    closeSelectorBtn: getElement<HTMLButtonElement>('#service-selector-modal .close-modal'),
+    themeToggle: getElement<HTMLInputElement>('#theme-toggle'),
+    hamburger: getElement<HTMLButtonElement>('.hamburger'),
+    navLinks: getElement<HTMLElement>('.nav-links'),
+    scrollToTopBtn: getElement('#scroll-to-top'),
+};
+
+// --- UTILITY FUNCTIONS ---
+const showError = (message: string) => {
+    DOMElements.errorMessage.textContent = message;
+    DOMElements.errorMessage.style.display = 'block';
+};
+const hideError = () => { DOMElements.errorMessage.style.display = 'none'; };
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// --- "RECENTLY USED" LOGIC ---
+const getRecentTools = (): string[] => {
+    return JSON.parse(localStorage.getItem('genie-recent-tools') || '[]');
+};
+
+const updateRecentTools = (toolId: string) => {
+    let recent = getRecentTools();
+    recent = recent.filter(id => id !== toolId);
+    recent.unshift(toolId);
+    localStorage.setItem('genie-recent-tools', JSON.stringify(recent.slice(0, 4)));
+};
+
+const renderRecentTools = () => {
+    const recentIds = getRecentTools();
+    if (recentIds.length === 0) {
+        DOMElements.recentToolsSection.style.display = 'none';
+        return;
+    }
+    
+    DOMElements.recentToolsSection.style.display = 'block';
+    DOMElements.recentToolsGrid.innerHTML = '';
+    
+    recentIds.forEach(id => {
+        const tool = TOOLS[id];
+        if (tool) {
+            const card = document.createElement('div');
+            card.className = 'tool-card';
+             if (tool.isComingSoon) {
+                card.classList.add('coming-soon');
+            } else {
+                card.onclick = () => openToolModal(tool);
+            }
+            card.innerHTML = `
+                ${tool.icon}
+                <h3>${tool.title}</h3>
+                <p>${tool.subtitle}</p>
+            `;
+            DOMElements.recentToolsGrid.appendChild(card);
+        }
     });
-
-    await Promise.all(conversionPromises);
-
-    if (files.length === 1) {
-        const newFilename = files[0].name.replace(/\.[^/.]+$/, "") + extension;
-        const blob = await zip.files[newFilename]?.async('blob');
-        if (blob) showCompleteView(blob, `GenieConverter ${toolName} ${newFilename}`);
-    } else {
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
-        showCompleteView(zipBlob, `GenieConverter ${toolName} images.zip`);
-    }
-}
-
-// --- APP STATE ---
-let currentToolId: string | null = null;
-let currentFiles: File[] = [];
-let currentBlob: Blob | null = null;
-let currentFilename: string | null = null;
-
-const modal = document.getElementById('tool-modal') as HTMLElement;
-const initialView = document.getElementById('modal-initial-view') as HTMLElement;
-const optionsView = document.getElementById('modal-options-view') as HTMLElement;
-const processingView = document.getElementById('modal-processing-view') as HTMLElement;
-const completeView = document.getElementById('modal-complete-view') as HTMLElement;
-const processBtn = document.getElementById('process-btn') as HTMLButtonElement;
-const errorMessage = document.getElementById('error-message') as HTMLElement;
-let placedSignatures: { id: string, imageDataUrl: string, x: number, y: number, width: number, height: number, pageIndex: number, canvasWidth: number, canvasHeight: number }[] = [];
+};
 
 
-const openToolModal = (toolId: string, previousBlob: Blob | null = null, previousFilename: string | null = null) => {
-    const tool = toolImplementations[toolId];
-    if (!tool || !tool.process) return;
+// --- UI RENDERING ---
+const renderTools = (filter = '', category = 'All') => {
+    DOMElements.toolsGrid.innerHTML = '';
+    const searchTerm = filter.toLowerCase();
 
-    currentToolId = toolId;
-    currentFiles = [];
-    placedSignatures = [];
+    const filteredCategories = CATEGORIES.filter(cat => category === 'All' || cat.title === category);
+
+    let hasVisibleTools = false;
+    let toolIndex = 0;
+
+    filteredCategories.forEach(cat => {
+        const toolsInSection = cat.tools
+            .map(id => TOOLS[id])
+            .filter(tool =>
+                tool.title.toLowerCase().includes(searchTerm) ||
+                tool.subtitle.toLowerCase().includes(searchTerm)
+            );
+
+        if (toolsInSection.length > 0) {
+            hasVisibleTools = true;
+            const categorySection = document.createElement('section');
+            const categoryTitle = document.createElement('h2');
+            categoryTitle.className = 'category-title';
+            categoryTitle.textContent = cat.title;
+            categorySection.appendChild(categoryTitle);
+
+            const grid = document.createElement('div');
+            grid.className = 'category-grid';
+
+            toolsInSection.forEach(tool => {
+                const card = document.createElement('div');
+                card.className = 'tool-card';
+                card.style.animationDelay = `${toolIndex * 50}ms`; // Staggered animation
+                if (tool.isComingSoon) {
+                    card.classList.add('coming-soon');
+                } else {
+                    card.onclick = () => openToolModal(tool);
+                }
+                card.innerHTML = `
+                    ${tool.icon}
+                    <h3>${tool.title}</h3>
+                    <p>${tool.subtitle}</p>
+                `;
+                grid.appendChild(card);
+                toolIndex++;
+            });
+
+            categorySection.appendChild(grid);
+            DOMElements.toolsGrid.appendChild(categorySection);
+        }
+    });
     
-    (document.getElementById('modal-title') as HTMLElement).textContent = tool.title;
-    (document.getElementById('modal-subtitle') as HTMLElement).textContent = tool.subtitle;
+    DOMElements.toolSkeletons.style.display = 'none';
+    DOMElements.toolsGrid.style.opacity = '1';
 
-    const fileInput = document.getElementById('file-input') as HTMLInputElement;
-    fileInput.accept = tool.fileType;
-    fileInput.multiple = !!tool.multiple;
 
-    if (previousBlob && previousFilename) {
-        const file = new File([previousBlob], previousFilename, { type: previousBlob.type });
-        handleFilesSelected([file]);
+    if (!hasVisibleTools) {
+        DOMElements.toolsGrid.innerHTML = '<p style="text-align: center; color: var(--text-light);">No tools found. Try a different search term.</p>';
+    }
+};
+
+const renderCategoryFilters = () => {
+    DOMElements.categoryFilters.innerHTML = '';
+    const categories = ['All', ...CATEGORIES.map(c => c.title)];
+    let activeFilter: HTMLButtonElement | null = null;
+
+    categories.forEach(category => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.textContent = category;
+        btn.dataset.category = category;
+
+        if (category === 'All') {
+            btn.classList.add('active');
+            activeFilter = btn;
+        }
+
+        btn.onclick = () => {
+            if (activeFilter) {
+                activeFilter.classList.remove('active');
+            }
+            btn.classList.add('active');
+            activeFilter = btn;
+            renderTools(DOMElements.searchInput.value, category);
+        };
+
+        DOMElements.categoryFilters.appendChild(btn);
+    });
+};
+
+// --- MODAL LOGIC ---
+const handleModalKeydown = (e: KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+
+    const focusableElements = DOMElements.modal.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+        }
     } else {
-        showInitialView();
+        if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+        }
+    }
+};
+
+const openToolModal = (tool: Tool) => {
+    currentTool = tool;
+    hideError();
+    updateRecentTools(tool.id);
+    renderRecentTools();
+
+    if (!tool.isFileTool) {
+        const iconWithSize = tool.icon.replace('<svg class="icon"', '<svg class="icon modal-title-icon"');
+        DOMElements.modalTitle.innerHTML = `<span style="display: flex; align-items: center; justify-content: center; gap: 1rem;">${iconWithSize} ${tool.title}</span>`;
+    } else {
+        DOMElements.modalTitle.textContent = tool.title;
     }
     
-    modal.classList.add('visible');
+    DOMElements.modalSubtitle.textContent = tool.subtitle;
+
+    DOMElements.modalContent.classList.toggle('stt-active', !tool.isFileTool);
+
+    DOMElements.initialView.style.display = 'none';
+    DOMElements.optionsView.style.display = 'none';
+    DOMElements.processingView.style.display = 'none';
+    DOMElements.completeView.style.display = 'none';
+
+    if (tool.isFileTool) {
+        DOMElements.processBtnContainer.style.display = 'block';
+        DOMElements.initialView.style.display = 'flex';
+        DOMElements.fileInput.accept = tool.accept;
+        const isMultiple = ['merge-pdf', 'organize-pdf'].includes(tool.id);
+        DOMElements.fileInput.multiple = isMultiple;
+        (getElement('.drop-text')).textContent = isMultiple
+            ? 'or drop files here'
+            : 'or drop file here';
+
+    } else {
+        DOMElements.processBtnContainer.style.display = 'none';
+        showOptionsView([]);
+    }
+
+    DOMElements.modal.classList.add('visible');
+    document.body.classList.add('modal-open');
     document.body.style.overflow = 'hidden';
+    DOMElements.modal.addEventListener('keydown', handleModalKeydown);
 };
 
 const closeModal = () => {
-    modal.classList.remove('visible');
+    DOMElements.modal.classList.remove('visible');
+    document.body.classList.remove('modal-open');
     document.body.style.overflow = '';
-};
+    currentTool = null;
+    currentFiles = [];
 
-const showInitialView = () => {
-    initialView.style.display = 'block';
-    optionsView.style.display = 'none';
-    processingView.style.display = 'none';
-    completeView.style.display = 'none';
-    errorMessage.style.display = 'none';
-};
-
-const showOptionsView = async (files: File[]) => {
-    initialView.style.display = 'none';
-    optionsView.style.display = 'flex';
-    processingView.style.display = 'none';
-    completeView.style.display = 'none';
-    errorMessage.style.display = 'none';
-    processBtn.disabled = true;
-
-    const tool = toolImplementations[currentToolId!];
-    const optionsContainer = document.getElementById('tool-options') as HTMLElement;
-    const previewPane = optionsView.querySelector('.options-preview-pane') as HTMLElement;
-
-    optionsContainer.innerHTML = tool.options ? tool.options(files[0]) : '';
-    previewPane.innerHTML = '';
-    
-    await renderPreview(files, previewPane);
-
-    if (tool.onOptionsReady) {
-        tool.onOptionsReady(tool.multiple ? files : files[0]);
+    if (recognition) {
+        recognition.abort();
+        recognition = null;
+    }
+    if (recordingInterval) {
+        clearInterval(recordingInterval);
+        recordingInterval = null;
+    }
+    if (wavesurfer) {
+        wavesurfer.destroy();
+        wavesurfer = null;
     }
     
-    processBtn.disabled = false;
+    DOMElements.previewPane.innerHTML = '';
+    DOMElements.optionsPane.innerHTML = '';
+
+    DOMElements.modalContent.classList.remove('stt-active');
+    DOMElements.modal.removeEventListener('keydown', handleModalKeydown);
 };
 
-const showProcessingView = async (files: File[]) => {
-    initialView.style.display = 'none';
-    optionsView.style.display = 'none';
-    processingView.style.display = 'block';
-    completeView.style.display = 'none';
-    errorMessage.style.display = 'none';
+const showProcessingView = async (startProcessing: () => Promise<void>) => {
+    DOMElements.optionsView.style.display = 'none';
+    DOMElements.processingView.style.display = 'block';
 
-    (document.getElementById('processing-text') as HTMLElement).textContent = `${toolImplementations[currentToolId!].title}...`;
-    const progressBar = document.getElementById('progress-bar') as HTMLElement;
-    const progressPercentage = document.getElementById('progress-percentage') as HTMLElement;
-    progressBar.style.width = '0%';
-    progressPercentage.textContent = '0%';
+    DOMElements.progressBar.style.width = '0%';
+    DOMElements.progressPercentage.textContent = '0%';
+    DOMElements.processingText.textContent = 'Preparing files...';
 
-    let progress = 0;
-    const interval = setInterval(() => {
-        progress += 100 / (15 * 10); // 15 seconds
-        if (progress > 100) progress = 100;
-        progressBar.style.width = `${progress}%`;
-        progressPercentage.textContent = `${Math.floor(progress)}%`;
-        if (progress >= 100) clearInterval(interval);
-    }, 100);
+    await sleep(200);
+    DOMElements.progressBar.style.width = '10%';
+    DOMElements.progressPercentage.textContent = '10%';
 
-    setTimeout(async () => {
-        try {
-            const tool = toolImplementations[currentToolId!];
-            await tool.process!(files, {});
-        } catch (error) {
-            console.error(error);
-            showError((error as Error).message);
-        }
-    }, 15000);
+    try {
+        await startProcessing();
+    } catch (e: any) {
+        closeModal();
+        setTimeout(() => showError(`An error occurred: ${e.message}`), 100);
+        console.error(e);
+    }
 };
 
-const showCompleteView = (blob: Blob, filename: string) => {
-    currentBlob = blob;
-    currentFilename = filename;
+const showCompleteView = (title: string, downloads: { filename: string, url: string }[], resultFiles?: File[]) => {
+    DOMElements.processingView.style.display = 'none';
+    DOMElements.completeView.style.display = 'block';
+    DOMElements.completeTitle.textContent = title;
 
-    initialView.style.display = 'none';
-    optionsView.style.display = 'none';
-    processingView.style.display = 'none';
-    completeView.style.display = 'block';
+    DOMElements.downloadArea.innerHTML = '';
 
-    (document.getElementById('complete-title') as HTMLElement).textContent = `${toolImplementations[currentToolId!].title} complete!`;
+    if (downloads.length > 1) {
+        DOMElements.downloadArea.innerHTML = `
+            <div class="download-actions">
+                <button id="download-zip-btn" class="download-btn">Download All as ZIP</button>
+                <button id="show-individual-btn" class="btn-secondary">Download Individually</button>
+            </div>
+            <div id="individual-downloads" style="display: none;">
+                <h4>Individual Files:</h4>
+                <div id="individual-downloads-list"></div>
+            </div>
+        `;
 
-    const downloadArea = document.getElementById('download-area') as HTMLElement;
-    downloadArea.innerHTML = `<a href="#" id="download-btn" class="download-btn">Download ${filename}</a>`;
-    const downloadBtn = document.getElementById('download-btn') as HTMLAnchorElement;
+        const zipBtn = getElement<HTMLButtonElement>('#download-zip-btn', DOMElements.downloadArea);
+        const showIndividualBtn = getElement<HTMLButtonElement>('#show-individual-btn', DOMElements.downloadArea);
+        const individualContainer = getElement('#individual-downloads', DOMElements.downloadArea);
+        const individualList = getElement('#individual-downloads-list', DOMElements.downloadArea);
 
-    downloadBtn.onclick = (e) => {
-        e.preventDefault();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
+        downloads.forEach(d => {
+            const link = document.createElement('a');
+            link.href = d.url;
+            link.download = d.filename;
+            link.className = 'individual-download-link';
+            link.textContent = d.filename;
+            individualList.appendChild(link);
+        });
 
-    renderContinueTools();
-};
+        showIndividualBtn.onclick = () => {
+            const isVisible = individualContainer.style.display === 'block';
+            individualContainer.style.display = isVisible ? 'none' : 'block';
+        };
 
-const showError = (message: string) => {
-    showInitialView();
-    errorMessage.textContent = `Error: ${message}`;
-    errorMessage.style.display = 'block';
-};
+        zipBtn.onclick = async () => {
+            zipBtn.disabled = true;
+            zipBtn.textContent = 'Zipping...';
+            try {
+                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'jszip-lib');
+                const zip = new (window as any).JSZip();
 
-const renderContinueTools = () => {
-    const grid = document.getElementById('continue-tools-grid') as HTMLElement;
-    grid.innerHTML = '';
-    const recommendedTools = ['compress-pdf', 'sign-pdf', 'protect-pdf', 'merge-pdf'];
-    recommendedTools.forEach(toolId => {
-        if (toolId === currentToolId) return;
-        const tool = toolImplementations[toolId];
-        if (tool) {
+                const filePromises = downloads.map(d => 
+                    fetch(d.url)
+                        .then(res => res.blob())
+                        .then(blob => zip.file(d.filename, blob))
+                );
+                
+                await Promise.all(filePromises);
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const zipUrl = URL.createObjectURL(zipBlob);
+                
+                const a = document.createElement('a');
+                a.href = zipUrl;
+                a.download = 'genie-converter-files.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(zipUrl);
+
+            } catch (error) {
+                console.error("Error creating ZIP file:", error);
+                showError("Sorry, there was an error creating the ZIP file.");
+            } finally {
+                zipBtn.disabled = false;
+                zipBtn.textContent = 'Download All as ZIP';
+            }
+        };
+
+    } else if (downloads.length === 1) {
+        const d = downloads[0];
+        const btn = document.createElement('a');
+        btn.href = d.url;
+        btn.download = d.filename;
+        btn.className = 'download-btn';
+        btn.textContent = `Download ${d.filename}`;
+        DOMElements.downloadArea.appendChild(btn);
+    } else {
+        DOMElements.downloadArea.innerHTML = '<p>No files were generated for download.</p>';
+    }
+    
+    if (resultFiles && resultFiles.length > 0 && currentTool?.continue) {
+        currentFiles = resultFiles;
+        DOMElements.continueToolsGrid.innerHTML = '';
+        currentTool.continue.forEach(toolId => {
+            const tool = TOOLS[toolId];
             const card = document.createElement('div');
             card.className = 'continue-tool-card';
-            card.dataset.toolId = toolId;
             card.innerHTML = `${tool.icon}<span>${tool.title}</span>`;
-            card.onclick = () => handleContinueWith(toolId);
-            grid.appendChild(card);
-        }
-    });
-};
-
-const handleContinueWith = (toolId: string) => {
-    const tool = toolImplementations[toolId];
-    if (tool.fileType.includes('pdf') && currentBlob?.type !== 'application/pdf') {
-       alert("The previous output is not a PDF and cannot be used with this tool.");
-       return;
+            card.onclick = () => {
+                closeModal();
+                setTimeout(() => {
+                    openToolModal(tool);
+                    showOptionsView(currentFiles);
+                }, 200);
+            };
+            DOMElements.continueToolsGrid.appendChild(card);
+        });
+        DOMElements.continueToolsGrid.parentElement!.style.display = 'block';
+    } else {
+        DOMElements.continueToolsGrid.parentElement!.style.display = 'none';
     }
-    closeModal();
-    // Use a short timeout to allow the modal to close before opening the new one
-    setTimeout(() => {
-        openToolModal(toolId, currentBlob, currentFilename);
-    }, 300);
 };
 
-const renderPreview = async (files: File[], previewPane: HTMLElement) => {
-    previewPane.innerHTML = '';
-    const tool = toolImplementations[currentToolId!];
-    
-    // For tools that need a list view (merge, multiple file uploads)
-    if (['merge-pdf', 'excel-merge-sheets'].includes(currentToolId!) || (tool.multiple && !tool.interactive)) {
-         previewPane.style.flexDirection = 'column';
-         previewPane.style.justifyContent = 'flex-start';
-         previewPane.style.alignItems = 'stretch';
-         files.forEach((file, index) => {
-            const item = document.createElement('div');
-            item.className = 'file-list-item';
-            item.draggable = true;
-            item.dataset.index = String(index);
-            item.innerHTML = `<span>${index + 1}. ${file.name}</span> <button>&times;</button>`;
-            previewPane.appendChild(item);
-         });
-         // Add drag-and-drop reordering for file list
-         let draggedItem: HTMLElement | null = null;
-         previewPane.addEventListener('dragstart', e => {
-            draggedItem = e.target as HTMLElement;
-            setTimeout(() => draggedItem?.classList.add('dragging'), 0);
-         });
-         previewPane.addEventListener('dragend', e => {
-            draggedItem?.classList.remove('dragging');
-            // Re-order the actual files array
-// Fix: Cast 'child' from Element to HTMLElement to access the 'dataset' property.
-            const newOrder = Array.from(previewPane.children).map(child => parseInt((child as HTMLElement).dataset.index!));
-            currentFiles = newOrder.map(i => files[i]);
-            // Update display numbers
-            Array.from(previewPane.children).forEach((child, i) => {
-                (child.querySelector('span') as HTMLElement).textContent = `${i + 1}. ${currentFiles[i].name}`;
-            });
-         });
-         previewPane.addEventListener('dragover', e => {
-             e.preventDefault();
-             const afterElement = getDragAfterElement(previewPane, e.clientY);
-             if (afterElement == null) {
-                 previewPane.appendChild(draggedItem!);
-             } else {
-                 previewPane.insertBefore(draggedItem!, afterElement);
-             }
-         });
+const showOptionsView = (files: File[]) => {
+    currentFiles = files;
+    DOMElements.initialView.style.display = 'none';
+    DOMElements.optionsView.style.display = 'flex';
+    DOMElements.processBtn.disabled = false;
 
-    } else if (tool.fileType.includes('pdf') && tool.interactive) {
-        // For interactive PDF tools
-        previewPane.style.flexDirection = 'row';
-        previewPane.style.justifyContent = 'center';
-        previewPane.style.alignContent = 'flex-start';
-        const file = files[0];
-        const pdfjsLib = await loadScript('https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js', 'pdfjsLib');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js`;
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    DOMElements.previewPane.innerHTML = '';
+    DOMElements.optionsPane.innerHTML = '';
+
+    const existingFileActions = getElement('.file-actions');
+    if(existingFileActions) existingFileActions.remove();
+
+    if (currentTool?.isFileTool && files.length > 0) {
+        const fileActionsContainer = document.createElement('div');
+        fileActionsContainer.className = 'file-actions';
+
+        const fileList = document.createElement('div');
+        fileList.className = 'file-list';
+
+        files.forEach(file => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+
+            const fileName = document.createElement('span');
+            fileName.className = 'file-name';
+            fileName.textContent = file.name;
+
+            const previewBtn = document.createElement('button');
+            previewBtn.className = 'file-preview-btn';
+            previewBtn.innerHTML = ICONS['eye-preview'];
+            previewBtn.title = `Preview ${file.name}`;
+            previewBtn.onclick = () => {
+                try {
+                    const url = URL.createObjectURL(file);
+                    window.open(url, '_blank');
+                } catch (e) {
+                    console.error("Could not create preview URL", e);
+                    showError("Could not generate a preview for this file.");
+                }
+            };
+            fileItem.appendChild(fileName);
+            fileItem.appendChild(previewBtn);
+            fileList.appendChild(fileItem);
+        });
+
+        const actionButtons = document.createElement('div');
+        actionButtons.className = 'action-buttons';
+
+        if (DOMElements.fileInput.multiple) {
+            actionButtons.innerHTML = `
+                <button id="add-more-files-btn" class="btn-secondary">Add More</button>
+                <button id="clear-all-files-btn" class="btn-secondary danger">Clear All</button>
+            `;
+        } else {
+            actionButtons.innerHTML = `
+                <button id="change-file-btn" class="btn-secondary">Change File</button>
+            `;
+        }
         
-        switch (currentToolId) {
-            case 'sign-pdf':
-            case 'stamp-pdf':
-                createSignaturePad(document.getElementById('tool-options')!, previewPane);
-                // Fallthrough to render pages
-            case 'watermark-pdf':
-            case 'organize-pdf':
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const viewport = page.getViewport({ scale: 1.5 });
-                    
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'page-thumbnail-wrapper';
-                    wrapper.dataset.pageIndex = String(i - 1);
-                    wrapper.dataset.rotation = '0';
+        fileActionsContainer.appendChild(fileList);
+        fileActionsContainer.appendChild(actionButtons);
+        
+        DOMElements.optionsSidebarPane.insertBefore(fileActionsContainer, DOMElements.optionsSidebarPane.firstChild);
 
-                    const canvas = document.createElement('canvas');
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-                    const context = canvas.getContext('2d')!;
-                    await page.render({ canvasContext: context, viewport: viewport }).promise;
-                    
-                    const thumbnail = document.createElement('div');
-                    thumbnail.className = 'page-thumbnail';
-                    thumbnail.appendChild(canvas);
-                    
-                    const pageNumEl = document.createElement('div');
-                    pageNumEl.className = 'page-number';
-                    pageNumEl.textContent = String(i);
-                    thumbnail.appendChild(pageNumEl);
-
-                    if (currentToolId === 'organize-pdf') {
-                        wrapper.draggable = true;
-                        const controls = document.createElement('div');
-                        controls.className = 'page-thumbnail-controls';
-                        controls.innerHTML = `
-                            <button class="page-thumbnail-btn rotate" title="Rotate">&#x21bb;</button>
-                            <button class="page-thumbnail-btn delete" title="Delete">&times;</button>
-                        `;
-                        wrapper.appendChild(controls);
-                    }
-                    wrapper.appendChild(thumbnail);
-                    previewPane.appendChild(wrapper);
-                }
-                
-                if (currentToolId === 'organize-pdf') {
-                    setupOrganizePdfInteractions(previewPane);
-                }
-                if (currentToolId === 'watermark-pdf') {
-                    setupWatermarkInteractions(previewPane);
-                }
-                break;
+        const addMoreBtn = getElement<HTMLButtonElement>('#add-more-files-btn', fileActionsContainer);
+        if (addMoreBtn) {
+            addMoreBtn.onclick = () => DOMElements.fileInput.click();
         }
+
+        const changeFileBtn = getElement<HTMLButtonElement>('#change-file-btn', fileActionsContainer);
+        if (changeFileBtn) {
+            changeFileBtn.onclick = () => DOMElements.fileInput.click();
+        }
+
+        const clearAllBtn = getElement<HTMLButtonElement>('#clear-all-files-btn', fileActionsContainer);
+        if (clearAllBtn) {
+            clearAllBtn.onclick = () => {
+                currentFiles = [];
+                DOMElements.optionsView.style.display = 'none';
+                DOMElements.initialView.style.display = 'flex';
+            };
+        }
+    }
+
+
+    switch (currentTool?.id) {
+        case 'image-to-pdf':
+            handleImageToPdfOptions();
+            break;
+        case 'split-pdf':
+        case 'organize-pdf':
+            DOMElements.previewPane.innerHTML = `<div class="placeholder-text">PDF page previews will be available here soon.</div>`;
+            DOMElements.optionsPane.innerHTML = `<p>Tool options will be available here soon.</p>`;
+            DOMElements.processBtn.disabled = true; // Disable until implemented
+            break;
+        default:
+            if (!currentTool?.isFileTool) {
+                handleSpeechToTextOptions();
+            } else {
+                 DOMElements.optionsPane.innerHTML = `<p>No options available for this tool.</p>`;
+            }
+            break;
     }
 };
 
-const createSignaturePad = (optionsContainer: HTMLElement, previewPane: HTMLElement) => {
-    optionsContainer.innerHTML = `
-        <div class="signature-pad-container">
-            <h4>Create Signature</h4>
-            <div class="sig-tabs">
-                <button class="sig-tab active" data-tab="draw">Draw</button>
-                <button class="sig-tab" data-tab="type">Type</button>
-                <button class="sig-tab" data-tab="upload">Upload</button>
+
+// --- TOOL-SPECIFIC LOGIC ---
+
+// --- IMAGE TO PDF ---
+const handleImageToPdfOptions = () => {
+    DOMElements.optionsPane.innerHTML = `
+        <div class="option-group">
+            <h4>Page Settings</h4>
+            <label for="page-size">Page Size</label>
+            <select id="page-size">
+                <option value="A4">A4</option>
+                <option value="Letter">Letter</option>
+            </select>
+        </div>
+        <div class="option-group">
+            <label for="orientation">Orientation</label>
+            <select id="orientation">
+                <option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option>
+            </select>
+        </div>
+    `;
+
+    currentFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = document.createElement('img');
+            img.src = e.target?.result as string;
+            img.style.maxWidth = '100px';
+            img.style.maxHeight = '141px';
+            img.style.margin = '5px';
+            DOMElements.previewPane.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    DOMElements.processBtn.onclick = () => showProcessingView(processImageToPdf);
+};
+
+const processImageToPdf = async () => {
+    const { jsPDF } = (window as any).jspdf;
+    const orientation = (getElement<HTMLSelectElement>('#orientation')).value as 'portrait' | 'landscape';
+    
+    const pdf = new jsPDF({ orientation, unit: 'px', format: 'a4' });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    for (let i = 0; i < currentFiles.length; i++) {
+        const file = currentFiles[i];
+        if (i > 0) pdf.addPage();
+        
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        await new Promise(resolve => { img.onload = resolve; });
+
+        const imgWidth = img.width;
+        const imgHeight = img.height;
+        
+        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+        
+        const newWidth = imgWidth * ratio;
+        const newHeight = imgHeight * ratio;
+        
+        const x = (pdfWidth - newWidth) / 2;
+        const y = (pdfHeight - newHeight) / 2;
+        
+        const fileType = file.type === 'image/png' ? 'PNG' : 'JPEG';
+        pdf.addImage(img, fileType, x, y, newWidth, newHeight);
+
+        const progress = ((i + 1) / currentFiles.length) * 100;
+        DOMElements.progressBar.style.width = `${progress}%`;
+        DOMElements.progressPercentage.textContent = `${Math.round(progress)}%`;
+        DOMElements.processingText.textContent = `Processing image ${i + 1} of ${currentFiles.length}`;
+        await sleep(50);
+    }
+    
+    const pdfBlob = pdf.output('blob');
+    const url = URL.createObjectURL(pdfBlob);
+    
+    const resultFile = new File([pdfBlob], 'converted.pdf', { type: 'application/pdf' });
+
+    showCompleteView('Conversion Successful!', [{ filename: 'converted.pdf', url }], [resultFile]);
+};
+
+// --- SPEECH TO TEXT ---
+let recognition: any = null;
+let recordingState: 'idle' | 'recording' | 'paused' = 'idle';
+let sttAudioFile: File | null = null;
+let recordingStartTime = 0;
+
+const handleSpeechToTextOptions = () => {
+    DOMElements.optionsPane.innerHTML = `
+        <div class="speech-to-text-container">
+            <div class="stt-left-pane">
+                <div class="stt-input-methods">
+                    <div class="stt-method-box">
+                        <h4>From Microphone</h4>
+                        <div id="stt-controls">
+                            <div id="stt-mic-buttons">
+                                <button id="stt-record-btn" class="stt-mic-icon-btn" aria-label="Start Recording">${ICONS['mic-record']}</button>
+                                <button id="stt-pause-btn" class="stt-mic-icon-btn" aria-label="Pause Recording" style="display:none;">${ICONS['mic-pause']}</button>
+                                <button id="stt-stop-btn" class="stt-mic-icon-btn stop" aria-label="Stop Recording" style="display:none;">${ICONS['mic-stop']}</button>
+                            </div>
+                            <div id="stt-status-container">
+                                <p id="stt-status" aria-live="polite">Status: Idle</p>
+                                <span id="stt-timer">00:00</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stt-method-box">
+                        <h4>From Audio File</h4>
+                        <div id="waveform"></div>
+                        <input type="file" id="stt-file-input" accept="${currentTool?.accept}" hidden />
+                        <label for="stt-file-input" class="file-input-label">
+                            <span id="stt-file-label">Click to select audio file</span>
+                            <small id="stt-file-name"></small>
+                        </label>
+                        <button id="stt-process-file-btn" class="btn-secondary btn-primary-style" disabled>Transcribe File</button>
+                        <p class="api-notice">Audio files are sent securely to Google for transcription and are not stored. Live microphone recording is processed entirely in your browser.</p>
+                    </div>
+                </div>
             </div>
-            <div id="sig-draw" class="sig-content active">
-                <canvas id="sig-draw-canvas" width="280" height="150"></canvas>
-            </div>
-            <div id="sig-type" class="sig-content">
-                <input type="text" id="sig-type-input" placeholder="Your Name">
-                <div id="sig-type-preview">Your Name</div>
-            </div>
-            <div id="sig-upload" class="sig-content">
-                <label for="sig-upload-input" id="sig-upload-label">Click to upload</label>
-                <input type="file" id="sig-upload-input" accept="image/*" hidden>
-            </div>
-            <div class="sig-actions">
-                <button id="clear-signature-btn" class="btn-secondary">Clear</button>
-                <button id="create-signature-btn" class="btn-secondary">Create Signature</button>
+            <div class="stt-right-pane">
+                <label for="stt-output" class="stt-transcript-label">Transcript:</label>
+                <div class="stt-editor-container">
+                    <div id="stt-toolbar">
+                        <button class="stt-format-btn" data-command="bold" title="Bold"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4.25-4H7v14h7.04c2.1 0 3.71-1.7 3.71-3.78 0-1.52-.86-2.82-2.15-3.43zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg></button>
+                        <button class="stt-format-btn" data-command="italic" title="Italic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg></button>
+                        <button class="stt-format-btn" data-command="insertUnorderedList" title="Bullet List"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM8 19h12v-2H8v2zm0-6h12v-2H8v2zm0-8v2h12V5H8z"/></svg></button>
+                    </div>
+                    <div id="stt-output" class="stt-editable-area" contenteditable="true" placeholder="Your transcribed text will appear here..."></div>
+                </div>
+                <div id="stt-actions">
+                     <button id="stt-copy-btn" class="btn-secondary btn-primary-style" disabled>Copy Text</button>
+                     <button id="stt-clear-btn" class="btn-secondary">Clear</button>
+                </div>
             </div>
         </div>
     `;
+
+    const recordBtn = getElement<HTMLButtonElement>('#stt-record-btn');
+    const pauseBtn = getElement<HTMLButtonElement>('#stt-pause-btn');
+    const stopBtn = getElement<HTMLButtonElement>('#stt-stop-btn');
+    const statusEl = getElement('#stt-status');
+    const timerEl = getElement<HTMLSpanElement>('#stt-timer');
+    const outputEl = getElement<HTMLDivElement>('#stt-output');
+    const copyBtn = getElement<HTMLButtonElement>('#stt-copy-btn');
+    const clearBtn = getElement<HTMLButtonElement>('#stt-clear-btn');
+    const sttFileInput = getElement<HTMLInputElement>('#stt-file-input');
+    const sttFileLabel = getElement<HTMLLabelElement>('#stt-file-label');
+    const sttFileName = getElement('#stt-file-name');
+    const toolbar = getElement('#stt-toolbar');
+    const sttProcessFileBtn = getElement<HTMLButtonElement>('#stt-process-file-btn');
+    const waveformContainer = getElement<HTMLDivElement>('#waveform');
+
+    const updateCopyButtonState = () => {
+        copyBtn.disabled = outputEl.innerText.trim().length === 0;
+    };
     
-    // Signature Pad Logic
-    const tabs = optionsContainer.querySelectorAll('.sig-tab');
-    const contents = optionsContainer.querySelectorAll('.sig-content');
-    let activeTab = 'draw';
+    const setCaretToEnd = () => {
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(outputEl);
+        range.collapse(false);
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+    };
+
+    outputEl.addEventListener('input', updateCopyButtonState);
+
+    toolbar.addEventListener('click', (e) => {
+        const target = (e.target as HTMLElement).closest('.stt-format-btn');
+        if (target) {
+            const command = target.getAttribute('data-command');
+            if (command) {
+                document.execCommand(command, false);
+                outputEl.focus();
+            }
+        }
+    });
+
+    const setupRecognition = () => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            showError("Speech recognition is not supported in your browser.");
+            return false;
+        }
+        
+        recognition = new SpeechRecognition();
+        recognition.lang = currentTool?.language || 'en-US';
+        recognition.interimResults = true;
+        recognition.continuous = true;
+
+        recognition.onresult = (event: any) => {
+            const existingInterim = outputEl.querySelector('span.interim-text');
+            if (existingInterim) {
+                existingInterim.remove();
+            }
+
+            let interim_transcript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const transcript_part = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    outputEl.appendChild(document.createTextNode(transcript_part + ' '));
+                } else {
+                    interim_transcript += transcript_part;
+                }
+            }
+
+            if (interim_transcript) {
+                const newInterim = document.createElement('span');
+                newInterim.className = 'interim-text';
+                newInterim.textContent = interim_transcript;
+                outputEl.appendChild(newInterim);
+            }
+            
+            setCaretToEnd();
+            updateCopyButtonState();
+        };
+
+        recognition.onerror = (event: any) => showError(`Speech recognition error: ${event.error}`);
+
+        recognition.onend = () => {
+            if (recordingState === 'recording') { // If it stops unexpectedly
+                stopRecording();
+            }
+        };
+        return true;
+    };
+
+    const startTimer = () => {
+        recordingStartTime = Date.now() - (parseInt(timerEl.dataset.elapsed || '0', 10));
+        if (recordingInterval) clearInterval(recordingInterval);
+        recordingInterval = window.setInterval(() => {
+            const elapsedMs = Date.now() - recordingStartTime;
+            const elapsedSeconds = Math.floor(elapsedMs / 1000);
+
+            if (elapsedSeconds >= 120) {
+                timerEl.textContent = '02:00';
+                stopRecording();
+            } else {
+                timerEl.dataset.elapsed = elapsedMs.toString();
+                const minutes = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+                const seconds = (elapsedSeconds % 60).toString().padStart(2, '0');
+                timerEl.textContent = `${minutes}:${seconds}`;
+            }
+        }, 1000);
+    };
+
+    const stopTimer = () => {
+        if (recordingInterval) {
+            clearInterval(recordingInterval);
+            recordingInterval = null;
+        }
+    };
+
+    const startRecording = () => {
+        // Reset file input state when starting recording
+        if (sttAudioFile) {
+            sttAudioFile = null;
+            sttFileLabel.style.display = 'flex';
+            sttFileName.textContent = '';
+            sttProcessFileBtn.disabled = true;
+            if (sttFileInput) sttFileInput.value = '';
+            if (wavesurfer) wavesurfer.empty();
+        }
+
+        if (!setupRecognition()) return;
+        outputEl.contentEditable = 'false';
+        outputEl.classList.add('is-recording');
+        recognition.start();
+        recordingState = 'recording';
+        statusEl.textContent = 'Status: Recording...';
+        recordBtn.style.display = 'none';
+        pauseBtn.style.display = 'inline-flex';
+        stopBtn.style.display = 'inline-flex';
+        startTimer();
+    };
+
+    const pauseRecording = () => {
+        recognition.stop();
+        recordingState = 'paused';
+        statusEl.textContent = 'Status: Paused';
+        pauseBtn.style.display = 'none';
+        recordBtn.style.display = 'inline-flex'; // Behaves as resume
+        stopTimer();
+        outputEl.contentEditable = 'true';
+        outputEl.classList.remove('is-recording');
+    };
+
+    const stopRecording = () => {
+        if (recognition) recognition.stop();
+        recordingState = 'idle';
+        statusEl.textContent = 'Status: Idle';
+        recordBtn.style.display = 'inline-flex';
+        pauseBtn.style.display = 'none';
+        stopBtn.style.display = 'none';
+        stopTimer();
+        timerEl.dataset.elapsed = '0';
+        outputEl.innerHTML = outputEl.innerHTML.replace(/<span class="interim-text".*?><\/span>/, ''); // Clean up final interim text
+        outputEl.contentEditable = 'true';
+        outputEl.classList.remove('is-recording');
+    };
+
+    recordBtn.onclick = () => {
+        if (recordingState === 'idle' || recordingState === 'paused') {
+            startRecording(); // This will effectively start or resume
+        }
+    };
     
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.remove('active'));
-            tab.classList.add('active');
-            activeTab = (tab as HTMLElement).dataset.tab!;
-            document.getElementById(`sig-${activeTab}`)!.classList.add('active');
+    pauseBtn.onclick = pauseRecording;
+    stopBtn.onclick = stopRecording;
+
+    sttFileInput.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+            sttAudioFile = file;
+            sttFileName.textContent = file.name;
+            sttFileLabel.style.display = 'none';
+            sttProcessFileBtn.disabled = false;
+            if (recordingState !== 'idle') {
+                stopRecording();
+            }
+
+            try {
+                await loadScript('https://unpkg.com/wavesurfer.js@7', 'wavesurfer-lib');
+                if (wavesurfer) {
+                    wavesurfer.destroy();
+                }
+                wavesurfer = (window as any).WaveSurfer.create({
+                    container: waveformContainer,
+                    waveColor: 'violet',
+                    progressColor: 'purple',
+                    height: 60,
+                    barWidth: 2,
+                    responsive: true,
+                });
+                wavesurfer.load(URL.createObjectURL(file));
+                waveformContainer.style.display = 'block';
+
+            } catch (err) {
+                console.error("Error loading wavesurfer:", err);
+                waveformContainer.style.display = 'none';
+                sttFileLabel.style.display = 'flex';
+                sttFileName.textContent = file.name; // Show filename as fallback
+            }
+        }
+    };
+    
+    const processAudioFile = async (file: File) => {
+        if (!ai) {
+            showError("AI Service is not available.");
+            return;
+        }
+
+        recordBtn.disabled = true;
+        sttFileInput.disabled = true;
+        sttProcessFileBtn.disabled = true;
+        sttProcessFileBtn.textContent = 'Transcribing...';
+        statusEl.textContent = `Status: Processing ${file.name}...`;
+        outputEl.innerHTML = '';
+        outputEl.contentEditable = 'false';
+        outputEl.classList.add('is-recording');
+
+        try {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            await new Promise<void>(resolve => reader.onload = () => resolve());
+            
+            const base64Data = (reader.result as string).split(',')[1];
+
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: {
+                    parts: [
+                        { inlineData: { mimeType: file.type, data: base64Data, }, },
+                        { text: "Transcribe this audio." }
+                    ],
+                },
+            });
+            
+            outputEl.innerHTML = response.text;
+            updateCopyButtonState();
+
+        } catch (error: any) {
+            console.error(error);
+            showError(`Transcription failed: The audio format may not be supported or another error occurred.`);
+            outputEl.innerHTML = `Error: ${(error as Error).message}`;
+        } finally {
+            recordBtn.disabled = false;
+            sttFileInput.disabled = false;
+            statusEl.textContent = 'Status: Idle';
+            sttProcessFileBtn.disabled = false;
+            sttProcessFileBtn.textContent = 'Transcribe File';
+            outputEl.contentEditable = 'true';
+            outputEl.classList.remove('is-recording');
+        }
+    };
+
+    sttProcessFileBtn.onclick = () => {
+        if (sttAudioFile) {
+            processAudioFile(sttAudioFile);
+        }
+    };
+
+    copyBtn.onclick = () => {
+        try {
+            const htmlBlob = new Blob([outputEl.innerHTML], { type: 'text/html' });
+            const textBlob = new Blob([outputEl.innerText], { type: 'text/plain' });
+            const clipboardItem = new ClipboardItem({
+                'text/html': htmlBlob,
+                'text/plain': textBlob,
+            });
+            navigator.clipboard.write([clipboardItem]).then(() => {
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => copyBtn.textContent = 'Copy Text', 2000);
+            });
+        } catch (error) {
+            console.error('Failed to copy rich text:', error);
+            navigator.clipboard.writeText(outputEl.innerText).then(() => {
+                copyBtn.textContent = 'Copied as plain text!';
+                setTimeout(() => copyBtn.textContent = 'Copy Text', 2000);
+            });
+        }
+    };
+
+    clearBtn.onclick = () => {
+        outputEl.innerHTML = '';
+        timerEl.textContent = '00:00';
+        timerEl.dataset.elapsed = '0';
+        updateCopyButtonState();
+    };
+};
+
+
+
+// --- FILE HANDLING and DRAG/DROP ---
+const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const allowedTypes = currentTool?.accept.split(',');
+    const selectedFiles = Array.from(files);
+
+    const validFiles = selectedFiles.filter(file => {
+        if (!file.name) return false;
+        const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+        return allowedTypes?.some(type => {
+            if (type.startsWith('.')) return type === extension;
+            if (type.endsWith('/*')) return file.type.startsWith(type.slice(0, -1));
+            return file.type === type;
         });
     });
 
-    // Draw
-    const canvas = document.getElementById('sig-draw-canvas') as HTMLCanvasElement;
-    const ctx = canvas.getContext('2d')!;
-    let drawing = false;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
+    if (validFiles.length !== selectedFiles.length) {
+        const invalidFileNames = selectedFiles.filter(f => !validFiles.includes(f)).map(f => f.name).join(', ');
+        showError(`Invalid file type for: ${invalidFileNames}. Please select ${currentTool?.accept} files.`);
+        return;
+    }
 
-    const startDraw = (e: MouseEvent | TouchEvent) => {
-        e.preventDefault();
-        drawing = true;
-        const pos = getPos(e);
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
-    };
-    const doDraw = (e: MouseEvent | TouchEvent) => {
-        if (!drawing) return;
-        e.preventDefault();
-        const pos = getPos(e);
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-    };
-    const endDraw = () => drawing = false;
-    const getPos = (e: MouseEvent | TouchEvent) => {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
-        const clientY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
+    let filesToShow: File[];
+    if (DOMElements.fileInput.multiple && currentFiles.length > 0) {
+        // "Add more" mode: filter out duplicates
+        const newFiles = validFiles.filter(vf => !currentFiles.some(cf => cf.name === vf.name && cf.size === vf.size && cf.lastModified === vf.lastModified));
+        filesToShow = [...currentFiles, ...newFiles];
+    } else {
+        filesToShow = validFiles;
     }
     
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', doDraw);
-    canvas.addEventListener('mouseup', endDraw);
-    canvas.addEventListener('mouseout', endDraw);
-    canvas.addEventListener('touchstart', startDraw);
-    canvas.addEventListener('touchmove', doDraw);
-    canvas.addEventListener('touchend', endDraw);
-    
-    // Type
-    const typeInput = document.getElementById('sig-type-input') as HTMLInputElement;
-    const typePreview = document.getElementById('sig-type-preview') as HTMLElement;
-    typeInput.addEventListener('input', () => {
-        typePreview.textContent = typeInput.value || 'Your Name';
-    });
-    
-    // Upload
-    const uploadInput = document.getElementById('sig-upload-input') as HTMLInputElement;
-    const uploadLabel = document.getElementById('sig-upload-label') as HTMLElement;
-    uploadInput.addEventListener('change', () => {
-        if (uploadInput.files && uploadInput.files[0]) {
-            uploadLabel.textContent = uploadInput.files[0].name;
-        }
-    });
+    if (currentTool?.accept.includes('.pdf') && !(window as any).pdfjsLib) {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js', 'pdfjs-lib');
+        (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js`;
+    }
+    if (currentTool?.id === 'image-to-pdf' && !(window as any).jspdf) {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'jspdf-lib');
+    }
 
-    const clearSignature = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        typeInput.value = '';
-        typePreview.textContent = 'Your Name';
-        uploadInput.value = '';
-        uploadLabel.textContent = 'Click to upload';
-    };
-    document.getElementById('clear-signature-btn')!.addEventListener('click', clearSignature);
-    
-    document.getElementById('create-signature-btn')!.addEventListener('click', async () => {
-        let imageDataUrl: string | null = null;
-        if (activeTab === 'draw' && !isCanvasBlank(canvas)) {
-            imageDataUrl = canvas.toDataURL();
-        } else if (activeTab === 'type' && typeInput.value) {
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d')!;
-            const text = typeInput.value;
-            tempCtx.font = "48px 'Dancing Script'";
-            const metrics = tempCtx.measureText(text);
-            tempCanvas.width = metrics.width + 20;
-            tempCanvas.height = 60;
-            tempCtx.font = "48px 'Dancing Script'";
-            tempCtx.fillStyle = '#000';
-            tempCtx.fillText(text, 10, 45);
-            imageDataUrl = tempCanvas.toDataURL();
-        } else if (activeTab === 'upload' && uploadInput.files && uploadInput.files[0]) {
-            imageDataUrl = await new Promise(resolve => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target!.result as string);
-                reader.readAsDataURL(uploadInput.files![0]);
-            });
-        }
-        
-        if (imageDataUrl) {
-            createDraggableSignature(imageDataUrl, previewPane);
-            clearSignature();
-        }
-    });
+    showOptionsView(filesToShow);
 };
 
-const createDraggableSignature = (imageDataUrl: string, previewPane: HTMLElement) => {
-    const stamp = document.createElement('div');
-    stamp.className = 'signature-stamp';
-    stamp.style.width = '150px';
-    stamp.style.position = 'absolute';
-    stamp.style.top = '10px';
-    stamp.style.left = '10px';
-    stamp.innerHTML = `<img src="${imageDataUrl}" alt="Signature"><button class="remove-sig-btn">&times;</button>`;
-    
-    const id = `sig-${Date.now()}`;
-    stamp.dataset.id = id;
-    
-    previewPane.appendChild(stamp);
+const setupDragAndDrop = () => {
+    const showOverlay = () => document.body.classList.add('is-dragging');
+    const hideOverlay = () => document.body.classList.remove('is-dragging');
 
-    let isDragging = false;
-    let offsetX: number, offsetY: number;
-    
-    const onDown = (e: MouseEvent) => {
-        isDragging = true;
-        offsetX = e.clientX - stamp.offsetLeft;
-        offsetY = e.clientY - stamp.offsetTop;
-        stamp.style.cursor = 'grabbing';
-    };
-    
-    const onMove = (e: MouseEvent) => {
-        if (!isDragging) return;
-        stamp.style.left = `${e.clientX - offsetX}px`;
-        stamp.style.top = `${e.clientY - offsetY}px`;
-    };
-    
-    const onUp = (e: MouseEvent) => {
-        if (!isDragging) return;
-        isDragging = false;
-        stamp.style.cursor = 'move';
-        
-        // Find which page it was dropped on
-        const droppedOnPage = document.elementFromPoint(e.clientX, e.clientY)?.closest('.page-thumbnail-wrapper');
-        if (droppedOnPage) {
-            const pageIndex = parseInt((droppedOnPage as HTMLElement).dataset.pageIndex!, 10);
-            const pageCanvas = droppedOnPage.querySelector('canvas')!;
-            const pageRect = pageCanvas.getBoundingClientRect();
-            const previewRect = previewPane.getBoundingClientRect();
-            
-            // For stamp tool, only one signature is allowed
-            if (currentToolId === 'stamp-pdf') {
-                placedSignatures = [];
-                document.querySelectorAll('.signature-stamp').forEach(s => { if (s !== stamp) s.remove(); });
-            }
-
-            placedSignatures.push({
-                id,
-                imageDataUrl,
-                x: stamp.offsetLeft - (pageRect.left - previewRect.left),
-                y: stamp.offsetTop - (pageRect.top - previewRect.top),
-                width: stamp.offsetWidth,
-                height: stamp.offsetHeight,
-                pageIndex: pageIndex,
-                canvasWidth: pageCanvas.width,
-                canvasHeight: pageCanvas.height,
-            });
-        } else {
-            stamp.remove(); // Removed if not on a page
-        }
-    };
-    
-    stamp.addEventListener('mousedown', onDown);
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    
-    stamp.querySelector('.remove-sig-btn')!.addEventListener('click', () => {
-        placedSignatures = placedSignatures.filter(s => s.id !== id);
-        stamp.remove();
-        // Clean up global listeners if this was the last signature
-        if (document.querySelectorAll('.signature-stamp').length === 0) {
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
-        }
-    });
-};
-
-const isCanvasBlank = (canvas: HTMLCanvasElement) => {
-    return !canvas.getContext('2d')!
-        .getImageData(0, 0, canvas.width, canvas.height).data
-        .some(channel => channel !== 0);
-};
-
-function getDragAfterElement(container: HTMLElement, y: number) {
-    const draggableElements = [...container.querySelectorAll('.file-list-item:not(.dragging), .page-thumbnail-wrapper:not(.dragging)')];
-    return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-        if (offset < 0 && offset > closest.offset) {
-            return { offset: offset, element: child };
-        } else {
-            return closest;
-        }
-// Fix: The initial value for reduce must match the structure of the object being returned in the callback. Added 'element: null' to the initial object.
-    }, { offset: Number.NEGATIVE_INFINITY, element: null as Element | null }).element;
-}
-
-const setupOrganizePdfInteractions = (previewPane: HTMLElement) => {
-    let draggedItem: HTMLElement | null = null;
-    previewPane.addEventListener('dragstart', (e) => {
-        draggedItem = (e.target as HTMLElement).closest('.page-thumbnail-wrapper');
-        if (draggedItem) setTimeout(() => draggedItem!.classList.add('dragging'), 0);
-    });
-    previewPane.addEventListener('dragend', () => {
-        if(draggedItem) draggedItem.classList.remove('dragging');
-    });
-    previewPane.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        const afterElement = getDragAfterElement(previewPane, e.clientY);
-        if (draggedItem) {
-             if (afterElement == null) {
-                previewPane.appendChild(draggedItem);
-            } else {
-                previewPane.insertBefore(draggedItem, afterElement);
-            }
-        }
-    });
-    previewPane.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        const wrapper = target.closest('.page-thumbnail-wrapper');
-        if (!wrapper) return;
-
-        if (target.classList.contains('delete')) {
-            wrapper.remove();
-// Fix: Cast 'wrapper' from Element to HTMLElement to access the 'dataset' property.
-        } else if (target.classList.contains('rotate')) {
-            const currentRotation = parseInt((wrapper as HTMLElement).dataset.rotation || '0', 10);
-            const newRotation = (currentRotation + 90) % 360;
-            (wrapper as HTMLElement).dataset.rotation = String(newRotation);
-            (wrapper.querySelector('canvas') as HTMLElement).style.transform = `rotate(${newRotation}deg)`;
-        }
-    });
-}
-
-const setupWatermarkInteractions = (previewPane: HTMLElement) => {
-    const textInput = document.getElementById('watermark-text') as HTMLInputElement;
-    const sizeInput = document.getElementById('watermark-size') as HTMLInputElement;
-    const colorInput = document.getElementById('watermark-color') as HTMLInputElement;
-    const opacityInput = document.getElementById('watermark-opacity') as HTMLInputElement;
-
-    const watermarkEl = document.createElement('div');
-    watermarkEl.id = 'watermark-draggable';
-    watermarkEl.textContent = textInput.value;
-    
-    // Initial styling
-    watermarkEl.style.fontSize = `${sizeInput.value}px`;
-    watermarkEl.style.color = colorInput.value;
-    watermarkEl.style.opacity = opacityInput.value;
-    
-    previewPane.appendChild(watermarkEl);
-
-    textInput.addEventListener('input', () => watermarkEl.textContent = textInput.value);
-    sizeInput.addEventListener('input', () => watermarkEl.style.fontSize = `${sizeInput.value}px`);
-    colorInput.addEventListener('input', () => watermarkEl.style.color = colorInput.value);
-    opacityInput.addEventListener('input', () => watermarkEl.style.opacity = opacityInput.value);
-    
-    let isDragging = false, offsetX: number, offsetY: number;
-    watermarkEl.addEventListener('mousedown', e => {
-        isDragging = true;
-        offsetX = e.clientX - watermarkEl.offsetLeft;
-        offsetY = e.clientY - watermarkEl.offsetTop;
-    });
-    document.addEventListener('mousemove', e => {
-        if (isDragging) {
-            watermarkEl.style.left = `${e.clientX - offsetX}px`;
-            watermarkEl.style.top = `${e.clientY - offsetY}px`;
-        }
-    });
-    document.addEventListener('mouseup', () => isDragging = false);
-}
-
-
-const handleFilesSelected = (files: File[]) => {
-    if (files.length === 0) return;
-    currentFiles = Array.from(files);
-    showOptionsView(currentFiles);
-};
-
-// --- INITIALIZATION ---
-document.addEventListener('DOMContentLoaded', () => {
-    const toolsGrid = document.getElementById('tools-grid') as HTMLElement;
-    const searchInput = document.getElementById('search-input') as HTMLInputElement;
-    const categoryFiltersContainer = document.getElementById('category-filters') as HTMLElement;
-
-    const categories: Record<string, string[]> = {
-        'PDF Tools': ['merge-pdf', 'split-pdf', 'compress-pdf', 'word-to-pdf', 'excel-to-pdf', 'ppt-to-pdf', 'html-to-pdf', 'jpg-to-pdf', 'sign-pdf', 'stamp-pdf', 'edit-pdf', 'pdf-to-word', 'pdf-to-excel', 'pdf-to-jpg', 'rotate-pdf', 'watermark-pdf', 'organize-pdf', 'protect-pdf', 'unlock-pdf'],
-        'Image Tools': ['png-to-jpg', 'jpg-to-png', 'resize-image', 'remove-bg', 'image-converter', 'image-to-excel'],
-        'Excel Tools': ['excel-split-sheets', 'excel-merge-sheets']
-    };
-
-    const renderTools = (filter = '', categoryFilter = 'All') => {
-        toolsGrid.innerHTML = '';
-        const lowerCaseFilter = filter.toLowerCase();
-
-        const displayCategories = categoryFilter === 'All' ? Object.keys(categories) : [categoryFilter];
-
-        displayCategories.forEach(categoryName => {
-            const categoryTools = categories[categoryName]
-                .map(id => ({ id, ...toolImplementations[id] }))
-                .filter(tool => tool.title && (tool.title.toLowerCase().includes(lowerCaseFilter) || tool.subtitle.toLowerCase().includes(lowerCaseFilter)));
-
-            if (categoryTools.length > 0) {
-                const categorySection = document.createElement('div');
-                categorySection.innerHTML = `<h2 class="category-title">${categoryName}</h2>`;
-                const categoryGrid = document.createElement('div');
-                categoryGrid.className = 'category-grid';
-                
-                categoryTools.forEach(tool => {
-                    const card = document.createElement('div');
-                    card.className = 'tool-card';
-                    card.dataset.toolId = tool.id;
-                    card.innerHTML = `
-                        ${tool.icon}
-                        <div>
-                            <h3>${tool.title}</h3>
-                            <p>${tool.subtitle}</p>
-                        </div>
-                    `;
-                    if (!tool.process) {
-                        card.classList.add('coming-soon');
-                    } else {
-                        card.addEventListener('click', () => openToolModal(tool.id));
-                    }
-                    categoryGrid.appendChild(card);
-                });
-                categorySection.appendChild(categoryGrid);
-                toolsGrid.appendChild(categorySection);
-            }
-        });
-    };
-    
-    // Render Category Filters
-    ['All', ...Object.keys(categories)].forEach((cat, index) => {
-        const btn = document.createElement('button');
-        btn.className = 'filter-btn';
-        if (index === 0) btn.classList.add('active');
-        btn.textContent = cat;
-        btn.dataset.category = cat;
-        categoryFiltersContainer.appendChild(btn);
+    ['dragenter', 'dragover'].forEach(eventName => {
+        window.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            showOverlay();
+        }, false);
     });
 
-    categoryFiltersContainer.addEventListener('click', e => {
-        const target = e.target as HTMLElement;
-        if (target.classList.contains('filter-btn')) {
-            categoryFiltersContainer.querySelector('.active')?.classList.remove('active');
-            target.classList.add('active');
-            renderTools(searchInput.value, target.dataset.category);
-        }
-    });
-
-    searchInput.addEventListener('input', () => {
-        const activeCategory = categoryFiltersContainer.querySelector('.active') as HTMLElement;
-        renderTools(searchInput.value, activeCategory.dataset.category);
-    });
-
-    renderTools();
-    
-    // Modal events
-    document.getElementById('select-file-btn')!.addEventListener('click', () => {
-        (document.getElementById('file-input') as HTMLInputElement).click();
-    });
-
-    document.getElementById('file-input')!.addEventListener('change', e => {
-        const files = (e.target as HTMLInputElement).files;
-        if (files) handleFilesSelected(Array.from(files));
-    });
-
-    processBtn.addEventListener('click', () => {
-        showProcessingView(currentFiles);
-    });
-
-    modal.addEventListener('click', e => {
-        if (e.target === modal) closeModal();
-    });
-    modal.querySelector('.close-modal')!.addEventListener('click', closeModal);
-
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && modal.classList.contains('visible')) {
-            closeModal();
-        }
-    });
-
-    // Global drag and drop
-    const dropOverlay = document.getElementById('drop-overlay') as HTMLElement;
-    window.addEventListener('dragenter', (e) => {
-        e.preventDefault();
-        dropOverlay.style.display = 'flex';
-    });
     window.addEventListener('dragleave', (e) => {
-        // Check if the leave event is going to a child element
-        if (e.relatedTarget === null) {
-            dropOverlay.style.display = 'none';
+        if (e.clientX === 0 && e.clientY === 0) {
+            hideOverlay();
         }
-    });
-    window.addEventListener('drop', async (e) => {
+    }, false);
+
+    window.addEventListener('drop', (e) => {
         e.preventDefault();
-        dropOverlay.style.display = 'none';
-        const files = e.dataTransfer?.files;
-        if (files && files.length > 0) {
-            const fileArray = Array.from(files);
-            const firstFileExtension = `.${fileArray[0].name.split('.').pop()?.toLowerCase()}`;
-            const matchingTools = Object.entries(toolImplementations)
-                .filter(([id, tool]) => tool.process && tool.fileType.includes(firstFileExtension))
-                .map(([id, tool]) => ({ id, ...tool }));
-            
-            if (matchingTools.length === 1) {
-                openToolModal(matchingTools[0].id, null, null);
-                setTimeout(() => handleFilesSelected(fileArray), 100);
-            } else if (matchingTools.length > 1) {
-                showServiceSelector(matchingTools, fileArray);
-            } else {
-                alert(`No tool available for file type: ${firstFileExtension}`);
-            }
-        }
+        hideOverlay();
+        handleFileDrop(e.dataTransfer?.files);
+    }, false);
+};
+
+const handleFileDrop = (files?: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    if (currentTool) {
+        handleFileSelect(files);
+        return;
+    }
+
+    const file = files[0];
+    const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+    const matchingTools = Object.values(TOOLS).filter(tool => {
+        const accepted = tool.accept.split(',');
+        return accepted.includes(extension) || accepted.includes(file.type);
     });
 
-    const selectorModal = document.getElementById('service-selector-modal')!;
-    const showServiceSelector = (tools: any[], files: File[]) => {
-        const serviceList = document.getElementById('service-list')!;
-        serviceList.innerHTML = '';
-        tools.forEach(tool => {
+    if (matchingTools.length === 1) {
+        openToolModal(matchingTools[0]);
+        handleFileSelect(files);
+    } else if (matchingTools.length > 1) {
+        openServiceSelector(matchingTools, files);
+    } else {
+        showError("Sorry, we don't have a tool for that file type.");
+    }
+};
+
+const openServiceSelector = (tools: Tool[], files: FileList) => {
+    DOMElements.serviceList.innerHTML = '';
+    let selectedToolId: string | null = null;
+
+    const renderList = (filter = '') => {
+        DOMElements.serviceList.innerHTML = '';
+        const filteredTools = tools.filter(t => t.title.toLowerCase().includes(filter.toLowerCase()));
+        
+        filteredTools.forEach(tool => {
             const item = document.createElement('div');
             item.className = 'service-item';
             item.dataset.toolId = tool.id;
             item.innerHTML = `${tool.icon} <span>${tool.title}</span>`;
-            serviceList.appendChild(item);
+            item.onclick = () => {
+                document.querySelectorAll('.service-item').forEach(el => el.classList.remove('selected'));
+                item.classList.add('selected');
+                selectedToolId = tool.id;
+                DOMElements.letGenieConvertBtn.disabled = false;
+            };
+            DOMElements.serviceList.appendChild(item);
         });
+    };
+    
+    renderList();
+    DOMElements.selectorSearchInput.oninput = (e) => renderList((e.target as HTMLInputElement).value);
 
-        selectorModal.classList.add('visible');
-        let selectedToolId: string | null = null;
-        
-        serviceList.addEventListener('click', e => {
-            const target = (e.target as HTMLElement).closest('.service-item');
-            if (target) {
-                serviceList.querySelector('.selected')?.classList.remove('selected');
-                target.classList.add('selected');
-                selectedToolId = (target as HTMLElement).dataset.toolId!;
-                (document.getElementById('let-genie-convert-btn') as HTMLButtonElement).disabled = false;
-            }
-        });
-        
-        document.getElementById('let-genie-convert-btn')!.onclick = () => {
-            if (selectedToolId) {
-                selectorModal.classList.remove('visible');
-                openToolModal(selectedToolId, null, null);
-                setTimeout(() => handleFilesSelected(files), 100);
-            }
-        };
-        selectorModal.querySelector('.close-modal')!.addEventListener('click', () => selectorModal.classList.remove('visible'));
+    DOMElements.letGenieConvertBtn.onclick = () => {
+        if (selectedToolId) {
+            const tool = TOOLS[selectedToolId];
+            DOMElements.serviceSelectorModal.classList.remove('visible');
+            openToolModal(tool);
+            handleFileSelect(files);
+        }
     };
 
-    // Theme toggle
-    const themeToggle = document.getElementById('theme-toggle') as HTMLInputElement;
-    const currentTheme = localStorage.getItem('theme');
-    if (currentTheme) {
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        if (currentTheme === 'dark') themeToggle.checked = true;
+    DOMElements.serviceSelectorModal.classList.add('visible');
+};
+
+
+// --- DYNAMIC SCRIPT LOADING ---
+const loadedScripts: Record<string, boolean> = {};
+const loadScript = (src: string, id: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        if (loadedScripts[id]) {
+            resolve();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.id = id;
+        script.onload = () => {
+            loadedScripts[id] = true;
+            resolve();
+        };
+        script.onerror = () => reject(new Error(`Script load error for ${src}`));
+        document.body.appendChild(script);
+    });
+};
+
+
+// --- THEME SWITCH ---
+const setupTheme = () => {
+    const userPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const savedTheme = localStorage.getItem('theme');
+
+    const applyTheme = (theme: 'dark' | 'light') => {
+        document.documentElement.setAttribute('data-theme', theme);
+        DOMElements.themeToggle.checked = theme === 'dark';
+        localStorage.setItem('theme', theme);
+    };
+
+    if (savedTheme) {
+        applyTheme(savedTheme as 'dark' | 'light');
+    } else {
+        applyTheme(userPrefersDark ? 'dark' : 'light');
     }
-    themeToggle.addEventListener('change', () => {
-        if (themeToggle.checked) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.documentElement.setAttribute('data-theme', 'light');
-            localStorage.setItem('theme', 'light');
+
+    DOMElements.themeToggle.addEventListener('change', (e) => {
+        const isChecked = (e.target as HTMLInputElement).checked;
+        applyTheme(isChecked ? 'dark' : 'light');
+    });
+};
+
+
+// --- EVENT LISTENERS ---
+const setupEventListeners = () => {
+    DOMElements.searchInput.addEventListener('input', () => {
+        const activeCategory = document.querySelector('.filter-btn.active') as HTMLElement;
+        renderTools(DOMElements.searchInput.value, activeCategory?.dataset.category || 'All');
+    });
+
+    DOMElements.closeModalBtn.onclick = closeModal;
+    DOMElements.modal.onclick = (e) => {
+        if (e.target === DOMElements.modal) {
+            closeModal();
+        }
+    };
+    DOMElements.selectFileBtn.onclick = () => DOMElements.fileInput.click();
+    DOMElements.fileInput.onchange = () => handleFileSelect(DOMElements.fileInput.files);
+    
+    DOMElements.closeSelectorBtn.onclick = () => DOMElements.serviceSelectorModal.classList.remove('visible');
+    DOMElements.serviceSelectorModal.onclick = (e) => {
+        if (e.target === DOMElements.serviceSelectorModal) {
+            DOMElements.serviceSelectorModal.classList.remove('visible');
+        }
+    };
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (DOMElements.modal.classList.contains('visible')) {
+                closeModal();
+            }
+            if (DOMElements.serviceSelectorModal.classList.contains('visible')) {
+                DOMElements.serviceSelectorModal.classList.remove('visible');
+            }
         }
     });
-
-    // Hamburger menu
-    const hamburger = document.querySelector('.hamburger') as HTMLElement;
-    const navLinks = document.querySelector('.nav-links') as HTMLElement;
-    hamburger.addEventListener('click', () => {
-        hamburger.classList.toggle('active');
-        navLinks.classList.toggle('active');
+    
+    // Hamburger Menu
+    DOMElements.hamburger.addEventListener('click', () => {
+        DOMElements.hamburger.classList.toggle('active');
+        DOMElements.navLinks.classList.toggle('active');
     });
 
-    // Scroll to top button
-    const scrollToTopBtn = document.getElementById('scroll-to-top') as HTMLButtonElement;
+    // Scroll to top
     window.addEventListener('scroll', () => {
-        if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
-            scrollToTopBtn.classList.add('visible');
+        if (window.scrollY > 300) {
+            DOMElements.scrollToTopBtn.classList.add('visible');
         } else {
-            scrollToTopBtn.classList.remove('visible');
+            DOMElements.scrollToTopBtn.classList.remove('visible');
         }
     });
-    scrollToTopBtn.addEventListener('click', () => {
+    DOMElements.scrollToTopBtn.addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-});
+
+};
+
+// --- INITIALIZATION ---
+const init = () => {
+    renderRecentTools();
+    renderCategoryFilters();
+    setupEventListeners();
+    setupDragAndDrop();
+    setupTheme();
+    // Use a timeout to render tools after a short delay, allowing the skeleton to be visible
+    setTimeout(() => {
+        renderTools();
+    }, 300);
+};
+
+init();

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,7 +33,7 @@
             --card-background: rgba(255, 255, 255, 0.9);
             --text-dark: #1f2937;
             --text-light: #4b5563;
-            --modal-bg: #ffffff;
+            --modal-bg: #f8fafc; /* Subtle gray background */
             --header-bg: rgba(255, 255, 255, 0.7);
             --header-border: rgba(0, 0, 0, 0.05);
             --input-bg: #ffffff;
@@ -44,6 +45,7 @@
             --file-item-border: #e5e7eb;
             --hamburger-bar-bg: var(--text-dark);
             --modal-preview-bg: #f1f5f9;
+            --skeleton-bg: #e2e8f0;
         }
 
         html[data-theme="dark"] {
@@ -52,7 +54,7 @@
             --card-background: rgba(31, 41, 55, 0.9);
             --text-dark: #f9fafb;
             --text-light: #9ca3af;
-            --modal-bg: #1f2937;
+            --modal-bg: #1e293b; /* Subtle dark gray background */
             --header-bg: rgba(17, 24, 39, 0.7);
             --header-border: rgba(255, 255, 255, 0.1);
             --input-bg: #374151;
@@ -64,6 +66,7 @@
             --file-item-border: #4b5563;
             --hamburger-bar-bg: var(--text-dark);
             --modal-preview-bg: #111827;
+            --skeleton-bg: #374151;
         }
 
         *, *::before, *::after {
@@ -75,10 +78,18 @@
         html {
             scroll-behavior: smooth;
         }
+        
+        @keyframes subtleGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
 
         body {
             font-family: var(--font-family);
-            background-image: linear-gradient(120deg, var(--background-start), var(--background-end));
+            background: linear-gradient(120deg, var(--background-start), var(--background-end));
+            background-size: 200% 200%;
+            animation: subtleGradient 15s ease infinite;
             color: var(--text-dark);
             line-height: 1.6;
             overflow-x: hidden;
@@ -209,8 +220,14 @@
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="yellow"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>');
         }
 
+        .top-ad-banner {
+            padding: 2rem 0;
+            display: flex;
+            justify-content: center;
+        }
+
         main {
-            padding: 4rem 0;
+            padding: 2rem 0 4rem;
         }
         
         .main-title {
@@ -248,6 +265,9 @@
         }
         .filter-btn:hover {
             border-color: var(--primary-indigo);
+        }
+        .filter-btn:active {
+             transform: scale(0.97);
         }
         .filter-btn.active {
             background-color: #374151;
@@ -292,11 +312,17 @@
         #search-input::placeholder {
             color: var(--text-light);
         }
+        
+        #recent-tools {
+            margin-bottom: 3rem;
+        }
+        .tools-section {
+            margin-top: 4rem;
+        }
 
         #tools-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 2.5rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
         }
 
         .category-title {
@@ -309,10 +335,19 @@
             display: inline-block;
         }
 
-        .category-grid {
+        #tools-grid > section + section {
+            margin-top: 3rem;
+        }
+
+        .category-grid, #recent-tools-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 1.5rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .tool-card {
@@ -321,17 +356,31 @@
             padding: 1.5rem;
             text-align: center;
             box-shadow: var(--card-shadow);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
             cursor: pointer;
             border: 1px solid var(--header-border);
             display: flex;
             flex-direction: column;
             align-items: center;
+            animation: fadeIn 0.5s ease-out forwards;
+            opacity: 0; /* Start hidden for animation */
         }
-
+        .tool-card:active {
+            transform: translateY(-2px) scale(0.98);
+        }
+        
         .tool-card:hover {
             transform: translateY(-5px);
             box-shadow: var(--card-hover-shadow);
+            border-color: var(--primary-indigo);
+        }
+        
+        .tool-card:hover .icon {
+            transform: scale(1.05);
+        }
+        
+        .tool-card:hover h3 {
+            color: var(--primary-indigo);
         }
 
         .tool-card.coming-soon {
@@ -342,6 +391,7 @@
         .tool-card.coming-soon:hover {
             transform: none;
             box-shadow: var(--card-shadow);
+            border-color: var(--header-border);
         }
         .tool-card.coming-soon::after {
             content: 'SOON';
@@ -361,6 +411,7 @@
             margin-bottom: 1rem;
             width: 56px;
             height: 56px;
+            transition: transform 0.3s ease;
         }
 
         .tool-card h3 {
@@ -368,6 +419,7 @@
             color: var(--text-dark);
             font-weight: 600;
             margin-bottom: 0.5rem;
+            transition: color 0.3s ease;
         }
         
         .tool-card p {
@@ -376,6 +428,27 @@
             line-height: 1.5;
             flex-grow: 1;
         }
+        
+        /* Skeleton Loader */
+        .skeleton-card {
+            background-color: var(--card-background);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid var(--header-border);
+        }
+        .skeleton {
+            background-color: var(--skeleton-bg);
+            border-radius: 0.25rem;
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            50% { opacity: .5; }
+        }
+        .skeleton.icon { width: 56px; height: 56px; margin: 0 auto 1rem; border-radius: 12px; }
+        .skeleton.title { height: 1.1rem; width: 70%; margin: 0 auto 0.75rem; }
+        .skeleton.text { height: 0.9rem; width: 100%; }
+        .skeleton.text:last-of-type { width: 80%; }
+
 
         .ad-placeholder {
             display: flex;
@@ -442,15 +515,22 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
-            display: none;
+            display: flex; /* Use flex for centering */
+            align-items: center;
+            justify-content: center;
             z-index: 2000;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.3s ease, visibility 0.3s;
+            visibility: hidden;
             overflow-y: auto;
-            padding: 2rem 0;
+            padding: 2rem;
         }
         .modal.visible {
-            display: block;
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal.visible .modal-content {
+            transform: scale(1);
             opacity: 1;
         }
         .close-modal {
@@ -472,13 +552,6 @@
         }
 
         /* New Tool Modal */
-        .modal-content-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100%;
-            padding: 2rem;
-        }
         .modal-content {
             position: relative;
             background-color: var(--modal-bg);
@@ -488,14 +561,60 @@
             max-width: 90vw;
             text-align: center;
             padding: 3rem;
-            transition: all 0.3s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            transform: scale(0.95);
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+            max-height: 850px;
         }
         #modal-title { font-size: 2rem; margin-bottom: 0.5rem; }
-        #modal-subtitle { color: var(--text-light); margin-bottom: 2.5rem; font-size: 1.1rem; }
+        #modal-subtitle { color: var(--text-light); margin-bottom: 0; font-size: 1.1rem; }
+        .modal-title-icon {
+            width: 32px;
+            height: 32px;
+        }
+        #modal-ad-banner {
+            width: 100%;
+            max-width: 728px;
+            height: 90px;
+            margin: 1.5rem auto 2rem auto;
+        }
         
         /* Modal Views */
         #modal-initial-view, #modal-processing-view, #modal-complete-view { display: none; }
-        #modal-options-view { display: none; }
+        #modal-initial-view {
+            display: none; /* JS changes to flex */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1; /* Occupy available space */
+        }
+        
+        .drop-zone {
+            width: 100%;
+            max-width: 550px;
+            padding: 3rem;
+            border: 2px dashed var(--input-border);
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--drop-zone-bg);
+            transition: all 0.2s ease-in-out;
+            text-align: center;
+        }
+
+        .drop-zone-icon {
+            width: 50px;
+            height: 50px;
+            color: var(--secondary-gray);
+            margin-bottom: 1rem;
+            transition: all 0.2s ease-in-out;
+        }
+
 
         /* Initial View */
         .btn-primary {
@@ -507,19 +626,20 @@
             font-size: 1.25rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, transform 0.1s ease;
         }
         .btn-primary:hover { background-color: #4338ca; }
+        .btn-primary:active { transform: scale(0.98); }
         .drop-text { margin-top: 1rem; color: var(--text-light); }
 
         /* Options View */
         #modal-options-view {
-            display: none;
+            display: none; /* JS changes to flex */
             flex-direction: row;
             text-align: left;
             gap: 2rem;
-            height: 60vh;
-            max-height: 700px;
+            flex-grow: 1;
+            overflow: hidden;
         }
         .options-preview-pane {
             flex-grow: 1;
@@ -534,6 +654,10 @@
             justify-content: center;
             position: relative; /* For signature stamp positioning */
         }
+        .placeholder-text {
+            color: var(--text-light);
+            font-style: italic;
+        }
         .options-sidebar-pane {
             width: 320px;
             flex-shrink: 0;
@@ -545,85 +669,93 @@
             overflow-y: auto;
             padding-right: 1rem;
             margin-right: -1rem;
-        }
-        
-        /* Thumbnail Styles (Split, Organize) */
-        .page-thumbnail-wrapper {
-            position: relative;
-            width: 120px;
-        }
-        .page-thumbnail-wrapper[draggable="true"] { cursor: grab; }
-        .page-thumbnail-wrapper.dragging { opacity: 0.4; }
-        .page-thumbnail {
-            width: 120px;
-            height: 170px; /* A4 aspect ratio */
-            background-color: white;
-            border: 1px solid var(--input-border);
-            box-shadow: var(--card-shadow);
-            position: relative;
             display: flex;
-            align-items: center;
-            justify-content: center;
             flex-direction: column;
         }
-        .page-thumbnail canvas { max-width: 100%; max-height: 100%; }
-        .page-thumbnail .page-number {
-            position: absolute;
-            bottom: 4px;
-            font-size: 0.75rem;
-            color: var(--text-light);
-        }
-        .page-thumbnail-controls {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            display: flex;
-            gap: 4px;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 10;
-        }
-        .page-thumbnail-wrapper:hover .page-thumbnail-controls { opacity: 1; }
-        .page-thumbnail-btn {
-            background: rgba(31, 41, 55, 0.8);
-            color: white;
-            border: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            line-height: 1;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .page-thumbnail-btn:hover { background: rgba(0,0,0,1); }
-        .page-thumbnail-btn.delete { background: var(--danger); }
-        .page-thumbnail-btn.delete:hover { background: #b91c1c; }
 
-        #split-ranges-container { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
-        .split-range-item {
+        .process-btn-container {
+             margin-top: auto;
+             padding-top: 1rem; /* Space from options above */
+             text-align: center;
+        }
+
+        #process-btn {
+            width: auto;
+            padding: 1rem 2.5rem; /* More horizontal padding */
+        }
+
+        /* File Actions (Clear/Re-upload) & File List */
+        .file-actions {
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--input-border);
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        .file-list {
+            max-height: 150px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background-color: var(--file-item-bg);
+            border-radius: 0.375rem;
+        }
+        .file-item + .file-item {
+            margin-top: 0.5rem;
+        }
+        .file-name {
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 0.5rem;
+        }
+        .file-preview-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--secondary-gray);
             display: flex;
             align-items: center;
+            padding: 0.25rem;
+            border-radius: 50%;
+            transition: background-color 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+        .file-preview-btn:hover {
+            background-color: var(--drop-zone-hover-bg);
+            color: var(--primary-indigo);
+        }
+        .file-preview-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        .action-buttons {
+            display: flex;
             gap: 0.5rem;
-            background: var(--file-item-bg);
-            padding: 0.5rem;
-            border-radius: 0.25rem;
+            flex-shrink: 0;
         }
-        .split-range-item label { font-size: 0.9rem; }
-        .split-range-item input { width: 50px; text-align: center; }
-        .remove-range-btn {
-            background: none; border: none; color: var(--danger);
-            cursor: pointer; font-size: 1.25rem; line-height: 1;
+        .action-buttons .btn-secondary {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
         }
-        #add-range-btn {
-            background: none; border: 1px dashed var(--primary-indigo); color: var(--primary-indigo);
-            width: 100%; padding: 0.5rem; border-radius: 0.25rem; cursor: pointer; margin-bottom: 1rem;
+        .action-buttons .btn-secondary.danger {
+            color: var(--danger);
         }
-        .checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
-        .checkbox-group label { margin-bottom: 0; }
+        .action-buttons .btn-secondary.danger:hover {
+            border-color: var(--danger);
+            background-color: #fef2f2;
+        }
+        html[data-theme="dark"] .action-buttons .btn-secondary.danger:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+        }
         
         .option-group { margin-bottom: 1.25rem; }
         .option-group h4 { margin-bottom: 0.75rem; font-size: 1rem; }
@@ -643,98 +775,6 @@
         }
         .option-group input[type="color"] { padding: 0.2rem; }
 
-        /* Watermark Interactive Styles */
-        #watermark-preview-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        #watermark-draggable {
-            position: absolute;
-            cursor: move;
-            color: black;
-            padding: 10px;
-            border: 2px dashed rgba(0,0,0,0.5);
-            user-select: none; -webkit-user-select: none;
-            white-space: nowrap;
-        }
-        .resize-handle {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #fff;
-            border: 1px solid #000;
-        }
-        .resize-handle.se { bottom: -5px; right: -5px; cursor: se-resize; }
-        
-        /* Signature Pad Styles */
-        .signature-pad-container {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            height: 100%;
-        }
-        .sig-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--input-border);
-        }
-        .sig-tab {
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            border: none;
-            background: none;
-            color: var(--text-light);
-            font-weight: 500;
-            border-bottom: 2px solid transparent;
-        }
-        .sig-tab.active {
-            color: var(--primary-indigo);
-            border-bottom-color: var(--primary-indigo);
-        }
-        .sig-content {
-            display: none;
-            flex-grow: 1;
-            flex-direction: column;
-        }
-        .sig-content.active {
-            display: flex;
-        }
-        #sig-draw-canvas {
-            border: 1px solid var(--input-border);
-            border-radius: 0.25rem;
-            cursor: crosshair;
-            touch-action: none;
-        }
-        #sig-type-input {
-            border: 1px solid var(--input-border);
-            padding: 0.5rem;
-            font-size: 1.5rem;
-            font-family: 'Dancing Script', cursive;
-            margin-bottom: 1rem;
-        }
-        #sig-type-preview {
-            font-size: 2.5rem;
-            font-family: 'Dancing Script', cursive;
-            padding: 1rem;
-            text-align: center;
-            color: var(--text-dark);
-        }
-        #sig-upload-label {
-            padding: 2rem;
-            border: 2px dashed var(--input-border);
-            border-radius: 0.5rem;
-            text-align: center;
-            cursor: pointer;
-            background-color: var(--drop-zone-bg);
-        }
-        .sig-actions {
-            margin-top: auto;
-            display: flex;
-            justify-content: space-between;
-        }
         .btn-secondary {
             background: none;
             border: 1px solid var(--input-border);
@@ -742,248 +782,592 @@
             padding: 0.5rem 1rem;
             border-radius: 0.375rem;
             cursor: pointer;
+            transition: all .2s ease;
         }
-        #create-signature-btn {
-            background-color: var(--primary-indigo);
-            color: white;
-            border: none;
+        .btn-secondary:hover:not(:disabled) {
+            border-color: var(--primary-indigo);
+            color: var(--primary-indigo);
         }
-
-        /* Signature Stamp on PDF Preview */
-        .signature-stamp {
-            position: absolute;
-            cursor: move;
-            border: 2px dashed var(--primary-indigo);
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        .signature-stamp img {
-            width: 100%;
-            height: 100%;
-            pointer-events: none; /* Important for drag events */
-        }
-        .signature-stamp .remove-sig-btn {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            width: 20px;
-            height: 20px;
-            background: var(--danger);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 14px;
-            line-height: 20px;
-            text-align: center;
-            display: none;
-            z-index: 1;
-        }
-        .signature-stamp:hover .remove-sig-btn {
-            display: block;
+        .btn-secondary:active:not(:disabled) {
+            transform: scale(0.98);
         }
 
-        .process-btn {
-            display: block;
+        /* --- REFINED SPEECH TO TEXT STYLES --- */
+        .speech-to-text-container {
+            display: flex;
+            flex-direction: row;
+            gap: 2.5rem;
             width: 100%;
-            background-color: var(--success);
-            color: #ffffff;
-            border: none;
-            padding: 0.85rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-top: auto; /* Push to bottom */
-        }
-        .process-btn:hover:not(:disabled) { background-color: #16a34a; }
-        .process-btn:disabled { background-color: var(--secondary-gray); cursor: not-allowed; }
-        
-        /* Processing View */
-        .progress-bar-container {
-            width: 100%;
-            max-width: 400px;
-            height: 20px;
-            background-color: var(--input-border);
-            border-radius: 10px;
-            margin: 2rem auto 0.5rem;
+            text-align: left;
+            flex-grow: 1;
             overflow: hidden;
         }
-        .progress-bar {
-            width: 0;
-            height: 100%;
-            background-color: var(--success);
-            border-radius: 10px;
-            transition: width 0.1s linear;
-        }
-        #progress-percentage {
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--text-light);
-            margin-bottom: 1rem;
-        }
-        #processing-text { font-size: 1.25rem; font-weight: 500; }
-
-        /* Complete View */
-        #complete-title { font-size: 1.75rem; margin-bottom: 1.5rem; color: var(--success); }
-        .download-btn {
-            display: inline-block;
-            background-color: var(--success);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 0.5rem;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1.25rem;
-            transition: background-color 0.3s ease;
-        }
-        .download-btn:hover { background-color: #16a34a; }
-        #continue-tools-container { margin-top: 2.5rem; }
-        #continue-tools-container h4 {
-            color: var(--text-light); font-weight: 500; margin-bottom: 1rem;
-        }
-        #continue-tools-grid {
+        .stt-left-pane {
+            width: 350px;
+            flex-shrink: 0;
             display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .stt-right-pane {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0; /* Fix flexbox overflow */
+            gap: 1rem; /* Better vertical spacing */
+        }
+        .stt-input-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .stt-method-box {
+            flex-grow: 1;
+            padding: 2rem;
+            border: 1px solid var(--input-border);
+            border-radius: 0.75rem; /* Smoother corners */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
             gap: 1rem;
+            background-color: var(--drop-zone-bg);
+            transition: border-color 0.2s;
+        }
+        .stt-method-box:focus-within {
+             border-color: var(--primary-indigo);
+        }
+        .api-notice {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+        #waveform {
+            width: 100%;
+            height: 60px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        #stt-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+        }
+        #stt-mic-buttons {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .stt-mic-icon-btn {
+            background-color: transparent;
+            border: none;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dark);
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+        .stt-mic-icon-btn:hover {
+            background-color: var(--drop-zone-hover-bg);
+        }
+        .stt-mic-icon-btn svg {
+            width: 32px;
+            height: 32px;
+        }
+        .stt-mic-icon-btn.stop, #stt-stop-btn {
+            color: var(--danger);
+        }
+        .stt-mic-icon-btn.stop:hover, #stt-stop-btn:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+        
+        .stt-method-box button {
+            width: 100%;
+        }
+        .stt-method-box .btn-primary-style {
+            background-color: var(--primary-indigo);
+            color: white;
+            border-color: var(--primary-indigo);
+        }
+        .stt-method-box .btn-primary-style:hover:not(:disabled) {
+            background-color: #4338ca;
+            color: white;
+        }
+        .stt-method-box .btn-primary-style:disabled {
+            background-color: var(--secondary-gray);
+            border-color: var(--secondary-gray);
+            color: white;
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        #stt-status-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+            background-color: transparent;
+            padding: 0;
+            width: 100%;
+        }
+        #stt-status {
+            color: var(--text-light);
+        }
+        #stt-timer {
+            font-family: monospace, sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            background-color: var(--modal-preview-bg);
+            color: var(--text-dark);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+
+        .file-input-label {
+            padding: 1rem;
+            border: 2px dashed var(--input-border);
+            border-radius: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            flex-grow: 1;
+            transition: all 0.2s ease;
+        }
+        .file-input-label:hover {
+            border-color: var(--primary-indigo);
+            background-color: var(--drop-zone-hover-bg);
+        }
+        .stt-transcript-label {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        
+        .stt-editor-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--input-border);
+            border-radius: 0.5rem;
+            overflow: hidden; /* To keep corners rounded */
+        }
+        #stt-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background-color: var(--drop-zone-bg);
+            border-bottom: 1px solid var(--input-border);
+        }
+        .stt-format-btn {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 0.25rem;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stt-format-btn:hover {
+            background-color: var(--drop-zone-hover-bg);
+            border-color: var(--primary-indigo);
+        }
+        .stt-format-btn svg {
+            width: 20px;
+            height: 20px;
+            color: var(--text-dark);
+        }
+        
+        .stt-editable-area {
+            flex-grow: 1;
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--input-bg);
+            color: var(--text-dark);
+            resize: none;
+            font-size: 1rem;
+            line-height: 1.5;
+            overflow-y: auto;
+        }
+        .stt-editable-area:focus {
+            outline: none;
+        }
+        .stt-editable-area:empty::before {
+            content: attr(placeholder);
+            color: var(--text-light);
+            pointer-events: none;
+        }
+        .stt-editable-area.is-recording {
+            background-color: var(--file-item-bg);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .interim-text {
+            color: var(--text-light);
+        }
+        
+        #stt-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end; /* Align buttons right */
+        }
+        #stt-actions .btn-primary-style {
+            background-color: var(--primary-indigo);
+            color: white;
+            border-color: var(--primary-indigo);
+        }
+        #stt-actions .btn-primary-style:hover:not(:disabled) {
+            background-color: #4338ca;
+            color: white;
+        }
+        #stt-actions .btn-primary-style:disabled {
+            background-color: var(--secondary-gray);
+            border-color: var(--secondary-gray);
+            color: white;
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* STT Specific Layout (when .stt-active is on .modal-content) */
+        .modal-content.stt-active {
+            overflow-y: hidden;
+        }
+        .modal-content.stt-active .options-preview-pane {
+            display: none;
+        }
+        .modal-content.stt-active .options-sidebar-pane {
+            width: 100%;
+        }
+        /* This is the CSS fix for the misplaced button bug */
+        .modal-content.stt-active .process-btn-container {
+            display: none !important;
+        }
+
+        /* Processing View */
+        .progress-container {
+            width: 100%;
+            background-color: var(--file-item-bg);
+            border-radius: 1rem;
+            padding: 0.5rem;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 2rem;
+            background-color: var(--success);
+            border-radius: 1rem;
+            transition: width 0.3s ease-in-out;
+        }
+        #progress-percentage { margin-top: 1rem; font-weight: 600; font-size: 1.2rem; }
+        #processing-text { color: var(--text-light); }
+
+        /* Complete View */
+        .download-btn {
+            background-color: var(--success);
+            color: white;
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s, transform 0.1s ease;
+        }
+        .download-btn:hover { background-color: #16a34a; }
+        .download-btn:active { transform: scale(0.98); }
+        .download-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        #individual-downloads h4 {
+            margin-bottom: 1rem;
+        }
+        #individual-downloads-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .individual-download-link {
+            display: block;
+            padding: 0.5rem 1rem;
+            background-color: var(--file-item-bg);
+            border: 1px solid var(--file-item-border);
+            border-radius: 0.25rem;
+            text-decoration: none;
+            color: var(--text-dark);
+            transition: background-color .2s;
+        }
+        .individual-download-link:hover {
+            background-color: var(--drop-zone-hover-bg);
+        }
+
+        .continue-section {
+            margin-top: 3rem;
+            border-top: 1px solid var(--header-border);
+            padding-top: 2rem;
+        }
+        .continue-section h3 { margin-bottom: 1.5rem; }
+        #continue-tools-grid {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
             flex-wrap: wrap;
         }
         .continue-tool-card {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            background-color: var(--file-item-bg);
-            border: 1px solid var(--input-border);
+            background-color: var(--card-background);
             padding: 0.75rem 1.25rem;
             border-radius: 0.5rem;
+            box-shadow: var(--card-shadow);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all .2s;
         }
-        .continue-tool-card:hover { border-color: var(--primary-indigo); background-color: var(--drop-zone-hover-bg); }
-        .continue-tool-card .icon { width: 24px; height: 24px; }
+        .continue-tool-card:hover {
+             transform: translateY(-3px);
+             box-shadow: var(--card-hover-shadow);
+        }
+        .continue-tool-card .icon { width: 32px; height: 32px; }
+        .continue-tool-card span { font-weight: 500; }
         
-        #error-message {
-            background-color: #fee2e2; color: #b91c1c; padding: 1rem; border-radius: 0.5rem;
-            margin-top: 1rem; display: none; text-align: center;
-        }
 
-        /* Service Selector Modal Styles */
+        /* Service Selector Modal */
         #service-selector-modal .modal-content {
-            position: relative; background-color: var(--modal-bg); padding: 2rem;
-            border-radius: 1rem; width: 90%; max-width: 500px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+             max-width: 90vw;
+             height: auto;
+             max-height: 90vh;
+        }
+        #selector-search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--input-border);
         }
         #service-list {
-            max-height: 250px; overflow-y: auto; border: 1px solid var(--input-border);
-            border-radius: 0.5rem; margin-top: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            overflow-y: auto;
+            max-height: 50vh;
+            padding: 0.5rem;
         }
         .service-item {
-            display: flex; align-items: center; padding: 0.75rem 1rem;
-            cursor: pointer; border-bottom: 1px solid var(--input-border);
-        }
-        .service-item:last-child { border-bottom: none; }
-        .service-item:hover { background-color: var(--drop-zone-hover-bg); }
-        .service-item.selected { background-color: var(--primary-indigo); color: white; }
-        .service-item .icon { width: 24px; height: 24px; margin-right: 1rem; }
-        .service-item.selected .icon path,
-        .service-item.selected .icon text,
-        .service-item.selected .icon circle { fill: white !important; }
-        #let-genie-convert-btn { margin-top: 1.5rem; background-color: var(--primary-indigo); }
-        #let-genie-convert-btn:hover:not(:disabled) { background-color: #4338ca; }
-
-        #selector-search-input {
-            width: 100%; padding: 0.5rem 1rem; border-radius: 0.5rem;
-            border: 1px solid var(--input-border); background-color: var(--input-bg); color: var(--text-dark);
-        }
-
-        #drop-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(79, 70, 229, 0.7); z-index: 9998; display: none;
-            align-items: center; justify-content: center; color: white;
-            font-size: 2rem; font-weight: bold; pointer-events: none;
-            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
-        }
-        
-        #scroll-to-top {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            display: none;
-            background-color: var(--primary-indigo);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 24px;
-            line-height: 50px;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--input-border);
+            border-radius: 0.5rem;
             cursor: pointer;
-            z-index: 1000;
-            box-shadow: var(--card-hover-shadow);
+            transition: all .2s;
+        }
+        .service-item:hover {
+            border-color: var(--primary-indigo);
+            background-color: var(--drop-zone-hover-bg);
+        }
+        .service-item.selected {
+            border-color: var(--primary-indigo);
+            background-color: var(--drop-zone-hover-bg);
+            box-shadow: 0 0 0 2px var(--primary-indigo);
+        }
+        .service-item .icon { width: 32px; height: 32px; }
+        .service-item span { font-weight: 500; }
+        .selector-actions { margin-top: 2rem; }
+        .selector-actions .btn-primary:disabled {
+            background-color: var(--secondary-gray);
+            cursor: not-allowed;
+        }
+
+        /* Drop Overlay & Drag States */
+        #drop-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(79, 70, 229, 0.9);
+            color: white;
+            display: none; /* Controlled by class */
             opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            text-align: center;
+            flex-direction: column;
+            gap: 1.5rem;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+        .drop-overlay-icon {
+            width: 100px;
+            height: 100px;
         }
 
-        #scroll-to-top.visible {
-            display: block;
+        body.is-dragging:not(.modal-open) #drop-overlay {
+            display: flex;
             opacity: 1;
-            visibility: visible;
         }
-
-        #scroll-to-top:hover {
-            background-color: #4338ca;
+        body.is-dragging.modal-open #modal-initial-view .drop-zone {
+            border-color: var(--primary-indigo);
+            border-style: solid;
+            background-color: var(--drop-zone-hover-bg);
+            transform: scale(1.03);
+        }
+        body.is-dragging.modal-open #modal-initial-view .drop-zone .drop-zone-icon {
+            color: var(--primary-indigo);
             transform: scale(1.1);
         }
 
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .header-left { flex-grow: 1; }
-            .nav-links {
-                position: fixed; left: -100%; top: 65px; flex-direction: column;
-                background: var(--header-bg); backdrop-filter: blur(10px); width: 100%;
-                text-align: center; transition: 0.3s; box-shadow: 0 10px 27px rgba(0, 0, 0, 0.05);
-                border-bottom-left-radius: 1rem; border-bottom-right-radius: 1rem; z-index: -1;
+        /* Error Message */
+        #error-message {
+            display: none;
+            background-color: var(--danger);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1.5rem auto;
+            max-width: 600px;
+        }
+        
+        /* Scroll to Top */
+        #scroll-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--primary-indigo);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--card-shadow);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+            z-index: 1000;
+        }
+        #scroll-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        #scroll-to-top:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Responsive Styles */
+        @media (max-width: 900px) {
+            .speech-to-text-container {
+                flex-direction: column;
+                overflow-y: auto;
+                padding-right: 0.5rem; /* Space for scrollbar */
             }
-            .nav-links.active { left: 0; }
-            .nav-links li { margin: 1.5rem 0; }
-            .hamburger { display: block; }
+            .stt-left-pane {
+                width: 100%;
+            }
+            .stt-right-pane {
+                min-height: 250px; /* Ensure space for transcript view */
+            }
+            .stt-editable-area {
+                min-height: 200px; /* Ensure textarea is usable on stacked view */
+            }
+        }
+        @media (max-width: 768px) {
+            .nav-links {
+                position: absolute;
+                left: -100%;
+                top: 70px; /* Adjust based on header height */
+                gap: 0;
+                flex-direction: column;
+                background-color: var(--modal-bg);
+                width: 100%;
+                text-align: center;
+                transition: 0.3s;
+                box-shadow: var(--card-shadow);
+            }
+            .nav-links.active {
+                left: 0;
+            }
+            .nav-links li {
+                margin: 1rem 0;
+            }
+            .hamburger {
+                display: block;
+            }
             .hamburger.active .bar:nth-child(2) { opacity: 0; }
             .hamburger.active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
             .hamburger.active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
 
             .main-title { font-size: 2rem; }
-            .category-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
-            
-            .modal-content-wrapper { padding: 1rem; }
-            .modal-content { padding: 2rem 1.5rem; max-width: 95vw; }
-            #modal-options-view { flex-direction: column; height: 80vh; max-height: none; }
-            .options-sidebar-pane { width: 100%; }
+            .main-subtitle { font-size: 1rem; }
+            #modal-options-view { flex-direction: column; }
+            .options-sidebar-pane { width: 100%; max-height: 40vh; }
+            .modal-content {
+                height: 90vh;
+                padding: 3rem 1.5rem 1.5rem;
+            }
+            .modal-content-wrapper { padding: 0; }
+            .modal { padding: 0; }
+            #modal-title { font-size: 1.5rem; }
+            #modal-subtitle { font-size: 1rem; margin-bottom: 1.5rem; }
         }
+
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0"
+  }
+}
+</script>
 </head>
 <body>
-    <div id="drop-overlay">Drop File to Start</div>
+
     <header>
         <div class="container header-content">
             <div class="header-left">
-                 <a href="#" class="logo">GenieConverter</a>
+                <a href="#" class="logo">GenieConverter</a>
+                <nav>
+                    <ul class="nav-links">
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#tools-grid">All Tools</a></li>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                    </ul>
+                </nav>
             </div>
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="#">Home</a></li>
-                    <li><a href="#tools-grid">All Tools</a></li>
-                    <li><a href="#about-us">About Us</a></li>
-                    <li><a href="#">Contact Us</a></li>
-                </ul>
-            </nav>
             <div class="header-right">
                 <label class="theme-switch">
                     <input type="checkbox" id="theme-toggle">
-                    <span class="slider round"></span>
+                    <span class="slider"></span>
                 </label>
                 <button class="hamburger">
                     <span class="bar"></span>
@@ -994,68 +1378,111 @@
         </div>
     </header>
 
-    <main class="container">
-        <h1 class="main-title">Every tool you need to work with PDFs in one place</h1>
-        <p class="main-subtitle">Your files are never uploaded. All tools are 100% FREE, private, and process files directly on your computer.</p>
-        <div id="category-filters" class="category-filters"></div>
-        <div class="search-container">
-            <input type="search" id="search-input" placeholder="Search for a tool...">
+    <section class="top-ad-banner">
+        <div class="container">
+            <div class="ad-placeholder banner" id="top-ad-placeholder">ADVERTISEMENT</div>
         </div>
-        <div class="ad-placeholder banner" style="margin-bottom: 3rem;">AD 728x90</div>
-        <div id="tools-grid"></div>
-        <div class="ad-placeholder banner" style="margin-top: 3rem;">AD 728x90</div>
+    </section>
+
+    <main class="container">
+        <section class="hero">
+            <h1 class="main-title">Every File Tool You Need, In One Place</h1>
+            <p class="main-subtitle">Securely merge, split, compress, and convert your files directly in your browser. No uploads required, ensuring your data remains private.</p>
+        </section>
+
+        <section class="search-and-filter">
+            <div class="search-container">
+                <input type="search" id="search-input" placeholder="Search for a tool (e.g., 'merge pdf', 'jpg to png')">
+            </div>
+            <div id="category-filters" class="category-filters"></div>
+        </section>
+        
+        <section id="recent-tools" style="display: none;">
+            <h2 class="category-title">Recently Used</h2>
+            <div id="recent-tools-grid" class="category-grid"></div>
+        </section>
+
+        <div id="error-message"></div>
+        
+        <div class="tools-section">
+            <div id="tool-skeletons" class="category-grid">
+                <!-- Skeleton Loader Cards -->
+                <div class="skeleton-card"><div class="skeleton icon"></div><div class="skeleton title"></div><div class="skeleton text"></div><div class="skeleton text"></div></div>
+                <div class="skeleton-card"><div class="skeleton icon"></div><div class="skeleton title"></div><div class="skeleton text"></div><div class="skeleton text"></div></div>
+                <div class="skeleton-card"><div class="skeleton icon"></div><div class="skeleton title"></div><div class="skeleton text"></div><div class="skeleton text"></div></div>
+                <div class="skeleton-card"><div class="skeleton icon"></div><div class="skeleton title"></div><div class="skeleton text"></div><div class="skeleton text"></div></div>
+            </div>
+            <div id="tools-grid">
+                <!-- Tools will be rendered here by JavaScript -->
+            </div>
+        </div>
     </main>
 
-    <footer id="about-us">
+    <footer>
         <div class="container footer-content">
             <div class="footer-links">
                 <a href="#">Privacy Policy</a>
                 <a href="#">Terms of Service</a>
             </div>
-            <p>Designed and maintained by <a href="https://doubbletech.com" target="_blank" rel="noopener noreferrer">Doubble Tech</a></p>
-            <p>&copy; 2024 GenieConverter. All Rights Reserved.</p>
+            <p>Designed and maintained by <a href="https://your-link.com" target="_blank">Doubble Tech</a>.</p>
         </div>
     </footer>
-
+    
+    <!-- Modals -->
     <div id="tool-modal" class="modal">
         <div class="modal-content-wrapper">
             <div class="modal-content">
                 <button class="close-modal">&times;</button>
                 <h2 id="modal-title">Tool Title</h2>
-                <p id="modal-subtitle">Tool Subtitle</p>
-                <div id="error-message"></div>
+                <p id="modal-subtitle">Tool subtitle goes here.</p>
+                <div class="ad-placeholder banner" id="modal-ad-banner">ADVERTISEMENT</div>
 
+
+                <!-- Initial File Selection View -->
                 <div id="modal-initial-view">
-                    <div class="ad-placeholder banner" style="height: 90px; margin-bottom: 2rem;">ADVERTISEMENT</div>
-                    <button id="select-file-btn" class="btn-primary">Select File</button>
-                    <p class="drop-text">or drop file here</p>
-                    <input type="file" id="file-input" hidden>
+                    <div class="drop-zone">
+                        <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                        </svg>
+                        <button id="select-file-btn" class="btn-primary">Select File(s)</button>
+                        <input type="file" id="file-input" hidden>
+                        <p class="drop-text">or drop file here</p>
+                    </div>
                 </div>
 
+                <!-- Options/Preview View -->
                 <div id="modal-options-view">
-                    <div class="options-preview-pane"></div>
+                    <div class="options-preview-pane">
+                        <!-- File previews will be generated here -->
+                    </div>
                     <div class="options-sidebar-pane">
-                        <div id="tool-options"></div>
-                        <div class="ad-placeholder banner" style="height: 90px; margin-top: 1rem; margin-bottom: 1rem;">ADVERTISEMENT</div>
-                        <button id="process-btn" class="process-btn" disabled>Let Genie Process</button>
+                        <div id="tool-options">
+                            <!-- Tool specific options will be rendered here -->
+                        </div>
+                        <div class="process-btn-container">
+                             <button id="process-btn" class="btn-primary">Let Genie Process</button>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Processing View -->
                 <div id="modal-processing-view">
-                    <div class="progress-bar-container">
-                        <div id="progress-bar" class="progress-bar"></div>
+                    <h3>Processing...</h3>
+                    <div class="progress-container">
+                        <div id="progress-bar"></div>
                     </div>
-                    <div id="progress-percentage">0%</div>
-                    <p id="processing-text">Processing...</p>
-                    <div class="ad-placeholder banner" style="height: 90px; margin-top: 1.5rem;">ADVERTISEMENT</div>
+                    <p id="progress-percentage">0%</p>
+                    <p id="processing-text">Preparing your files...</p>
                 </div>
 
+                <!-- Complete View -->
                 <div id="modal-complete-view">
-                    <h3 id="complete-title">PDF has been split!</h3>
-                    <div id="download-area"></div>
-                    <div class="ad-placeholder banner" style="height: 90px; margin-top: 1.5rem; margin-bottom: 1.5rem;">ADVERTISEMENT</div>
-                    <div id="continue-tools-container">
-                        <h4>Continue with...</h4>
+                    <h3 id="complete-title">Your files are ready!</h3>
+                    <div id="download-area">
+                        <!-- Download button(s) will be rendered here -->
+                    </div>
+                    <div class="continue-section" style="display: none;">
+                        <h3>Continue with...</h3>
                         <div id="continue-tools-grid"></div>
                     </div>
                 </div>
@@ -1065,19 +1492,31 @@
     
     <div id="service-selector-modal" class="modal">
         <div class="modal-content-wrapper">
-            <div class="modal-content">
+             <div class="modal-content">
                 <button class="close-modal">&times;</button>
-                <h2 class="modal-title" style="font-size: 1.5rem; margin-bottom: 1.5rem;">What would you like to do?</h2>
-                <div class="ad-placeholder banner" style="height: 60px; margin-bottom: 1rem;">ADVERTISEMENT</div>
-                <input type="search" id="selector-search-input" placeholder="Search for a service...">
+                <h2>Which service would you like to use?</h2>
+                <p>We found multiple tools that can open your file.</p>
+                <input type="search" id="selector-search-input" placeholder="Search tools...">
                 <div id="service-list"></div>
-                <button id="let-genie-convert-btn" class="process-btn" disabled>Let Genie Convert</button>
-            </div>
+                <div class="selector-actions">
+                    <button id="let-genie-convert-btn" class="btn-primary" disabled>Let's Go!</button>
+                </div>
+             </div>
         </div>
     </div>
-    
-    <button id="scroll-to-top" title="Go to top">&uarr;</button>
 
-    <script type="module" src="index.tsx"></script>
+    <div id="drop-overlay">
+        <svg class="drop-overlay-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 13.5l3 3m0 0l3-3m-3 3v-6m1.06-4.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+        </svg>
+        <h2>Drop your files here to start</h2>
+    </div>
+
+    <button id="scroll-to-top" title="Go to top">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+    </button>
+    
+    <script type="module" src="./index.tsx"></script>
+
 </body>
 </html>

@@ -1,5 +1,7 @@
 {
   "name": "Genie Converter - Client-Side File Tools",
   "description": "A powerful suite of 27 free, secure, and client-side online tools to merge, split, compress, convert, and edit PDFs and other documents directly in your browser. No server uploads are required.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }
