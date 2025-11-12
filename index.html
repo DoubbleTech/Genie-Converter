@@ -221,7 +221,7 @@
         }
 
         .top-ad-banner {
-            padding: 2rem 0;
+            padding: 1rem 0;
             display: flex;
             justify-content: center;
         }
@@ -470,6 +470,9 @@
             width: 728px;
             height: 90px;
             max-width: 100%;
+        }
+        .top-ad-banner .ad-placeholder.banner {
+            width: 100%;
         }
 
         footer {
@@ -1283,6 +1286,62 @@
             transform: scale(1.1);
         }
         
+        /* Bottom Ad Popup */
+        .bottom-ad-popup {
+            position: fixed;
+            bottom: -100%; /* Start off-screen */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+            background-color: var(--card-background);
+            color: var(--text-dark);
+            box-shadow: var(--card-hover-shadow);
+            border-radius: 1rem 1rem 0 0;
+            padding: 1.5rem;
+            z-index: 1500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            transition: bottom 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border: 1px solid var(--header-border);
+        }
+
+        .bottom-ad-popup.visible {
+            bottom: 0;
+        }
+
+        .ad-popup-content {
+            text-align: left;
+        }
+        .ad-popup-content p {
+            margin: 0 0 0.5rem;
+        }
+        .ad-popup-cta {
+            color: var(--primary-indigo);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .ad-popup-cta:hover {
+            text-decoration: underline;
+        }
+
+        .close-ad-popup {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            line-height: 1;
+            color: var(--secondary-gray);
+            cursor: pointer;
+            padding: 0.5rem;
+            align-self: flex-start; /* Align to top */
+            transition: color 0.2s;
+        }
+        .close-ad-popup:hover {
+            color: var(--text-dark);
+        }
+
         /* Responsive Styles */
         @media (max-width: 900px) {
             .speech-to-text-container {
@@ -1510,6 +1569,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 13.5l3 3m0 0l3-3m-3 3v-6m1.06-4.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
         </svg>
         <h2>Drop your files here to start</h2>
+    </div>
+
+    <!-- Bottom Ad Popup -->
+    <div id="bottom-ad-popup" class="bottom-ad-popup">
+        <div class="ad-popup-content">
+            <p><strong>Special Offer!</strong> Upgrade to Genie Pro for an ad-free experience and unlimited access.</p>
+            <a href="#" class="ad-popup-cta">Learn More</a>
+        </div>
+        <button id="close-ad-popup" class="close-ad-popup" aria-label="Close Ad">&times;</button>
     </div>
 
     <button id="scroll-to-top" title="Go to top">
