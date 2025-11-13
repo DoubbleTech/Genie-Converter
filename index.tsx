@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Modality } from "@google/genai";
+import { GoogleGenAI, Modality, LiveServerMessage, Blob as GenAIBlob } from "@google/genai";
 
 // --- ICON DEFINITIONS ---
 const ICONS = {
@@ -45,6 +45,7 @@ const ICONS = {
     'mic-record': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>`,
     'mic-pause': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>`,
     'mic-stop': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"></path></svg>`,
+    'upload-media': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>`,
     'eye-preview': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`
 };
 
@@ -69,7 +70,19 @@ interface Category {
 // --- GLOBAL STATE ---
 let currentTool: Tool | null = null;
 let currentFiles: File[] = [];
-let recognition: any = null;
+
+// STT State
+let sttSessionPromise: Promise<any> | null = null;
+let mediaStream: MediaStream | null = null;
+let inputAudioContext: AudioContext | null = null;
+let scriptProcessor: ScriptProcessorNode | null = null;
+let isRecording = false;
+let isPaused = false;
+let startTime: number = 0;
+let pauseTime: number = 0;
+let totalPausedDuration: number = 0;
+let timerInterval: number | null = null;
+let finalTranscript = '';
 
 
 // --- API INITIALIZATION ---
@@ -223,11 +236,27 @@ const DOMElements = {
 };
 
 // --- UTILITY FUNCTIONS ---
-const showError = (message: string) => {
-    DOMElements.errorMessage.textContent = message;
-    DOMElements.errorMessage.style.display = 'block';
+const showError = (message: string, isSttError: boolean = false) => {
+    if (isSttError) {
+        const fileStatus = getElement('#stt-file-status');
+        if (fileStatus) {
+            fileStatus.textContent = `Error: ${message}`;
+            fileStatus.style.display = 'block';
+            fileStatus.style.color = 'var(--danger)';
+        }
+    } else {
+        DOMElements.errorMessage.textContent = message;
+        DOMElements.errorMessage.style.display = 'block';
+    }
 };
-const hideError = () => { DOMElements.errorMessage.style.display = 'none'; };
+const hideError = (isSttError: boolean = false) => { 
+    if (isSttError) {
+        const fileStatus = getElement('#stt-file-status');
+        if (fileStatus) fileStatus.style.display = 'none';
+    } else {
+        DOMElements.errorMessage.style.display = 'none'; 
+    }
+};
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
@@ -447,16 +476,15 @@ const openToolModal = (tool: Tool) => {
 };
 
 const closeModal = () => {
+    if (isRecording) {
+        stopRecording();
+    }
+
     DOMElements.modal.classList.remove('visible');
     document.body.classList.remove('modal-open');
     document.body.style.overflow = '';
     currentTool = null;
     currentFiles = [];
-
-    if (recognition) {
-        recognition.abort();
-        recognition = null;
-    }
     
     DOMElements.previewPane.innerHTML = '';
     DOMElements.optionsPane.innerHTML = '';
@@ -665,7 +693,7 @@ const showOptionsView = (files: File[]) => {
         const fileListHTML = files.map((file, index) => `
             <div class="file-item">
                 <span class="file-name">${file.name}</span>
-                <button class="file-preview-btn" data-file-index="${index}" title="Preview file">${ICONS['eye-preview']}</button>
+                <button class="file-preview-btn" data-file-index="${index}" aria-label="Preview ${file.name}">${ICONS['eye-preview']}</button>
             </div>
         `).join('');
 
@@ -697,7 +725,6 @@ const showOptionsView = (files: File[]) => {
         });
 
     } else {
-        DOMElements.optionsSidebarPane.style.display = 'none';
         DOMElements.processBtnContainer.style.display = 'none';
     }
 
@@ -779,9 +806,395 @@ const removeBackground = async () => {
 };
 
 // --- SPEECH-TO-TEXT (STT) LOGIC ---
+function encode(bytes: Uint8Array) {
+    let binary = '';
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+function createBlob(data: Float32Array): GenAIBlob {
+    const l = data.length;
+    const int16 = new Int16Array(l);
+    for (let i = 0; i < l; i++) {
+        int16[i] = data[i] < 0 ? data[i] * 32768 : data[i] * 32767;
+    }
+    return {
+        data: encode(new Uint8Array(int16.buffer)),
+        mimeType: 'audio/pcm;rate=16000',
+    };
+}
+
+const stopRecording = () => {
+    if (sttSessionPromise) {
+        sttSessionPromise.then(session => session.close()).catch(console.error);
+        sttSessionPromise = null;
+    }
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
+    if (scriptProcessor) {
+        scriptProcessor.disconnect();
+        scriptProcessor = null;
+    }
+    if (inputAudioContext && inputAudioContext.state !== 'closed') {
+        inputAudioContext.close().catch(console.error);
+        inputAudioContext = null;
+    }
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    isRecording = false;
+    isPaused = false;
+    
+    updateSttUI('idle');
+};
+
+const pauseRecording = () => {
+    if (!isRecording || isPaused) return;
+    isPaused = true;
+    pauseTime = Date.now();
+    updateSttUI('paused');
+};
+
+const resumeRecording = () => {
+    if (!isRecording || !isPaused) return;
+    totalPausedDuration += Date.now() - pauseTime;
+    isPaused = false;
+    updateSttUI('recording');
+};
+
+const startRecording = async () => {
+    if (!ai || isRecording) {
+        showError("AI Service is not available or recording is already in progress.", true);
+        return;
+    }
+    hideError(true);
+    updateSttUI('recording');
+    isRecording = true;
+    isPaused = false;
+    totalPausedDuration = 0;
+    finalTranscript = '';
+    getElement<HTMLDivElement>('#stt-editable-area').innerHTML = '';
+
+
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        sttSessionPromise = ai.live.connect({
+            model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+            callbacks: {
+                onopen: () => {
+                    inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+                    const source = inputAudioContext.createMediaStreamSource(mediaStream!);
+                    scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
+                    
+                    scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
+                        if (isPaused) return;
+                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        const pcmBlob = createBlob(inputData);
+                        sttSessionPromise?.then((session) => {
+                            session.sendRealtimeInput({ media: pcmBlob });
+                        }).catch(console.error);
+                    };
+
+                    source.connect(scriptProcessor);
+                    scriptProcessor.connect(inputAudioContext.destination);
+                },
+                onmessage: (message: LiveServerMessage) => {
+                    const editableArea = getElement<HTMLDivElement>('#stt-editable-area');
+                    if (message.serverContent?.inputTranscription) {
+                        const text = message.serverContent.inputTranscription.text;
+                        editableArea.innerText = finalTranscript + text;
+                    }
+                    if (message.serverContent?.turnComplete) {
+                        finalTranscript = editableArea.innerText + ' ';
+                    }
+                },
+                onerror: (e: ErrorEvent) => {
+                    console.error('STT Error:', e);
+                    showError("A transcription error occurred.", true);
+                    stopRecording();
+                },
+                onclose: () => {
+                   // Clean up is handled by stopRecording
+                },
+            },
+            config: {
+                responseModalities: [Modality.AUDIO],
+                inputAudioTranscription: {},
+                systemInstruction: `The user is speaking in ${currentTool?.language || 'en-US'}. Transcribe their speech accurately. Do not generate any conversational response, only provide the transcription.`,
+            },
+        });
+
+        startTime = Date.now();
+        timerInterval = window.setInterval(() => {
+            if (isPaused) return;
+            const elapsed = Math.floor((Date.now() - startTime - totalPausedDuration) / 1000);
+
+            if (elapsed >= 120) {
+                stopRecording();
+                return;
+            }
+            
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            const timerDisplay = getElement('#stt-timer');
+            if(timerDisplay) timerDisplay.textContent = `${minutes}:${seconds}`;
+        }, 1000);
+
+    } catch (err) {
+        console.error('Failed to get media or start session', err);
+        showError("Could not access microphone. Please check permissions.", true);
+        stopRecording();
+    }
+};
+
+const handleAudioFile = async (file: File | null) => {
+    if (!file || !ai) return;
+    hideError(true);
+    const fileStatus = getElement<HTMLDivElement>('#stt-file-status');
+
+    if (file.size > 10 * 1024 * 1024) { // 10 MB limit
+        showError("File size cannot exceed 10MB.", true);
+        return;
+    }
+
+    updateSttUI('processingFile');
+    fileStatus.textContent = 'Analyzing audio file...';
+    fileStatus.style.color = 'inherit';
+    finalTranscript = '';
+    getElement<HTMLDivElement>('#stt-editable-area').innerHTML = '';
+
+
+    try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const buffer = await file.arrayBuffer();
+        const decodedBuffer = await audioCtx.decodeAudioData(buffer);
+        await audioCtx.close();
+
+        if (decodedBuffer.duration > 120) {
+            showError("Audio duration cannot exceed 2 minutes.", true);
+            updateSttUI('idle');
+            return;
+        }
+
+        fileStatus.textContent = 'Transcribing...';
+        
+        sttSessionPromise = ai.live.connect({
+             model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+             callbacks: {
+                 onopen: () => {
+                     // Resample and send audio data in chunks
+                     const targetSampleRate = 16000;
+                     const inputSampleRate = decodedBuffer.sampleRate;
+                     const inputData = decodedBuffer.getChannelData(0);
+                     const ratio = inputSampleRate / targetSampleRate;
+                     const outputLength = Math.floor(inputData.length / ratio);
+                     const pcmData = new Float32Array(outputLength);
+                     for (let i = 0; i < outputLength; i++) {
+                        pcmData[i] = inputData[Math.floor(i * ratio)];
+                     }
+                     
+                     const chunkSize = 4096;
+                     let currentPosition = 0;
+                     const sendInterval = setInterval(() => {
+                        sttSessionPromise?.then(session => {
+                            if (currentPosition >= pcmData.length) {
+                                clearInterval(sendInterval);
+                                session.close();
+                                return;
+                            }
+                            const chunk = pcmData.slice(currentPosition, currentPosition + chunkSize);
+                            const blob = createBlob(chunk);
+                            session.sendRealtimeInput({ media: blob });
+                            currentPosition += chunkSize;
+                        }).catch(e => {
+                            clearInterval(sendInterval);
+                            showError("Connection error during transcription.", true);
+                            updateSttUI('idle');
+                        });
+                     }, 200); // Send chunks at a reasonable rate
+                 },
+                 onmessage: (message: LiveServerMessage) => {
+                    const editableArea = getElement<HTMLDivElement>('#stt-editable-area');
+                    if (message.serverContent?.inputTranscription) {
+                        editableArea.innerText = finalTranscript + message.serverContent.inputTranscription.text;
+                    }
+                    if (message.serverContent?.turnComplete) {
+                        finalTranscript = editableArea.innerText + ' ';
+                    }
+                 },
+                 onerror: (e) => {
+                     console.error('File STT Error:', e);
+                     showError("Transcription failed.", true);
+                     updateSttUI('idle');
+                 },
+                 onclose: () => {
+                     fileStatus.textContent = 'Transcription complete.';
+                     updateSttUI('idle');
+                 }
+             },
+             config: {
+                 responseModalities: [Modality.AUDIO],
+                 inputAudioTranscription: {},
+                 systemInstruction: `The user has provided an audio file in ${currentTool?.language || 'en-US'}. Transcribe it accurately.`,
+             }
+        });
+
+    } catch (e) {
+        console.error("Failed to process audio file", e);
+        showError("Invalid or corrupted audio file.", true);
+        updateSttUI('idle');
+    }
+}
+
+const updateSttUI = (state: 'idle' | 'recording' | 'paused' | 'processingFile') => {
+    const recordBtn = getElement<HTMLButtonElement>('#stt-record-btn');
+    const pauseBtn = getElement<HTMLButtonElement>('#stt-pause-btn');
+    const stopBtn = getElement<HTMLButtonElement>('#stt-stop-btn');
+    const editableArea = getElement<HTMLDivElement>('#stt-editable-area');
+    const copyBtn = getElement<HTMLButtonElement>('#stt-copy-btn');
+    const downloadBtn = getElement<HTMLButtonElement>('#stt-download-btn');
+    const statusContainer = getElement('#stt-status-container');
+    const statusText = getElement<HTMLSpanElement>('#stt-status');
+    const timerDisplay = getElement<HTMLSpanElement>('#stt-timer');
+    const fileStatus = getElement<HTMLDivElement>('#stt-file-status');
+    const liveBox = getElement<HTMLDivElement>('#stt-live-box');
+    const uploadBox = getElement<HTMLDivElement>('#stt-file-upload-box');
+
+
+    const isIdle = state === 'idle';
+    const isRecordingActive = state === 'recording' || state === 'paused';
+    const isFileProcessing = state === 'processingFile';
+
+    recordBtn.style.display = (isIdle || state === 'paused') ? 'inline-flex' : 'none';
+    recordBtn.setAttribute('aria-label', state === 'paused' ? 'Resume recording' : 'Start recording');
+    
+    pauseBtn.style.display = state === 'recording' ? 'inline-flex' : 'none';
+    stopBtn.style.display = isRecordingActive ? 'inline-flex' : 'none';
+    
+    statusContainer.style.visibility = isRecordingActive ? 'visible' : 'hidden';
+    if(statusText) statusText.textContent = state === 'paused' ? 'Paused' : 'Recording...';
+    
+    liveBox.classList.toggle('disabled', isFileProcessing);
+    uploadBox.classList.toggle('disabled', isRecordingActive);
+
+    recordBtn.disabled = isFileProcessing;
+    pauseBtn.disabled = isFileProcessing;
+    stopBtn.disabled = isFileProcessing;
+
+    if (isIdle || isFileProcessing) {
+        if (isIdle) fileStatus.style.display = 'none';
+    } else {
+        fileStatus.style.display = 'block';
+        fileStatus.textContent = 'Live recording in progress...';
+        fileStatus.style.color = 'inherit';
+    }
+
+    editableArea.classList.toggle('is-recording', !isIdle);
+    editableArea.contentEditable = isIdle ? 'true' : 'false';
+
+    const hasText = editableArea.innerText.trim().length > 0;
+    copyBtn.disabled = !isIdle || !hasText;
+    downloadBtn.disabled = !isIdle || !hasText;
+    
+    if (isIdle) {
+        timerDisplay.textContent = '00:00';
+    }
+};
+
 const renderSpeechToTextUI = () => {
     DOMElements.optionsView.style.display = 'block';
-    DOMElements.optionsPane.innerHTML = `<div class="speech-to-text-container"><p>Speech to text functionality is currently under development.</p></div>`;
+    DOMElements.optionsPane.innerHTML = `
+        <div class="speech-to-text-container">
+            <div class="stt-left-pane">
+                 <div class="stt-method-box" id="stt-live-box">
+                    <h4>Live Transcription</h4>
+                    <p class="api-notice">Powered by Genie Converter</p>
+                    <div id="stt-controls">
+                        <div id="stt-mic-buttons">
+                            <button id="stt-record-btn" class="stt-mic-icon-btn" aria-label="Start recording">${ICONS['mic-record']}</button>
+                            <button id="stt-pause-btn" class="stt-mic-icon-btn" style="display: none;" aria-label="Pause recording">${ICONS['mic-pause']}</button>
+                            <button id="stt-stop-btn" class="stt-mic-icon-btn stop" style="display: none;" aria-label="Stop recording">${ICONS['mic-stop']}</button>
+                        </div>
+                        <div id="stt-status-container" style="visibility: hidden;">
+                            <span id="stt-status">Recording...</span>
+                            <span id="stt-timer">00:00</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="stt-method-box" id="stt-file-upload-box" tabindex="0" role="button" aria-label="Select audio file to transcribe">
+                    <h4>Transcribe Audio File</h4>
+                    ${ICONS['upload-media']}
+                    <p class="api-notice">Max 2 min / 10MB</p>
+                    <input type="file" id="stt-file-input" hidden accept="audio/*">
+                    <div id="stt-file-status" style="display: none; margin-top: 0.5rem; font-size: 0.8rem; text-align: center;"></div>
+                </div>
+            </div>
+            <div class="stt-right-pane">
+                <label for="stt-editable-area" class="stt-transcript-label">Transcript</label>
+                <div class="stt-editor-container">
+                    <div contenteditable="false" id="stt-editable-area" class="stt-editable-area" placeholder="Your transcribed text will appear here..."></div>
+                </div>
+                <div id="stt-actions">
+                    <button id="stt-copy-btn" class="btn-secondary" disabled>Copy</button>
+                    <button id="stt-download-btn" class="btn-secondary" disabled>Download .txt</button>
+                </div>
+            </div>
+        </div>`;
+
+    const recordBtn = getElement<HTMLButtonElement>('#stt-record-btn');
+    const pauseBtn = getElement<HTMLButtonElement>('#stt-pause-btn');
+    const stopBtn = getElement<HTMLButtonElement>('#stt-stop-btn');
+    const editableArea = getElement<HTMLDivElement>('#stt-editable-area');
+    const copyBtn = getElement<HTMLButtonElement>('#stt-copy-btn');
+    const downloadBtn = getElement<HTMLButtonElement>('#stt-download-btn');
+    const uploadBox = getElement<HTMLDivElement>('#stt-file-upload-box');
+    const fileInput = getElement<HTMLInputElement>('#stt-file-input');
+
+    recordBtn.onclick = () => {
+        if (isPaused) resumeRecording();
+        else startRecording();
+    };
+    pauseBtn.onclick = pauseRecording;
+    stopBtn.onclick = stopRecording;
+
+    uploadBox.onclick = () => {
+        if (!uploadBox.classList.contains('disabled')) {
+            fileInput.click();
+        }
+    };
+    uploadBox.onkeydown = (e: KeyboardEvent) => {
+        if ((e.key === 'Enter' || e.key === ' ') && !uploadBox.classList.contains('disabled')) {
+            e.preventDefault();
+            fileInput.click();
+        }
+    };
+    fileInput.onchange = () => handleAudioFile(fileInput.files ? fileInput.files[0] : null);
+
+    copyBtn.onclick = () => {
+        navigator.clipboard.writeText(editableArea.innerText);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+    };
+    downloadBtn.onclick = () => {
+        const blob = new Blob([editableArea.innerText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'transcript.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    updateSttUI('idle');
 };
 
 // --- EVENT LISTENERS & INITIALIZATION ---
@@ -797,7 +1210,18 @@ const eventListeners = () => {
     DOMElements.modal.addEventListener('click', (e) => {
         if (e.target === DOMElements.modal) closeModal();
     });
-    DOMElements.selectFileBtn.addEventListener('click', () => DOMElements.fileInput.click());
+
+    // File Input & Drop Zone Accessibility
+    const dropZone = getElement<HTMLElement>('#modal-initial-view .drop-zone');
+    dropZone.addEventListener('click', () => {
+        DOMElements.fileInput.click();
+    });
+    dropZone.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            DOMElements.fileInput.click();
+        }
+    });
     DOMElements.fileInput.addEventListener('change', () => handleFileSelect(DOMElements.fileInput.files));
 
     // Drag and Drop

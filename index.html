@@ -555,8 +555,8 @@
             background-color: var(--modal-bg);
             border-radius: 1rem;
             box-shadow: var(--card-hover-shadow);
-            width: 100%;
-            max-width: 90vw;
+            width: 70vw;
+            max-width: 1200px;
             text-align: center;
             padding: 3rem;
             transition: opacity 0.3s ease, transform 0.3s ease;
@@ -564,8 +564,8 @@
             opacity: 0;
             display: flex;
             flex-direction: column;
-            height: 85vh;
-            max-height: 850px;
+            height: auto; /* Changed */
+            max-height: 90vh; /* Changed */
         }
         #modal-title { font-size: 2rem; margin-bottom: 0.5rem; }
         #modal-subtitle { color: var(--text-light); margin-bottom: 0; font-size: 1.1rem; }
@@ -603,6 +603,12 @@
             background-color: var(--drop-zone-bg);
             transition: all 0.2s ease-in-out;
             text-align: center;
+            cursor: pointer;
+        }
+        .drop-zone:focus {
+            outline: none;
+            border-color: var(--primary-indigo);
+            box-shadow: 0 0 0 3px var(--input-focus-shadow);
         }
 
         .drop-zone-icon {
@@ -830,11 +836,31 @@
             justify-content: center;
             gap: 1rem;
             background-color: var(--drop-zone-bg);
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background-color 0.2s, opacity 0.2s;
         }
-        .stt-method-box:focus-within {
-             border-color: var(--primary-indigo);
+        .stt-method-box.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: var(--file-item-bg);
         }
+        .stt-method-box.disabled:hover {
+            border-color: var(--input-border); /* Prevent hover effect when disabled */
+        }
+        #stt-file-upload-box {
+            cursor: pointer;
+            justify-content: center;
+        }
+        #stt-file-upload-box:not(.disabled):hover {
+            border-color: var(--primary-indigo);
+            background-color: var(--drop-zone-hover-bg);
+        }
+        #stt-file-upload-box svg {
+            width: 48px;
+            height: 48px;
+            color: var(--primary-indigo);
+            margin: 0.5rem 0;
+        }
+        
         .api-notice {
             font-size: 0.75rem;
             color: var(--text-light);
@@ -886,25 +912,6 @@
             background-color: rgba(239, 68, 68, 0.1);
         }
         
-        .stt-method-box button {
-            width: 100%;
-        }
-        .stt-method-box .btn-primary-style {
-            background-color: var(--primary-indigo);
-            color: white;
-            border-color: var(--primary-indigo);
-        }
-        .stt-method-box .btn-primary-style:hover:not(:disabled) {
-            background-color: #4338ca;
-            color: white;
-        }
-        .stt-method-box .btn-primary-style:disabled {
-            background-color: var(--secondary-gray);
-            border-color: var(--secondary-gray);
-            color: white;
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
         #stt-status-container {
             display: flex;
             align-items: center;
@@ -993,7 +1000,7 @@
             color: var(--text-dark);
         }
         
-        .stt-editable-area {
+        #stt-editable-area {
             flex-grow: 1;
             width: 100%;
             padding: 1rem;
@@ -1004,10 +1011,10 @@
             line-height: 1.5;
             overflow-y: auto;
         }
-        .stt-editable-area:focus {
+        #stt-editable-area:focus {
             outline: none;
         }
-        .stt-editable-area:empty::before {
+        #stt-editable-area:empty::before {
             content: attr(placeholder);
             color: var(--text-light);
             pointer-events: none;
@@ -1155,9 +1162,9 @@
 
         /* Service Selector Modal */
         #service-selector-modal .modal-content {
-             max-width: 90vw;
+             max-width: 95vw;
              height: auto;
-             max-height: 90vh;
+             max-height: 95vh;
         }
         #selector-search-input {
             width: 100%;
@@ -1434,6 +1441,7 @@
 
     <main class="container">
         <div class="top-ad-banner">
+            
              <div class="ad-placeholder banner" id="top-ad-placeholder">ADVERTISEMENT</div>
         </div>
         
@@ -1481,10 +1489,10 @@
     </footer>
     
     <!-- Modals -->
-    <div id="tool-modal" class="modal">
+    <div id="tool-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-content-wrapper">
             <div class="modal-content">
-                <button class="close-modal">&times;</button>
+                <button class="close-modal" aria-label="Close tool modal">&times;</button>
                 <h2 id="modal-title">Tool Title</h2>
                 <p id="modal-subtitle">Tool subtitle goes here.</p>
                 <div class="ad-placeholder banner" id="modal-ad-banner">ADVERTISEMENT</div>
@@ -1492,12 +1500,12 @@
 
                 <!-- Initial File Selection View -->
                 <div id="modal-initial-view">
-                    <div class="drop-zone">
-                        <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <div class="drop-zone" tabindex="0" role="button" aria-label="Select files or drop files here">
+                        <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                         </svg>
-                        <button id="select-file-btn" class="btn-primary">Select File(s)</button>
-                        <input type="file" id="file-input" hidden>
+                        <button id="select-file-btn" class="btn-primary" tabindex="-1">Select File(s)</button>
+                        <input type="file" id="file-input" hidden aria-hidden="true">
                         <p class="drop-text">or drop file here</p>
                     </div>
                 </div>
@@ -1518,7 +1526,7 @@
                 </div>
 
                 <!-- Processing View -->
-                <div id="modal-processing-view">
+                <div id="modal-processing-view" role="status" aria-live="polite">
                     <h3>Processing...</h3>
                     <div class="progress-container">
                         <div id="progress-bar"></div>
@@ -1542,10 +1550,10 @@
         </div>
     </div>
     
-    <div id="service-selector-modal" class="modal">
+    <div id="service-selector-modal" class="modal" role="dialog" aria-modal="true">
         <div class="modal-content-wrapper">
              <div class="modal-content">
-                <button class="close-modal">&times;</button>
+                <button class="close-modal" aria-label="Close service selector modal">&times;</button>
                 <h2>Which service would you like to use?</h2>
                 <p>We found multiple tools that can open your file.</p>
                 <input type="search" id="selector-search-input" placeholder="Search tools...">
@@ -1558,23 +1566,23 @@
     </div>
 
     <div id="drop-overlay">
-        <svg class="drop-overlay-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+        <svg class="drop-overlay-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 13.5l3 3m0 0l3-3m-3 3v-6m1.06-4.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
         </svg>
         <h2>Drop your files here to start</h2>
     </div>
 
     <!-- Bottom Ad Popup -->
-    <div id="bottom-ad-popup" class="bottom-ad-popup">
+    <div id="bottom-ad-popup" class="bottom-ad-popup" role="status" aria-live="polite">
         <div class="ad-popup-content">
             <p><strong>Special Offer!</strong> Upgrade to Genie Pro for an ad-free experience and unlimited access.</p>
             <a href="#" class="ad-popup-cta">Learn More</a>
         </div>
-        <button id="close-ad-popup" class="close-ad-popup" aria-label="Close Ad">&times;</button>
+        <button id="close-ad-popup" class="close-ad-popup" aria-label="Close advertisement">&times;</button>
     </div>
 
     <button id="scroll-to-top" title="Go to top">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
     </button>
     
     <script type="module" src="./index.tsx"></script>
