@@ -29,6 +29,7 @@ const ICONS = {
     'watermark': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-water" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0284c7"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-water)"/><path d="M16 12h22l10 10v26a4 4 0 01-4 4H16a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M24 24h16v16H24z" fill="#0284c7" fill-opacity="0.3"/><text x="32" y="36" font-family="sans-serif" font-size="8" fill="#0284c7" text-anchor="middle" font-weight="bold">W</text></svg>`,
     'rotate-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-rotate" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#65a30d"/><stop offset="100%" stop-color="#84cc16"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-rotate)"/><path d="M20 12h14l10 10v14L34 46H20a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M48 24a16 16 0 11-16-16v4a12 12 0 1012 12z" fill="#fff"/></svg>`,
     'page-numbers': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-numbers" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#818cf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-numbers)"/><path d="M16 12h22l10 10v26a4 4 0 01-4 4H16a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M30 44a6 6 0 11-2-11.8V28h-4v-4h8v16.5A6 6 0 0130 44z" fill="#4f46e5"/></svg>`,
+    'trim-audio': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-trim" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#14b8a6"/><stop offset="100%" stop-color="#2dd4bf"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-trim)"/><path d="M22 25a4 4 0 100-8 4 4 0 000 8zm20 0a4 4 0 100-8 4 4 0 000 8zM20 28l24 8-10-2-14-6zM20 44l24-8-10 2-14 6z" fill="#fff"/><path d="M12 48V16h4v32h-4zm40 0V16h-4v32h4z" stroke="#fff" stroke-width="2" fill="none" opacity=".5"/></svg>`,
     'flag-us': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="us-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#us-clip)"><rect width="64" height="64" fill="#BF0A30"/><path d="M0,8 H64 M0,18.6 H64 M0,29.2 H64 M0,39.8 H64 M0,50.4 H64 M0,61 H64" stroke="#FFF" stroke-width="5.3"/><rect width="32" height="34.5" fill="#002868"/><g fill="#FFF" transform="translate(16 17.25) scale(1.5)"><path d="M-5.2-6.4l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm-9.6 3.8l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm-3.2 3.8l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm-9.6 3.8l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2z"/></g></g></svg>`,
     'flag-es': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="es-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#es-clip)"><rect width="64" height="64" fill="#C60B1E"/><rect y="16" width="64" height="32" fill="#FFC400"/><g transform="translate(18 25) scale(0.6)"><path d="M14 0V20M20 0V20" stroke="#C60B1E" stroke-width="3"/><path d="M17 1 a 6 6 0 0 0-6 6 v 8 a 6 6 0 0 0 12 0 v -8 a 6 6 0 0 0-6-6" fill="#C60B1E"/><circle cx="17" cy="11" r="3" fill="#003893"/><path d="M17 0 a 3 3 0 0 1 0 6 a 3 3 0 0 1 0-6" fill="#FFC400" stroke="#C60B1E" stroke-width="1"/></g></g></svg>`,
     'flag-fr': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="fr-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#fr-clip)"><rect width="64" height="64" fill="#0055A4"/><rect x="21.33" width="21.34" height="64" fill="#FFF"/><rect x="42.67" width="21.33" height="64" fill="#EF4135"/></g></svg>`,
@@ -39,14 +40,15 @@ const ICONS = {
     'flag-cn': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="cn-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#cn-clip)"><rect width="64" height="64" fill="#EE1C25"/><g fill="#FFFF00" transform="translate(16, 16) scale(1.2)"><polygon points="0,-8 2.47, -3.09 7.6, -2.47 3.8, 1.54 5.29, 6.47 0, 4 -5.29, 6.47 -3.8, 1.54 -7.6, -2.47 -2.47, -3.09"/><g transform="translate(12, -4) rotate(20) scale(0.3)"><polygon points="0,-8 2.47, -3.09 7.6, -2.47 3.8, 1.54 5.29, 6.47 0, 4 -5.29, 6.47 -3.8, 1.54 -7.6, -2.47 -2.47, -3.09"/></g><g transform="translate(15, 2) rotate(45) scale(0.3)"><polygon points="0,-8 2.47, -3.09 7.6, -2.47 3.8, 1.54 5.29, 6.47 0, 4 -5.29, 6.47 -3.8, 1.54 -7.6, -2.47 -2.47, -3.09"/></g><g transform="translate(15, 8) rotate(70) scale(0.3)"><polygon points="0,-8 2.47, -3.09 7.6, -2.47 3.8, 1.54 5.29, 6.47 0, 4 -5.29, 6.47 -3.8, 1.54 -7.6, -2.47 -2.47, -3.09"/></g><g transform="translate(12, 12) rotate(90) scale(0.3)"><polygon points="0,-8 2.47, -3.09 7.6, -2.47 3.8, 1.54 5.29, 6.47 0, 4 -5.29, 6.47 -3.8, 1.54 -7.6, -2.47 -2.47, -3.09"/></g></g></g></svg>`,
     'flag-jp': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="jp-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#jp-clip)"><rect width="64" height="64" fill="#fff"/><circle cx="32" cy="32" r="19" fill="#BC002D"/></g></svg>`,
     'flag-in': `<svg class="icon" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#ff9933"/><path d="M0 28h64v24H0z" fill="#fff"/><path d="M0 40h64v12H0z" fill="#138808"/><circle cx="32" cy="32" r="5" fill="none" stroke="#000080" stroke-width="1.5"/><path d="M32 27v10M27 32h10" stroke="#000080" stroke-width="1"/><path d="M28.5 28.5l7 7M35.5 28.5l-7 7" stroke="#000080" stroke-width="1"/></svg>`,
-    'flag-pk': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="pk-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#pk-clip)"><rect width="64" height="64" fill="#00401A"/><rect width="16" height="64" fill="#FFF"/><circle cx="42" cy="32" r="12" fill="#FFF"/><circle cx="45" cy="32" r="10" fill="#00401A"/><polygon points="52,24 53,28 57,28 54,30.5 55,34.5 52,32 49,34.5 50,30.5 47,28 51,28" fill="#FFF"/></g></svg>`,
-    'flag-uk': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="uk-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#uk-clip)"><rect width="64" height="64" fill="#012169"/><path d="M0,0 L64,64 M64,0 L0,64" stroke="#FFF" stroke-width="12.8"/><path d="M0,0 L64,64 M64,0 L0,64" stroke="#C8102E" stroke-width="7.68"/><path d="M0,25.6 V38.4 H64 V25.6 Z M25.6,0 H38.4 V64 H25.6 Z" fill="#FFF"/><path d="M0,28.8 V35.2 H64 V28.8 Z M28.8,0 H35.2 V64 H28.8 Z" fill="#C8102E"/></g></svg>`,
+    'flag-pk': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="pk-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#pk-clip)"><rect width="64" height="64" fill="#00401A"/><rect width="16" height="64" fill="#FFF"/><circle cx="42" cy="32" r="12" fill="#FFF"/><circle cx="45" cy="32" r="10" fill="#00401A"/><polygon points="52,24 53,28 57,28 54,30.5 55,34.5 52,32 49,34.5 50,30.5 47,28 51,28" fill="#FFF"/></g></g></svg>`,
+    'flag-uk': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="uk-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#uk-clip)"><rect width="64" height="64" fill="#012169"/><path d="M0,0 L64,64 M64,0 L0,64" stroke="#FFF" stroke-width="12.8"/><path d="M0,0 L64,64 M64,0 L0,64" stroke="#C8102E" stroke-width="7.68"/><path d="M0,25.6 V38.4 H64 V25.6 Z M25.6,0 H38.4 V64 H25.6 Z" fill="#FFF"/><path d="M0,28.8 V35.2 H64 V28.8 Z M28.8,0 H35.2 V64 H28.8 Z" fill="#C8102E"/></g></g></svg>`,
 
     'mic-record': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>`,
     'mic-pause': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>`,
     'mic-stop': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"></path></svg>`,
     'upload-media': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>`,
-    'eye-preview': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`
+    'eye-preview': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`,
+    'play': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>`
 };
 
 // --- TYPE DEFINITIONS ---
@@ -83,6 +85,11 @@ let pauseTime: number = 0;
 let totalPausedDuration: number = 0;
 let timerInterval: number | null = null;
 let finalTranscript = '';
+let interimTranscript = '';
+let silenceStart: number | null = null;
+const SILENCE_THRESHOLD = 0.01;
+const SILENCE_DURATION_MS = 4000;
+let waveSurfer: any = null;
 
 
 // --- API INITIALIZATION ---
@@ -153,6 +160,7 @@ const TOOLS: Record<string, Tool> = {
     'jpg-to-png': { id: 'jpg-to-png', title: 'JPG to PNG', subtitle: 'Convert JPG to PNG format.', icon: ICONS['jpg-to-png'], accept: '.jpg,.jpeg', isFileTool: true },
 
     // Audio Tools
+    'trim-audio': { id: 'trim-audio', title: 'Trim Audio', subtitle: 'Cut and trim audio files.', icon: ICONS['trim-audio'], accept: 'audio/*', isFileTool: true },
     'speech-to-text-en-us': createSpeechToTextTool('English (US)', 'en-US', ICONS['flag-us']),
     'speech-to-text-en-gb': createSpeechToTextTool('English (UK)', 'en-GB', ICONS['flag-uk']),
     'speech-to-text-es': createSpeechToTextTool('Spanish', 'es-ES', ICONS['flag-es']),
@@ -185,7 +193,7 @@ const CATEGORIES: Category[] = [
     { title: 'Convert to PDF', tools: ['word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf', 'image-to-pdf'] },
     { title: 'Convert from PDF', tools: ['pdf-to-word', 'pdf-to-powerpoint', 'pdf-to-excel', 'pdf-to-jpg'] },
     { title: 'Image Tools', tools: ['background-remover', 'resize-image', 'png-to-jpg', 'jpg-to-png'] },
-    { title: 'Audio Tools', tools: ['speech-to-text-en-us', 'speech-to-text-en-gb', 'speech-to-text-es', 'speech-to-text-fr', 'speech-to-text-de', 'speech-to-text-it', 'speech-to-text-pt', 'speech-to-text-ru', 'speech-to-text-zh', 'speech-to-text-ja', 'speech-to-text-hi', 'speech-to-text-ur'] }
+    { title: 'Audio Tools', tools: ['trim-audio', 'speech-to-text-en-us', 'speech-to-text-en-gb', 'speech-to-text-es', 'speech-to-text-fr', 'speech-to-text-de', 'speech-to-text-it', 'speech-to-text-pt', 'speech-to-text-ru', 'speech-to-text-zh', 'speech-to-text-ja', 'speech-to-text-hi', 'speech-to-text-ur'] }
 ];
 
 // --- DOM ELEMENTS ---
@@ -258,6 +266,16 @@ const hideError = (isSttError: boolean = false) => {
     }
 };
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const showSilenceAlert = () => {
+    const alertEl = getElement('#stt-silence-alert');
+    if (alertEl) alertEl.style.display = 'flex';
+};
+
+const hideSilenceAlert = () => {
+    const alertEl = getElement('#stt-silence-alert');
+    if (alertEl) alertEl.style.display = 'none';
+};
 
 const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -438,7 +456,7 @@ const openToolModal = (tool: Tool) => {
     updateRecentTools(tool.id);
     renderRecentTools();
 
-    if (!tool.isFileTool) {
+    if (!tool.isFileTool || tool.id === 'trim-audio') {
         const iconWithSize = tool.icon.replace('<svg class="icon"', '<svg class="icon modal-title-icon"');
         DOMElements.modalTitle.innerHTML = `<span style="display: flex; align-items: center; justify-content: center; gap: 1rem;">${iconWithSize} ${tool.title}</span>`;
     } else {
@@ -478,6 +496,10 @@ const openToolModal = (tool: Tool) => {
 const closeModal = () => {
     if (isRecording) {
         stopRecording();
+    }
+    if (waveSurfer) {
+        waveSurfer.destroy();
+        waveSurfer = null;
     }
 
     DOMElements.modal.classList.remove('visible');
@@ -685,7 +707,7 @@ const showOptionsView = (files: File[]) => {
     DOMElements.previewPane.innerHTML = '';
     DOMElements.optionsPane.innerHTML = '';
 
-    if (currentTool.isFileTool) {
+    if (currentTool.isFileTool && currentTool.id !== 'trim-audio') {
         DOMElements.optionsSidebarPane.style.display = 'block';
         DOMElements.processBtnContainer.style.display = 'block';
         DOMElements.processBtn.disabled = false;
@@ -730,6 +752,9 @@ const showOptionsView = (files: File[]) => {
 
     // Specific tool options
     switch (currentTool.id) {
+        case 'trim-audio':
+             renderAudioTrimUI(files[0]);
+             break;
         case 'background-remover':
             DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
                 <div class="option-group"><h4>AI Background Remover</h4><p>The AI will remove the background, making it transparent.</p></div>
@@ -793,7 +818,7 @@ const removeBackground = async () => {
         throw new Error("AI failed to return an image. Please try another image.");
     }
     
-    const newFilename = imageFile.name.replace(/(\\.[\\w\\d_-]+)$/i, '_no-bg.png');
+    const newFilename = imageFile.name.replace(/(\.[a-zA-Z0-9]+)$/, '_no-bg.png');
     const blob = base64ToBlob(resultBase64, 'image/png');
     const url = URL.createObjectURL(blob);
     const newFile = new File([blob], newFilename, { type: 'image/png' });
@@ -827,6 +852,31 @@ function createBlob(data: Float32Array): GenAIBlob {
     };
 }
 
+const updateTranscriptDisplay = () => {
+    const editableArea = getElement<HTMLDivElement>('#stt-editable-area');
+    if (!editableArea) return;
+
+    let finalSpan = editableArea.querySelector<HTMLSpanElement>('.final-text');
+    if (!finalSpan) {
+        finalSpan = document.createElement('span');
+        finalSpan.className = 'final-text';
+        editableArea.appendChild(finalSpan);
+    }
+
+    let interimSpan = editableArea.querySelector<HTMLSpanElement>('.interim-text');
+    if (!interimSpan) {
+        interimSpan = document.createElement('span');
+        interimSpan.className = 'interim-text';
+        editableArea.appendChild(interimSpan);
+    }
+    
+    finalSpan.textContent = finalTranscript;
+    interimSpan.textContent = interimTranscript;
+
+    // Auto-scroll to bottom
+    editableArea.scrollTop = editableArea.scrollHeight;
+};
+
 const stopRecording = () => {
     if (sttSessionPromise) {
         sttSessionPromise.then(session => session.close()).catch(console.error);
@@ -850,6 +900,8 @@ const stopRecording = () => {
     }
     isRecording = false;
     isPaused = false;
+    silenceStart = null;
+    hideSilenceAlert();
     
     updateSttUI('idle');
 };
@@ -865,6 +917,8 @@ const resumeRecording = () => {
     if (!isRecording || !isPaused) return;
     totalPausedDuration += Date.now() - pauseTime;
     isPaused = false;
+    silenceStart = null; // Reset silence timer on resume
+    hideSilenceAlert();
     updateSttUI('recording');
 };
 
@@ -879,7 +933,10 @@ const startRecording = async () => {
     isPaused = false;
     totalPausedDuration = 0;
     finalTranscript = '';
-    getElement<HTMLDivElement>('#stt-editable-area').innerHTML = '';
+    interimTranscript = '';
+    updateTranscriptDisplay();
+    silenceStart = null;
+    hideSilenceAlert();
 
 
     try {
@@ -896,6 +953,28 @@ const startRecording = async () => {
                     scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
                         if (isPaused) return;
                         const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        
+                        // --- Silence Detection Logic ---
+                        let sum = 0.0;
+                        for (let i = 0; i < inputData.length; i++) {
+                            sum += inputData[i] * inputData[i];
+                        }
+                        const rms = Math.sqrt(sum / inputData.length);
+
+                        if (rms > SILENCE_THRESHOLD) {
+                            // Audio detected
+                            silenceStart = null;
+                            hideSilenceAlert();
+                        } else {
+                            // Silence detected
+                            if (silenceStart === null) {
+                                silenceStart = Date.now();
+                            } else if (Date.now() - silenceStart > SILENCE_DURATION_MS) {
+                                showSilenceAlert();
+                            }
+                        }
+                        // --- End Silence Detection ---
+
                         const pcmBlob = createBlob(inputData);
                         sttSessionPromise?.then((session) => {
                             session.sendRealtimeInput({ media: pcmBlob });
@@ -906,14 +985,14 @@ const startRecording = async () => {
                     scriptProcessor.connect(inputAudioContext.destination);
                 },
                 onmessage: (message: LiveServerMessage) => {
-                    const editableArea = getElement<HTMLDivElement>('#stt-editable-area');
                     if (message.serverContent?.inputTranscription) {
-                        const text = message.serverContent.inputTranscription.text;
-                        editableArea.innerText = finalTranscript + text;
+                        interimTranscript = message.serverContent.inputTranscription.text;
                     }
-                    if (message.serverContent?.turnComplete) {
-                        finalTranscript = editableArea.innerText + ' ';
+                    if (message.serverContent?.turnComplete && interimTranscript) {
+                        finalTranscript += interimTranscript + ' ';
+                        interimTranscript = '';
                     }
+                    updateTranscriptDisplay();
                 },
                 onerror: (e: ErrorEvent) => {
                     console.error('STT Error:', e);
@@ -954,45 +1033,153 @@ const startRecording = async () => {
     }
 };
 
-const handleAudioFile = async (file: File | null) => {
+const handleAudioFile = (file: File | null) => {
     if (!file || !ai) return;
+    showAudioFileProcessor(file);
+};
+
+const showAudioFileProcessor = async (file: File) => {
     hideError(true);
-    const fileStatus = getElement<HTMLDivElement>('#stt-file-status');
+    const uploadBox = getElement<HTMLDivElement>('#stt-file-upload-box');
+    const processorBox = getElement<HTMLDivElement>('#stt-file-processor');
+    const liveBox = getElement<HTMLDivElement>('#stt-live-box');
+    
+    uploadBox.style.display = 'none';
+    processorBox.style.display = 'flex';
+    liveBox.classList.add('disabled');
 
-    if (file.size > 10 * 1024 * 1024) { // 10 MB limit
-        showError("File size cannot exceed 10MB.", true);
-        return;
-    }
-
-    updateSttUI('processingFile');
-    fileStatus.textContent = 'Analyzing audio file...';
-    fileStatus.style.color = 'inherit';
-    finalTranscript = '';
-    getElement<HTMLDivElement>('#stt-editable-area').innerHTML = '';
-
+    const resetProcessorUI = () => {
+        if (waveSurfer) {
+            waveSurfer.destroy();
+            waveSurfer = null;
+        }
+        processorBox.style.display = 'none';
+        processorBox.innerHTML = '';
+        uploadBox.style.display = 'flex';
+        liveBox.classList.remove('disabled');
+        updateSttUI('idle');
+    };
 
     try {
+        await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/wavesurfer.min.js', 'wavesurfer-lib');
+        await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/plugins/regions.min.js', 'wavesurfer-regions-lib');
+        
+        if (!(window as any).WaveSurfer?.plugins?.Regions) {
+            throw new Error("WaveSurfer Regions plugin failed to load correctly.");
+        }
+        
+        processorBox.innerHTML = `
+            <h4>Preview & Trim Audio</h4>
+            <div id="waveform-container"></div>
+            <div id="waveform-controls">
+                <button id="play-pause-btn" aria-label="Play audio">${ICONS['play']}</button>
+                <span class="time-indicator" id="current-time">00:00.0</span>
+                <div id="trim-actions">
+                    <button id="transcribe-trimmed-btn" class="btn-primary">Transcribe</button>
+                    <button id="cancel-trim-btn" class="btn-secondary danger">Cancel</button>
+                </div>
+            </div>
+            <div id="stt-file-status" style="display: none; margin-top: 0.5rem; font-size: 0.8rem; text-align: center;"></div>
+        `;
+
+        if (waveSurfer) waveSurfer.destroy();
+        
+        const WaveSurfer = (window as any).WaveSurfer;
+        const RegionsPlugin = (window as any).WaveSurfer.plugins.Regions;
+        
+        waveSurfer = WaveSurfer.create({
+            container: '#waveform-container',
+            waveColor: 'var(--secondary-gray)',
+            progressColor: 'var(--primary-indigo)',
+            url: URL.createObjectURL(file),
+            barWidth: 3,
+            barRadius: 3,
+            barGap: 2,
+            height: 100,
+            cursorWidth: 2,
+            cursorColor: 'var(--danger)',
+        });
+        
+        const wsRegions = waveSurfer.registerPlugin(RegionsPlugin.create());
+        let activeRegion: any = null;
+
+        const formatTime = (seconds: number) => {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const msecs = Math.floor((seconds - Math.floor(seconds)) * 10);
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${msecs}`;
+        }
+        
+        const currentTimeEl = getElement<HTMLSpanElement>('#current-time');
+        waveSurfer.on('timeupdate', (currentTime: number) => {
+            currentTimeEl.textContent = formatTime(currentTime);
+        });
+
+        waveSurfer.on('ready', () => {
+            const duration = waveSurfer.getDuration();
+            if (duration > 120) {
+                showError("Audio duration cannot exceed 2 minutes.", true);
+                resetProcessorUI();
+                return;
+            }
+            activeRegion = wsRegions.addRegion({ start: 0, end: duration, color: 'rgba(79, 70, 229, 0.1)', drag: true, resize: true });
+        });
+
+        const playPauseBtn = getElement<HTMLButtonElement>('#play-pause-btn');
+        playPauseBtn.onclick = () => waveSurfer.playPause();
+
+        waveSurfer.on('play', () => { playPauseBtn.innerHTML = ICONS['mic-pause']; playPauseBtn.setAttribute('aria-label', 'Pause audio'); });
+        waveSurfer.on('pause', () => { playPauseBtn.innerHTML = ICONS['play']; playPauseBtn.setAttribute('aria-label', 'Play audio'); });
+
+        getElement<HTMLButtonElement>('#transcribe-trimmed-btn').onclick = () => {
+             if (activeRegion) {
+                startFileTranscription(activeRegion.start, activeRegion.end);
+             }
+        };
+        getElement<HTMLButtonElement>('#cancel-trim-btn').onclick = resetProcessorUI;
+
+    } catch (error) {
+        console.error("Error setting up audio processor:", error);
+        showError('Could not load audio editor.', true);
+        resetProcessorUI();
+    }
+};
+
+const startFileTranscription = async (startTime: number, endTime: number) => {
+     if (!ai || !waveSurfer) return;
+    
+    updateSttUI('processingFile');
+    const processorBox = getElement<HTMLDivElement>('#stt-file-processor');
+    processorBox.style.display = 'none';
+    
+    finalTranscript = '';
+    interimTranscript = '';
+    updateTranscriptDisplay();
+
+    try {
+        const originalBuffer = waveSurfer.getDecodedData();
+        const sampleRate = originalBuffer.sampleRate;
+        const channels = originalBuffer.numberOfChannels;
+        const startSample = Math.floor(startTime * sampleRate);
+        const endSample = Math.floor(endTime * sampleRate);
+        const length = endSample - startSample;
+
+        // Create a new AudioContext to build the trimmed buffer
         const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const buffer = await file.arrayBuffer();
-        const decodedBuffer = await audioCtx.decodeAudioData(buffer);
+        const trimmedBuffer = audioCtx.createBuffer(channels, length, sampleRate);
+        for (let i = 0; i < channels; i++) {
+            trimmedBuffer.copyToChannel(originalBuffer.getChannelData(i).subarray(startSample, endSample), i);
+        }
         await audioCtx.close();
 
-        if (decodedBuffer.duration > 120) {
-            showError("Audio duration cannot exceed 2 minutes.", true);
-            updateSttUI('idle');
-            return;
-        }
-
-        fileStatus.textContent = 'Transcribing...';
-        
         sttSessionPromise = ai.live.connect({
              model: 'gemini-2.5-flash-native-audio-preview-09-2025',
              callbacks: {
                  onopen: () => {
                      // Resample and send audio data in chunks
                      const targetSampleRate = 16000;
-                     const inputSampleRate = decodedBuffer.sampleRate;
-                     const inputData = decodedBuffer.getChannelData(0);
+                     const inputSampleRate = trimmedBuffer.sampleRate;
+                     const inputData = trimmedBuffer.getChannelData(0); // Use channel 0 for transcription
                      const ratio = inputSampleRate / targetSampleRate;
                      const outputLength = Math.floor(inputData.length / ratio);
                      const pcmData = new Float32Array(outputLength);
@@ -1010,24 +1197,25 @@ const handleAudioFile = async (file: File | null) => {
                                 return;
                             }
                             const chunk = pcmData.slice(currentPosition, currentPosition + chunkSize);
-                            const blob = createBlob(chunk);
-                            session.sendRealtimeInput({ media: blob });
+                            session.sendRealtimeInput({ media: createBlob(chunk) });
                             currentPosition += chunkSize;
                         }).catch(e => {
                             clearInterval(sendInterval);
+                            console.error(e);
                             showError("Connection error during transcription.", true);
                             updateSttUI('idle');
                         });
-                     }, 200); // Send chunks at a reasonable rate
+                     }, 150);
                  },
                  onmessage: (message: LiveServerMessage) => {
-                    const editableArea = getElement<HTMLDivElement>('#stt-editable-area');
                     if (message.serverContent?.inputTranscription) {
-                        editableArea.innerText = finalTranscript + message.serverContent.inputTranscription.text;
+                        interimTranscript = message.serverContent.inputTranscription.text;
                     }
-                    if (message.serverContent?.turnComplete) {
-                        finalTranscript = editableArea.innerText + ' ';
+                    if (message.serverContent?.turnComplete && interimTranscript) {
+                        finalTranscript += interimTranscript + ' ';
+                        interimTranscript = '';
                     }
+                    updateTranscriptDisplay();
                  },
                  onerror: (e) => {
                      console.error('File STT Error:', e);
@@ -1035,7 +1223,6 @@ const handleAudioFile = async (file: File | null) => {
                      updateSttUI('idle');
                  },
                  onclose: () => {
-                     fileStatus.textContent = 'Transcription complete.';
                      updateSttUI('idle');
                  }
              },
@@ -1053,6 +1240,7 @@ const handleAudioFile = async (file: File | null) => {
     }
 }
 
+
 const updateSttUI = (state: 'idle' | 'recording' | 'paused' | 'processingFile') => {
     const recordBtn = getElement<HTMLButtonElement>('#stt-record-btn');
     const pauseBtn = getElement<HTMLButtonElement>('#stt-pause-btn');
@@ -1063,10 +1251,9 @@ const updateSttUI = (state: 'idle' | 'recording' | 'paused' | 'processingFile') 
     const statusContainer = getElement('#stt-status-container');
     const statusText = getElement<HTMLSpanElement>('#stt-status');
     const timerDisplay = getElement<HTMLSpanElement>('#stt-timer');
-    const fileStatus = getElement<HTMLDivElement>('#stt-file-status');
     const liveBox = getElement<HTMLDivElement>('#stt-live-box');
     const uploadBox = getElement<HTMLDivElement>('#stt-file-upload-box');
-
+    const processorBox = getElement<HTMLDivElement>('#stt-file-processor');
 
     const isIdle = state === 'idle';
     const isRecordingActive = state === 'recording' || state === 'paused';
@@ -1083,18 +1270,22 @@ const updateSttUI = (state: 'idle' | 'recording' | 'paused' | 'processingFile') 
     
     liveBox.classList.toggle('disabled', isFileProcessing);
     uploadBox.classList.toggle('disabled', isRecordingActive);
+    if(uploadBox) uploadBox.style.display = 'flex'; // Always ready to show unless processor is up
+    
+    if(processorBox) processorBox.style.display = 'none'; // Hide processor by default
+
+    if (isIdle) {
+        liveBox.classList.remove('disabled');
+        uploadBox.classList.remove('disabled');
+        if (waveSurfer) {
+            waveSurfer.destroy();
+            waveSurfer = null;
+        }
+    }
 
     recordBtn.disabled = isFileProcessing;
     pauseBtn.disabled = isFileProcessing;
     stopBtn.disabled = isFileProcessing;
-
-    if (isIdle || isFileProcessing) {
-        if (isIdle) fileStatus.style.display = 'none';
-    } else {
-        fileStatus.style.display = 'block';
-        fileStatus.textContent = 'Live recording in progress...';
-        fileStatus.style.color = 'inherit';
-    }
 
     editableArea.classList.toggle('is-recording', !isIdle);
     editableArea.contentEditable = isIdle ? 'true' : 'false';
@@ -1114,6 +1305,10 @@ const renderSpeechToTextUI = () => {
         <div class="speech-to-text-container">
             <div class="stt-left-pane">
                  <div class="stt-method-box" id="stt-live-box">
+                    <div id="stt-silence-alert" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6l4.72-4.72a.75.75 0 011.28.531V19.94a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.506-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.395C2.806 8.757 3.63 8.25 4.51 8.25H6.75z" /></svg>
+                        <span>Genie can't hear you. Please check your microphone.</span>
+                    </div>
                     <h4>Live Transcription</h4>
                     <p class="api-notice">Powered by Genie Converter</p>
                     <div id="stt-controls">
@@ -1133,13 +1328,13 @@ const renderSpeechToTextUI = () => {
                     ${ICONS['upload-media']}
                     <p class="api-notice">Max 2 min / 10MB</p>
                     <input type="file" id="stt-file-input" hidden accept="audio/*">
-                    <div id="stt-file-status" style="display: none; margin-top: 0.5rem; font-size: 0.8rem; text-align: center;"></div>
                 </div>
+                <div id="stt-file-processor"></div>
             </div>
             <div class="stt-right-pane">
                 <label for="stt-editable-area" class="stt-transcript-label">Transcript</label>
                 <div class="stt-editor-container">
-                    <div contenteditable="false" id="stt-editable-area" class="stt-editable-area" placeholder="Your transcribed text will appear here..."></div>
+                    <div contenteditable="false" id="stt-editable-area" class="stt-editable-area" placeholder="Your transcribed text will appear here..."><span class="final-text"></span><span class="interim-text"></span></div>
                 </div>
                 <div id="stt-actions">
                     <button id="stt-copy-btn" class="btn-secondary" disabled>Copy</button>
@@ -1195,6 +1390,177 @@ const renderSpeechToTextUI = () => {
     };
 
     updateSttUI('idle');
+};
+
+const renderAudioTrimUI = async (file: File) => {
+    DOMElements.initialView.style.display = 'none';
+    DOMElements.optionsView.style.display = 'flex';
+    DOMElements.modalContent.classList.add('stt-active'); // Re-use styling
+    DOMElements.optionsPane.innerHTML = `<div id="trim-audio-container" class="stt-file-processor" style="display:flex; flex-grow:1;"></div>`
+
+    const container = getElement<HTMLDivElement>('#trim-audio-container');
+    container.innerHTML = `<p>Loading audio editor...</p>`;
+
+    const resetUI = () => {
+        if (waveSurfer) {
+            waveSurfer.destroy();
+            waveSurfer = null;
+        }
+        openToolModal(TOOLS['trim-audio']); // Go back to file selection
+    };
+
+    try {
+        await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/wavesurfer.min.js', 'wavesurfer-lib');
+        await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/plugins/regions.min.js', 'wavesurfer-regions-lib');
+
+        if (!(window as any).WaveSurfer?.plugins?.Regions) {
+            throw new Error("WaveSurfer Regions plugin failed to load correctly.");
+        }
+        
+        container.innerHTML = `
+            <h4>Trim Audio File</h4>
+            <p class="api-notice">Drag the handles on the timeline to select a portion of the audio.</p>
+            <div id="waveform-container"></div>
+            <div id="waveform-controls">
+                <button id="play-pause-btn" aria-label="Play audio">${ICONS['play']}</button>
+                <span class="time-indicator" id="current-time">00:00.0</span>
+                 <div id="trim-actions">
+                    <button id="download-trimmed-btn" class="btn-primary">Download Trimmed Audio</button>
+                    <button id="cancel-trim-btn" class="btn-secondary danger">Cancel</button>
+                </div>
+            </div>
+            <div id="trim-status" style="display: none; margin-top: 0.5rem; font-size: 0.8rem; text-align: center;"></div>
+        `;
+        
+        if (waveSurfer) waveSurfer.destroy();
+        const WaveSurfer = (window as any).WaveSurfer;
+        const RegionsPlugin = (window as any).WaveSurfer.plugins.Regions;
+        
+        waveSurfer = WaveSurfer.create({
+            container: '#waveform-container',
+            waveColor: 'var(--secondary-gray)',
+            progressColor: 'var(--primary-indigo)',
+            url: URL.createObjectURL(file),
+            barWidth: 3,
+            barRadius: 3,
+            barGap: 2,
+            height: 128,
+            cursorWidth: 2,
+            cursorColor: 'var(--danger)',
+        });
+        
+        const wsRegions = waveSurfer.registerPlugin(RegionsPlugin.create());
+        let activeRegion: any = null;
+
+        const formatTime = (seconds: number) => {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const msecs = Math.floor((seconds - Math.floor(seconds)) * 10);
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${msecs}`;
+        }
+        
+        const currentTimeEl = getElement<HTMLSpanElement>('#current-time');
+        waveSurfer.on('timeupdate', (currentTime: number) => { currentTimeEl.textContent = formatTime(currentTime); });
+
+        waveSurfer.on('ready', () => {
+            const duration = waveSurfer.getDuration();
+            activeRegion = wsRegions.addRegion({ start: 0, end: duration / 2, color: 'rgba(79, 70, 229, 0.1)', drag: true, resize: true });
+        });
+
+        const playPauseBtn = getElement<HTMLButtonElement>('#play-pause-btn');
+        playPauseBtn.onclick = () => waveSurfer.playPause();
+
+        waveSurfer.on('play', () => { playPauseBtn.innerHTML = ICONS['mic-pause']; });
+        waveSurfer.on('pause', () => { playPauseBtn.innerHTML = ICONS['play']; });
+
+        getElement<HTMLButtonElement>('#download-trimmed-btn').onclick = async () => {
+             if (activeRegion) {
+                const originalBuffer = waveSurfer.getDecodedData();
+                const newBuffer = await trimAudioBuffer(originalBuffer, activeRegion.start, activeRegion.end);
+                const wavBlob = audioBufferToWav(newBuffer);
+                const newFilename = file.name.replace(/(\.[^.]+)$/, '_trimmed.wav');
+                const url = URL.createObjectURL(wavBlob);
+                showCompleteView('Audio Trimmed!', [{filename: newFilename, url: url}]);
+             }
+        };
+        getElement<HTMLButtonElement>('#cancel-trim-btn').onclick = resetUI;
+
+    } catch (error) {
+        console.error("Error in audio trim UI:", error);
+        showError("Could not load the audio editor.", true);
+        resetUI();
+    }
+};
+
+const trimAudioBuffer = async (originalBuffer: AudioBuffer, startTime: number, endTime: number): Promise<AudioBuffer> => {
+    const sampleRate = originalBuffer.sampleRate;
+    const channels = originalBuffer.numberOfChannels;
+    const startSample = Math.floor(startTime * sampleRate);
+    const endSample = Math.floor(endTime * sampleRate);
+    const length = endSample - startSample;
+
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const trimmedBuffer = audioCtx.createBuffer(channels, length, sampleRate);
+    for (let i = 0; i < channels; i++) {
+        trimmedBuffer.copyToChannel(originalBuffer.getChannelData(i).subarray(startSample, endSample), i);
+    }
+    await audioCtx.close();
+    return trimmedBuffer;
+};
+
+const audioBufferToWav = (buffer: AudioBuffer): Blob => {
+    const numOfChan = buffer.numberOfChannels;
+    const length = buffer.length * numOfChan * 2 + 44;
+    const bufferOut = new ArrayBuffer(length);
+    const view = new DataView(bufferOut);
+    const channels = [];
+    let i, sample;
+    let offset = 0;
+    let pos = 0;
+
+    // Helper function
+    const setUint16 = (data: number) => {
+        view.setUint16(pos, data, true);
+        pos += 2;
+    };
+    const setUint32 = (data: number) => {
+        view.setUint32(pos, data, true);
+        pos += 4;
+    };
+
+    // Write WAVE header
+    setUint32(0x46464952); // "RIFF"
+    setUint32(length - 8); // file length - 8
+    setUint32(0x45564157); // "WAVE"
+
+    setUint32(0x20746d66); // "fmt " chunk
+    setUint32(16); // length = 16
+    setUint16(1); // PCM (uncompressed)
+    setUint16(numOfChan);
+    setUint32(buffer.sampleRate);
+    setUint32(buffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+    setUint16(numOfChan * 2); // block-align
+    setUint16(16); // 16-bit
+    
+    setUint32(0x61746164); // "data" - chunk
+    setUint32(length - pos - 4); // chunk length
+
+    // Write PCM samples
+    for (i = 0; i < numOfChan; i++) {
+        channels.push(buffer.getChannelData(i));
+    }
+
+    while (pos < length) {
+        for (i = 0; i < numOfChan; i++) {
+            sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+            sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF) | 0; // scale to 16-bit signed int
+            view.setInt16(pos, sample, true);
+            pos += 2;
+        }
+        offset++;
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
 };
 
 // --- EVENT LISTENERS & INITIALIZATION ---

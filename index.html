@@ -632,8 +632,13 @@
             cursor: pointer;
             transition: background-color 0.3s, transform 0.1s ease;
         }
-        .btn-primary:hover { background-color: #4338ca; }
-        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:hover:not(:disabled) { background-color: #4338ca; }
+        .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+        .btn-primary:disabled {
+            background-color: var(--secondary-gray);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
         .drop-text { margin-top: 1rem; color: var(--text-light); }
 
         /* Options View */
@@ -826,6 +831,7 @@
             gap: 1.5rem;
         }
         .stt-method-box {
+            position: relative; /* For silence alert positioning */
             flex-grow: 1;
             padding: 2rem;
             border: 1px solid var(--input-border);
@@ -837,6 +843,7 @@
             gap: 1rem;
             background-color: var(--drop-zone-bg);
             transition: border-color 0.2s, background-color 0.2s, opacity 0.2s;
+            overflow: hidden;
         }
         .stt-method-box.disabled {
             opacity: 0.6;
@@ -861,24 +868,43 @@
             margin: 0.5rem 0;
         }
         
+        #stt-silence-alert {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(239, 68, 68, 0.9); /* --danger with opacity */
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1rem;
+            z-index: 10;
+            gap: 0.5rem;
+            font-weight: 500;
+            animation: fadeIn 0.3s ease;
+        }
+        #stt-silence-alert svg {
+            width: 32px;
+            height: 32px;
+        }
+
         .api-notice {
             font-size: 0.75rem;
             color: var(--text-light);
             text-align: center;
             margin-top: 0.5rem;
         }
-        #waveform {
-            width: 100%;
-            height: 60px;
-            margin-bottom: 1rem;
-            display: none;
-        }
+        
         #stt-controls {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 1rem;
             width: 100%;
+            z-index: 1; /* Keep controls above any potential background elements */
         }
         #stt-mic-buttons {
             display: flex;
@@ -972,34 +998,7 @@
             border-radius: 0.5rem;
             overflow: hidden; /* To keep corners rounded */
         }
-        #stt-toolbar {
-            display: flex;
-            gap: 0.5rem;
-            padding: 0.5rem;
-            background-color: var(--drop-zone-bg);
-            border-bottom: 1px solid var(--input-border);
-        }
-        .stt-format-btn {
-            background: var(--input-bg);
-            border: 1px solid var(--input-border);
-            border-radius: 0.25rem;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .stt-format-btn:hover {
-            background-color: var(--drop-zone-hover-bg);
-            border-color: var(--primary-indigo);
-        }
-        .stt-format-btn svg {
-            width: 20px;
-            height: 20px;
-            color: var(--text-dark);
-        }
-        
+
         #stt-editable-area {
             flex-grow: 1;
             width: 100%;
@@ -1024,6 +1023,9 @@
             cursor: not-allowed;
             opacity: 0.7;
         }
+        .final-text {
+            color: var(--text-dark);
+        }
         .interim-text {
             color: var(--text-light);
         }
@@ -1033,24 +1035,112 @@
             gap: 1rem;
             justify-content: flex-end; /* Align buttons right */
         }
-        #stt-actions .btn-primary-style {
-            background-color: var(--primary-indigo);
-            color: white;
+        #stt-actions .btn-secondary {
+            background-color: var(--drop-zone-bg);
+            font-weight: 500;
+        }
+        #stt-actions .btn-secondary:hover:not(:disabled) {
             border-color: var(--primary-indigo);
+            background-color: var(--drop-zone-hover-bg);
+            color: var(--primary-indigo);
         }
-        #stt-actions .btn-primary-style:hover:not(:disabled) {
-            background-color: #4338ca;
-            color: white;
-        }
-        #stt-actions .btn-primary-style:disabled {
-            background-color: var(--secondary-gray);
-            border-color: var(--secondary-gray);
-            color: white;
-            opacity: 0.7;
+        #stt-actions .btn-secondary:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
         }
 
-        /* STT Specific Layout (when .stt-active is on .modal-content) */
+        /* STT File Processor & Trim Audio (Audio Player) */
+        #stt-file-processor, #trim-audio-container {
+            display: none; /* Hidden by default */
+            flex-grow: 1;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid var(--input-border);
+            border-radius: 0.75rem;
+            background-color: var(--drop-zone-bg);
+        }
+        #trim-audio-container {
+            padding: 1rem;
+            border: none;
+        }
+        #waveform-container {
+            width: 100%;
+            height: 128px;
+            cursor: pointer;
+        }
+        #waveform-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            width: 100%;
+        }
+        #play-pause-btn {
+            background-color: var(--primary-indigo);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #play-pause-btn:hover {
+            background-color: #4338ca;
+        }
+        #play-pause-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+        .time-indicator {
+            font-family: monospace, sans-serif;
+            font-size: 1.1rem;
+            font-weight: 500;
+            background-color: var(--modal-preview-bg);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            color: var(--text-dark);
+        }
+        #trim-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-left: auto;
+        }
+        #trim-actions .btn-primary {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+        /* Wavesurfer regions plugin styling */
+        ::part(region) {
+            background-color: rgba(79, 70, 229, 0.2);
+            border-left: 2px solid var(--primary-indigo);
+            border-right: 2px solid var(--primary-indigo);
+            z-index: 3;
+            border-radius: 4px;
+        }
+        ::part(region):hover {
+            background-color: rgba(79, 70, 229, 0.3);
+        }
+        ::part(region-handle) {
+            background-color: var(--primary-indigo);
+            width: 10px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            border-radius: 2px;
+        }
+        ::part(region-handle-right) {
+            right: 0;
+        }
+        ::part(region-handle-left) {
+            left: 0;
+        }
+
+
+        /* STT & Trim Audio Specific Layout (when .stt-active is on .modal-content) */
         .modal-content.stt-active {
             overflow-y: hidden;
         }
