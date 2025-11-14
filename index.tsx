@@ -338,8 +338,6 @@ const getFileTypeIcon = (file: File): string => {
     return ICONS['file-generic'];
 };
 
-// --- "RECENTLY USED" LOGIC (BULLETPROOF JSON IMPLEMENTATION) ---
-const RECENT_TOOLS_KEY = 'genie-recent-tools';
 
 // ... (near the top of your file)
 const RECENT_TOOLS_KEY = 'genie-recent-tools';
