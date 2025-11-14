@@ -339,11 +339,15 @@ const getFileTypeIcon = (file: File): string => {
 };
 
 // --- "RECENTLY USED" LOGIC (BULLETPROOF JSON IMPLEMENTATION) ---
-const RECENT_TOOLS_KEY = 'genie-converter-recent-tools-v6';
+const RECENT_TOOLS_KEY = 'genie-recent-tools';
 
+// ... (near the top of your file)
+const RECENT_TOOLS_KEY = 'genie-recent-tools';
+
+// ... (later in your file)
 const getRecentTools = (): string[] => {
     const data = localStorage.getItem(RECENT_TOOLS_KEY);
-
+    
     // If there's no data, no need to proceed.
     if (!data) {
         return [];
@@ -369,19 +373,10 @@ const getRecentTools = (): string[] => {
 };
 
 const updateRecentTools = (toolId: string) => {
-    try {
-        let recent = getRecentTools();
-        // Remove the tool if it already exists to move it to the front.
-        recent = recent.filter(id => id !== toolId);
-        // Add the new tool to the beginning.
-        recent.unshift(toolId);
-        // Keep only the 4 most recent tools.
-        const toStore = recent.slice(0, 4);
-        localStorage.setItem(RECENT_TOOLS_KEY, JSON.stringify(toStore));
-    } catch (e) {
-        // This should be very rare but provides a safety net.
-        console.error("Failed to update recent tools:", e);
-    }
+    let recent = getRecentTools();
+    recent = recent.filter(id => id !== toolId);
+    recent.unshift(toolId);
+    localStorage.setItem(RECENT_TOOLS_KEY, JSON.stringify(recent.slice(0, 4)));
 };
 
 
