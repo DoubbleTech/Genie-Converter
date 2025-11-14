@@ -1,8 +1,10 @@
 
+
 import { GoogleGenAI, Modality, LiveServerMessage, Blob as GenAIBlob } from "@google/genai";
 
 // --- ICON DEFINITIONS ---
 const ICONS = {
+    // Tool Icons
     'merge-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-merge" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f87171"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-merge)"/><path d="M40 20v-4h-4v4h-4v4h4v4h4v-4h4v-4zM22 14h12v6h-6a4 4 0 01-4-4zm-4 32V16a4 4 0 014-4h14l10 10v22a4 4 0 01-4 4z" fill="#fff"/></svg>`,
     'split-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-split" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#fb923c"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-split)"/><path d="M44 12v20H20V12h24zm0 24v20H20V36h24zM16 30h32v4H16zm10-12h4v4h-4zm0 24h4v4h-4z" fill="#fff"/></svg>`,
     'compress-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-compress" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#84cc16"/><stop offset="100%" stop-color="#a3e635"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-compress)"/><path d="M22 12h20a4 4 0 014 4v20H28v8H18V16a4 4 0 014-4zm12 18V18h-8v12h8zM44 34v12H32v-8h8v-4h4zM24 46V34h8v12h-8zM18 28h8v-8h-8v8z" fill="#fff"/></svg>`,
@@ -30,6 +32,13 @@ const ICONS = {
     'rotate-pdf': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-rotate" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#65a30d"/><stop offset="100%" stop-color="#84cc16"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-rotate)"/><path d="M20 12h14l10 10v14L34 46H20a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M48 24a16 16 0 11-16-16v4a12 12 0 1012 12z" fill="#fff"/></svg>`,
     'page-numbers': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-numbers" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#818cf8"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-numbers)"/><path d="M16 12h22l10 10v26a4 4 0 01-4 4H16a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/><path d="M30 44a6 6 0 11-2-11.8V28h-4v-4h8v16.5A6 6 0 0130 44z" fill="#4f46e5"/></svg>`,
     'trim-audio': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-trim" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#14b8a6"/><stop offset="100%" stop-color="#2dd4bf"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-trim)"/><path d="M22 25a4 4 0 100-8 4 4 0 000 8zm20 0a4 4 0 100-8 4 4 0 000 8zM20 28l24 8-10-2-14-6zM20 44l24-8-10 2-14 6z" fill="#fff"/><path d="M12 48V16h4v32h-4zm40 0V16h-4v32h4z" stroke="#fff" stroke-width="2" fill="none" opacity=".5"/></svg>`,
+    'image-to-gif': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-gif" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ec4899"/><stop offset="100%" stop-color="#f9a8d4"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-gif)"/><path d="M22 14h20v12H22z" fill="#fff" opacity=".5"/><path d="M18 18h20v12H18z" fill="#fff" opacity=".7"/><path d="M14 22h20v12H14z" fill="#fff"/><path d="M42 42a8 8 0 1 1-8-8v3a5 5 0 1 0 5 5h-3l4 4 4-4h-2z" fill="#fff"/></svg>`,
+    'mp4-to-gif': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-v-gif" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f87171"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-v-gif)"/><path d="M12 16h24v12H12zm0 16h24v12H12z" fill="#fff"/><path d="M40 22h12v20H40zm2 4v2h2v-2zm4 0v2h2v-2zm-4 6v2h2v-2zm4 0v2h2v-2z" fill="#fff" opacity=".8"/><path d="M42 28h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2z" fill="#ef4444"/></svg>`,
+    'convert-video': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-v-conv" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#fb923c"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-v-conv)"/><path d="M16 16h32v20H16zM20 20h4v4h-4zm6 0h4v4h-4zm-6 8h4v4h-4zm6 0h4v4h-4zm18-5l-6 5 6 5z" fill="#fff"/><path d="M24 48a8 8 0 0 1-8-8h3a5 5 0 1 0 5-5v-3a8 8 0 1 1 8 8h-3a5 5 0 1 0-5 5v3z" fill="#fff"/></svg>`,
+    'wav-to-mp3': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-a-conv" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#34d399"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-a-conv)"/><path d="M12 24h4v16h-4zm6 4h4v8h-4zm6-8h4v24h-4zm6 4h4v16h-4zm6-6h4v20h-4z" fill="#fff"/><path d="M44 24l8 8-8 8m2-12v8" stroke="#fff" stroke-width="2" fill="none"/></svg>`,
+    'convert-audio': `<svg class="icon" viewBox="0 0 64 64"><defs><linearGradient id="g-a-gen" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#67e8f9"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="url(#g-a-gen)"/><path d="M24 16a8 8 0 0 0-8 8v16a4 4 0 0 0 4 4h4v-8a4 4 0 0 1 4-4h8a8 8 0 0 0 8-8V16a8 8 0 0 0-8-8z" fill="#fff"/><path d="M40 50a8 8 0 0 1-8-8h3a5 5 0 1 0 5-5v-3a8 8 0 1 1 8 8h-3a5 5 0 1 0-5 5v3z" fill="#fff"/></svg>`,
+
+    // Flag Icons
     'flag-us': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="us-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#us-clip)"><rect width="64" height="64" fill="#BF0A30"/><path d="M0,8 H64 M0,18.6 H64 M0,29.2 H64 M0,39.8 H64 M0,50.4 H64 M0,61 H64" stroke="#FFF" stroke-width="5.3"/><rect width="32" height="34.5" fill="#002868"/><g fill="#FFF" transform="translate(16 17.25) scale(1.5)"><path d="M-5.2-6.4l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm-9.6 3.8l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm-3.2 3.8l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm-9.6 3.8l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2zm6.4 0l.6 1.9h-2l1.6-1.2-1-1.7 1.3 1.8-1.6-1.3h2z"/></g></g></svg>`,
     'flag-es': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="es-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#es-clip)"><rect width="64" height="64" fill="#C60B1E"/><rect y="16" width="64" height="32" fill="#FFC400"/><g transform="translate(18 25) scale(0.6)"><path d="M14 0V20M20 0V20" stroke="#C60B1E" stroke-width="3"/><path d="M17 1 a 6 6 0 0 0-6 6 v 8 a 6 6 0 0 0 12 0 v -8 a 6 6 0 0 0-6-6" fill="#C60B1E"/><circle cx="17" cy="11" r="3" fill="#003893"/><path d="M17 0 a 3 3 0 0 1 0 6 a 3 3 0 0 1 0-6" fill="#FFC400" stroke="#C60B1E" stroke-width="1"/></g></g></svg>`,
     'flag-fr': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="fr-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#fr-clip)"><rect width="64" height="64" fill="#0055A4"/><rect x="21.33" width="21.34" height="64" fill="#FFF"/><rect x="42.67" width="21.33" height="64" fill="#EF4135"/></g></svg>`,
@@ -43,12 +52,22 @@ const ICONS = {
     'flag-pk': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="pk-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#pk-clip)"><rect width="64" height="64" fill="#00401A"/><rect width="16" height="64" fill="#FFF"/><circle cx="42" cy="32" r="12" fill="#FFF"/><circle cx="45" cy="32" r="10" fill="#00401A"/><polygon points="52,24 53,28 57,28 54,30.5 55,34.5 52,32 49,34.5 50,30.5 47,28 51,28" fill="#FFF"/></g></g></svg>`,
     'flag-uk': `<svg class="icon" viewBox="0 0 64 64"><defs><clipPath id="uk-clip"><rect width="64" height="64" rx="12"/></clipPath></defs><g clip-path="url(#uk-clip)"><rect width="64" height="64" fill="#012169"/><path d="M0,0 L64,64 M64,0 L0,64" stroke="#FFF" stroke-width="12.8"/><path d="M0,0 L64,64 M64,0 L0,64" stroke="#C8102E" stroke-width="7.68"/><path d="M0,25.6 V38.4 H64 V25.6 Z M25.6,0 H38.4 V64 H25.6 Z" fill="#FFF"/><path d="M0,28.8 V35.2 H64 V28.8 Z M28.8,0 H35.2 V64 H28.8 Z" fill="#C8102E"/></g></g></svg>`,
 
+    // UI Icons
     'mic-record': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>`,
     'mic-pause': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>`,
     'mic-stop': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"></path></svg>`,
     'upload-media': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>`,
     'eye-preview': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`,
-    'play': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>`
+    'play': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>`,
+
+    // File Type Icons
+    'file-pdf': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm-2 16c-2.05 0-3.81-1.24-4.58-3h1.71c.63.9 1.68 1.5 2.87 1.5 1.93 0 3.5-1.57 3.5-3.5S13.93 9.5 12 9.5c-1.18 0-2.24.6-2.87 1.5H7.42c.77-1.76 2.53-3 4.58-3 2.76 0 5 2.24 5 5s-2.24 5-5 5zm-3-4.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5-1.5.67-1.5 1.5z"/></svg>`,
+    'file-doc': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 12H9v2h4v-2zm3-4H9v2h7V10zm-2-4H9v2h5V6z"/></svg>`,
+    'file-xls': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM9.91 17.42l-1.41-1.41 1.06-1.06-1.06-1.06-1.41 1.41-1.06-1.06 1.41-1.41 1.06-1.06-1.41-1.41 1.06-1.06 1.41 1.41 1.41-1.41 1.06 1.06-1.41 1.41 1.06 1.06 1.41-1.41 1.06 1.06-1.41 1.41 1.41 1.41-1.06 1.06-1.41-1.41-1.06 1.06zM15 18h-3v-2h3v2zm0-4h-3v-2h3v2zm0-4h-3V8h3v2z"/></svg>`,
+    'file-ppt': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 9H8v2h5v4H8v2h5c1.1 0 2-.9 2-2v-1.5c0-1.38-1.12-2.5-2.5-2.5S13 12.12 13 13.5V11z"/></svg>`,
+    'file-img': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6v-2h12v2zm0-4H6v-2h12v2zm-4.32-2.68-2.36-3.14-2.82 3.52H6l4.09-5.11 2.54 3.39z"/></svg>`,
+    'file-audio': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM10 18c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm4-3H8V7h6v2z"/></svg>`,
+    'file-generic': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 10H9v2h4v-2zm3-4H9v2h7V8zm-2-4H9v2h5V4z"/></svg>`,
 };
 
 // --- TYPE DEFINITIONS ---
@@ -90,6 +109,8 @@ let silenceStart: number | null = null;
 const SILENCE_THRESHOLD = 0.01;
 const SILENCE_DURATION_MS = 4000;
 let waveSurfer: any = null;
+let waveSurferPromise: Promise<{ WaveSurfer: any, RegionsPlugin: any }> | null = null;
+let sttFileProcessingController: AbortController | null = null;
 
 
 // --- API INITIALIZATION ---
@@ -135,6 +156,7 @@ const TOOLS: Record<string, Tool> = {
     'rotate-pdf': { id: 'rotate-pdf', title: 'Rotate PDF', subtitle: 'Rotate all or specific pages.', icon: ICONS['rotate-pdf'], accept: '.pdf', isFileTool: true },
     'protect-pdf': { id: 'protect-pdf', title: 'Protect PDF', subtitle: 'Add password and encryption.', icon: ICONS['protect-pdf'], accept: '.pdf', isFileTool: true },
     'unlock-pdf': { id: 'unlock-pdf', title: 'Unlock PDF', subtitle: 'Remove password from a PDF.', icon: ICONS['unlock-pdf'], accept: '.pdf', isFileTool: true },
+    // Fix: Added subtitle property and corrected title to match convention.
     'organize-pdf': { id: 'organize-pdf', title: 'Organize PDF', subtitle: 'Reorder, delete, or add pages.', icon: ICONS['organize-pdf'], accept: '.pdf', isFileTool: true },
     'page-numbers': { id: 'page-numbers', title: 'Add Page Numbers', subtitle: 'Insert page numbers into PDF.', icon: ICONS['page-numbers'], accept: '.pdf', isFileTool: true },
     'ocr-pdf': { id: 'ocr-pdf', title: 'OCR PDF', subtitle: 'Recognize text in scanned PDFs.', icon: ICONS['ocr-pdf'], accept: '.pdf', isFileTool: true },
@@ -155,12 +177,19 @@ const TOOLS: Record<string, Tool> = {
 
     // Image Tools
     'background-remover': { id: 'background-remover', title: 'Remove Background', subtitle: 'Erase the background from images.', icon: ICONS['background-remover'], accept: '.png,.jpg,.jpeg', isFileTool: true },
+    'image-to-gif': { id: 'image-to-gif', title: 'Image to GIF', subtitle: 'Create an animated GIF from images.', icon: ICONS['image-to-gif'], accept: '.png,.jpg,.jpeg', isFileTool: true },
     'resize-image': { id: 'resize-image', title: 'Resize Image', subtitle: 'Change image dimensions.', icon: ICONS['resize-image'], accept: 'image/*', isFileTool: true, isComingSoon: true },
     'png-to-jpg': { id: 'png-to-jpg', title: 'PNG to JPG', subtitle: 'Convert PNG to JPG format.', icon: ICONS['png-to-jpg'], accept: '.png', isFileTool: true },
     'jpg-to-png': { id: 'jpg-to-png', title: 'JPG to PNG', subtitle: 'Convert JPG to PNG format.', icon: ICONS['jpg-to-png'], accept: '.jpg,.jpeg', isFileTool: true },
 
+    // Video Tools
+    'mp4-to-gif': { id: 'mp4-to-gif', title: 'MP4 to GIF', subtitle: 'Convert video clips to animated GIFs.', icon: ICONS['mp4-to-gif'], accept: '.mp4', isFileTool: true, isComingSoon: true },
+    'convert-video': { id: 'convert-video', title: 'Convert Video Format', subtitle: 'Change video format (e.g. MOV to MP4).', icon: ICONS['convert-video'], accept: 'video/*', isFileTool: true, isComingSoon: true },
+
     // Audio Tools
-    'trim-audio': { id: 'trim-audio', title: 'Trim Audio', subtitle: 'Cut and trim audio files.', icon: ICONS['trim-audio'], accept: 'audio/*', isFileTool: true },
+    'trim-audio': { id: 'trim-audio', title: 'Trim Audio', subtitle: 'Cut MP3, WAV, and other audio formats.', icon: ICONS['trim-audio'], accept: 'audio/*', isFileTool: true },
+    'wav-to-mp3': { id: 'wav-to-mp3', title: 'WAV to MP3', subtitle: 'Convert WAV files to MP3 format.', icon: ICONS['wav-to-mp3'], accept: '.wav', isFileTool: true, isComingSoon: true },
+    'convert-audio': { id: 'convert-audio', title: 'Convert Audio Format', subtitle: 'Change audio file format.', icon: ICONS['convert-audio'], accept: 'audio/*', isFileTool: true, isComingSoon: true },
     'speech-to-text-en-us': createSpeechToTextTool('English (US)', 'en-US', ICONS['flag-us']),
     'speech-to-text-en-gb': createSpeechToTextTool('English (UK)', 'en-GB', ICONS['flag-uk']),
     'speech-to-text-es': createSpeechToTextTool('Spanish', 'es-ES', ICONS['flag-es']),
@@ -192,8 +221,9 @@ const CATEGORIES: Category[] = [
     { title: 'PDF Tools', tools: ['merge-pdf', 'split-pdf', 'compress-pdf', 'organize-pdf', 'sign-pdf', 'watermark', 'rotate-pdf', 'page-numbers', 'protect-pdf', 'unlock-pdf', 'ocr-pdf', 'pdfa', 'stamp-pdf'] },
     { title: 'Convert to PDF', tools: ['word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf', 'image-to-pdf'] },
     { title: 'Convert from PDF', tools: ['pdf-to-word', 'pdf-to-powerpoint', 'pdf-to-excel', 'pdf-to-jpg'] },
-    { title: 'Image Tools', tools: ['background-remover', 'resize-image', 'png-to-jpg', 'jpg-to-png'] },
-    { title: 'Audio Tools', tools: ['trim-audio', 'speech-to-text-en-us', 'speech-to-text-en-gb', 'speech-to-text-es', 'speech-to-text-fr', 'speech-to-text-de', 'speech-to-text-it', 'speech-to-text-pt', 'speech-to-text-ru', 'speech-to-text-zh', 'speech-to-text-ja', 'speech-to-text-hi', 'speech-to-text-ur'] }
+    { title: 'Image Tools', tools: ['background-remover', 'image-to-gif', 'resize-image', 'png-to-jpg', 'jpg-to-png'] },
+    { title: 'Video Tools', tools: ['mp4-to-gif', 'convert-video'] },
+    { title: 'Audio Tools', tools: ['trim-audio', 'wav-to-mp3', 'convert-audio', 'speech-to-text-en-us', 'speech-to-text-en-gb', 'speech-to-text-es', 'speech-to-text-fr', 'speech-to-text-de', 'speech-to-text-it', 'speech-to-text-pt', 'speech-to-text-ru', 'speech-to-text-zh', 'speech-to-text-ja', 'speech-to-text-hi', 'speech-to-text-ur'] }
 ];
 
 // --- DOM ELEMENTS ---
@@ -294,17 +324,66 @@ const base64ToBlob = (base64: string, contentType: string = 'image/png'): Blob =
     return new Blob([byteArray], { type: contentType });
 };
 
-// --- "RECENTLY USED" LOGIC ---
+const getFileTypeIcon = (file: File): string => {
+    const name = file.name.toLowerCase();
+    const type = file.type;
+
+    if (name.endsWith('.pdf') || type === 'application/pdf') return ICONS['file-pdf'];
+    if (name.endsWith('.doc') || name.endsWith('.docx') || type.includes('wordprocessingml')) return ICONS['file-doc'];
+    if (name.endsWith('.xls') || name.endsWith('.xlsx') || type.includes('spreadsheetml')) return ICONS['file-xls'];
+    if (name.endsWith('.ppt') || name.endsWith('.pptx') || type.includes('presentationml')) return ICONS['file-ppt'];
+    if (type.startsWith('image/')) return ICONS['file-img'];
+    if (type.startsWith('audio/')) return ICONS['file-audio'];
+
+    return ICONS['file-generic'];
+};
+
+// --- "RECENTLY USED" LOGIC (BULLETPROOF JSON IMPLEMENTATION) ---
+const RECENT_TOOLS_KEY = 'genie-converter-recent-tools-v6';
+
 const getRecentTools = (): string[] => {
-    return JSON.parse(localStorage.getItem('genie-recent-tools') || '[]');
+    const data = localStorage.getItem(RECENT_TOOLS_KEY);
+
+    // If there's no data, no need to proceed.
+    if (!data) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(data);
+
+        // Validate that the parsed data is a valid array of tool IDs.
+        if (Array.isArray(parsed) && parsed.every(id => typeof id === 'string' && TOOLS[id])) {
+            return parsed;
+        }
+        
+        // If the data is not in the expected format, treat it as an error.
+        throw new Error("Invalid data structure in localStorage for recent tools.");
+
+    } catch (error) {
+        // Catch any error from parsing or validation, log it, clear the bad data, and return a fresh state.
+        console.warn(`Clearing corrupted recent tools data. Reason: ${error}. Data was: "${data}"`);
+        localStorage.removeItem(RECENT_TOOLS_KEY);
+        return [];
+    }
 };
 
 const updateRecentTools = (toolId: string) => {
-    let recent = getRecentTools();
-    recent = recent.filter(id => id !== toolId);
-    recent.unshift(toolId);
-    localStorage.setItem('genie-recent-tools', JSON.stringify(recent.slice(0, 4)));
+    try {
+        let recent = getRecentTools();
+        // Remove the tool if it already exists to move it to the front.
+        recent = recent.filter(id => id !== toolId);
+        // Add the new tool to the beginning.
+        recent.unshift(toolId);
+        // Keep only the 4 most recent tools.
+        const toStore = recent.slice(0, 4);
+        localStorage.setItem(RECENT_TOOLS_KEY, JSON.stringify(toStore));
+    } catch (e) {
+        // This should be very rare but provides a safety net.
+        console.error("Failed to update recent tools:", e);
+    }
 };
+
 
 const renderRecentTools = () => {
     const recentIds = getRecentTools();
@@ -456,7 +535,7 @@ const openToolModal = (tool: Tool) => {
     updateRecentTools(tool.id);
     renderRecentTools();
 
-    if (!tool.isFileTool || tool.id === 'trim-audio') {
+    if (!tool.isFileTool || tool.id === 'trim-audio' || tool.id.startsWith('speech-to-text')) {
         const iconWithSize = tool.icon.replace('<svg class="icon"', '<svg class="icon modal-title-icon"');
         DOMElements.modalTitle.innerHTML = `<span style="display: flex; align-items: center; justify-content: center; gap: 1rem;">${iconWithSize} ${tool.title}</span>`;
     } else {
@@ -465,7 +544,8 @@ const openToolModal = (tool: Tool) => {
     
     DOMElements.modalSubtitle.textContent = tool.subtitle;
 
-    DOMElements.modalContent.classList.toggle('stt-active', !tool.isFileTool);
+    DOMElements.modalContent.classList.toggle('stt-active', !tool.isFileTool || tool.id === 'trim-audio');
+
 
     DOMElements.initialView.style.display = 'none';
     DOMElements.optionsView.style.display = 'none';
@@ -476,7 +556,7 @@ const openToolModal = (tool: Tool) => {
         DOMElements.processBtnContainer.style.display = 'block';
         DOMElements.initialView.style.display = 'flex';
         DOMElements.fileInput.accept = tool.accept;
-        const isMultiple = ['merge-pdf', 'organize-pdf', 'image-to-pdf'].includes(tool.id);
+        const isMultiple = ['merge-pdf', 'organize-pdf', 'image-to-pdf', 'image-to-gif'].includes(tool.id);
         DOMElements.fileInput.multiple = isMultiple;
         (getElement('.drop-text')).textContent = isMultiple
             ? 'or drop files here'
@@ -494,7 +574,12 @@ const openToolModal = (tool: Tool) => {
 };
 
 const closeModal = () => {
-    if (isRecording) {
+    // If a file transcription is in progress, abort it reliably.
+    if (sttFileProcessingController) {
+        sttFileProcessingController.abort(); // This triggers the cleanup via the signal listener
+    }
+    // If a live recording is active OR an STT session of any kind is active, stop it.
+    if (isRecording || sttSessionPromise) {
         stopRecording();
     }
     if (waveSurfer) {
@@ -661,6 +746,52 @@ const loadScript = (src: string, id: string): Promise<void> => {
     });
 };
 
+const loadWaveSurferWithPlugins = (): Promise<{ WaveSurfer: any, RegionsPlugin: any }> => {
+    // Singleton pattern: if we are already loading, return the existing promise
+    if (waveSurferPromise) {
+        return waveSurferPromise;
+    }
+
+    waveSurferPromise = new Promise(async (resolve, reject) => {
+        const timeout = 20000; // Increased to 20 seconds for slow networks
+        const pollInterval = 100;
+        let elapsedTime = 0;
+
+        try {
+            // Load scripts sequentially to ensure dependencies are met
+            await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/wavesurfer.min.js', 'wavesurfer-lib');
+            await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/plugins/regions.min.js', 'wavesurfer-regions-lib');
+            
+            // Poll for the global objects to be ready
+            const checkInterval = setInterval(() => {
+                const globalWaveSurfer = (window as any).WaveSurfer;
+                if (globalWaveSurfer && globalWaveSurfer.plugins && globalWaveSurfer.plugins.Regions) {
+                    clearInterval(checkInterval);
+                    resolve({ WaveSurfer: globalWaveSurfer, RegionsPlugin: globalWaveSurfer.plugins.Regions });
+                } else {
+                    elapsedTime += pollInterval;
+                    if (elapsedTime >= timeout) {
+                        clearInterval(checkInterval);
+                        console.error('WaveSurfer object on timeout:', globalWaveSurfer);
+                        console.error('WaveSurfer plugins on timeout:', globalWaveSurfer ? globalWaveSurfer.plugins : 'WaveSurfer object not found');
+                        // Reset promise on failure so we can try again on a subsequent call
+                        waveSurferPromise = null;
+                        reject(new Error(`WaveSurfer Regions plugin failed to initialize in time. Please check your network connection or try reloading the page.`));
+                    }
+                }
+            }, pollInterval);
+        } catch (error) {
+            console.error("Error loading WaveSurfer scripts from CDN:", error);
+            // Reset promise on failure
+            waveSurferPromise = null;
+            reject(error);
+        }
+    });
+
+    return waveSurferPromise;
+};
+
+
 const handleFileSelect = (files: FileList | null) => {
     if (!files || files.length === 0 || !currentTool) return;
     hideError();
@@ -714,6 +845,7 @@ const showOptionsView = (files: File[]) => {
         
         const fileListHTML = files.map((file, index) => `
             <div class="file-item">
+                <div class="file-icon">${getFileTypeIcon(file)}</div>
                 <span class="file-name">${file.name}</span>
                 <button class="file-preview-btn" data-file-index="${index}" aria-label="Preview ${file.name}">${ICONS['eye-preview']}</button>
             </div>
@@ -761,6 +893,21 @@ const showOptionsView = (files: File[]) => {
             `);
             DOMElements.processBtn.onclick = () => showProcessingView(removeBackground);
             break;
+        case 'image-to-gif':
+             DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
+                <div class="option-group">
+                    <label for="gif-delay">Animation Speed (ms per frame)</label>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <input type="range" id="gif-delay-slider" min="100" max="2000" value="500" step="50">
+                        <span id="gif-delay-value" style="font-weight: 500; min-width: 45px;">500ms</span>
+                    </div>
+                </div>
+            `);
+            const slider = getElement<HTMLInputElement>('#gif-delay-slider');
+            const valueDisplay = getElement<HTMLSpanElement>('#gif-delay-value');
+            slider.oninput = () => { valueDisplay.textContent = `${slider.value}ms`; };
+            DOMElements.processBtn.onclick = () => showProcessingView(createAnimatedGif);
+            break;
         default:
              if (currentTool.isFileTool) {
                  DOMElements.optionsPane.insertAdjacentHTML('beforeend', `<p>This tool is not fully configured.</p>`);
@@ -771,6 +918,50 @@ const showOptionsView = (files: File[]) => {
              }
             break;
     }
+};
+
+const createAnimatedGif = async () => {
+    DOMElements.processingText.textContent = 'Loading GIF encoder...';
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js', 'gif-lib');
+    const delay = parseInt(getElement<HTMLInputElement>('#gif-delay-slider').value);
+
+    DOMElements.processingText.textContent = `Processing ${currentFiles.length} images...`;
+    const gif = new (window as any).GIF({
+        workers: 2,
+        quality: 10,
+        workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
+    });
+
+    const imagePromises = currentFiles.map(file => {
+        return new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+        });
+    });
+
+    const images = await Promise.all(imagePromises);
+    
+    let processedCount = 0;
+    images.forEach(img => {
+        gif.addFrame(img, { delay: delay });
+        processedCount++;
+        const progress = 10 + Math.round((processedCount / images.length) * 80);
+        DOMElements.progressBar.style.width = `${progress}%`;
+        DOMElements.progressPercentage.textContent = `${progress}%`;
+    });
+
+    DOMElements.processingText.textContent = 'Rendering your GIF...';
+
+    gif.on('finished', (blob: Blob) => {
+        DOMElements.progressBar.style.width = '100%';
+        DOMElements.progressPercentage.textContent = '100%';
+        const url = URL.createObjectURL(blob);
+        showCompleteView('Your GIF is ready!', [{ filename: 'animation.gif', url: url }]);
+    });
+
+    gif.render();
 };
 
 const removeBackground = async () => {
@@ -1048,6 +1239,8 @@ const showAudioFileProcessor = async (file: File) => {
     processorBox.style.display = 'flex';
     liveBox.classList.add('disabled');
 
+    const thisToolId = currentTool?.id; // Capture tool ID at start
+
     const resetProcessorUI = () => {
         if (waveSurfer) {
             waveSurfer.destroy();
@@ -1061,15 +1254,21 @@ const showAudioFileProcessor = async (file: File) => {
     };
 
     try {
-        await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/wavesurfer.min.js', 'wavesurfer-lib');
-        await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/plugins/regions.min.js', 'wavesurfer-regions-lib');
+        const { WaveSurfer, RegionsPlugin } = await loadWaveSurferWithPlugins();
         
-        if (!(window as any).WaveSurfer?.plugins?.Regions) {
-            throw new Error("WaveSurfer Regions plugin failed to load correctly.");
+        // RACE CONDITION FIX: Check if the modal was closed while loading the library
+        if (!currentTool || currentTool.id !== thisToolId) {
+            console.warn("Audio processor UI setup cancelled: modal was closed or tool changed while loading.");
+            if (waveSurfer) {
+                try { waveSurfer.destroy(); } catch(e){}
+                waveSurfer = null;
+            }
+            return;
         }
         
         processorBox.innerHTML = `
             <h4>Preview & Trim Audio</h4>
+            <p class="api-notice">Select a portion to transcribe. The play button will preview your selection.</p>
             <div id="waveform-container"></div>
             <div id="waveform-controls">
                 <button id="play-pause-btn" aria-label="Play audio">${ICONS['play']}</button>
@@ -1083,9 +1282,6 @@ const showAudioFileProcessor = async (file: File) => {
         `;
 
         if (waveSurfer) waveSurfer.destroy();
-        
-        const WaveSurfer = (window as any).WaveSurfer;
-        const RegionsPlugin = (window as any).WaveSurfer.plugins.Regions;
         
         waveSurfer = WaveSurfer.create({
             container: '#waveform-container',
@@ -1126,7 +1322,13 @@ const showAudioFileProcessor = async (file: File) => {
         });
 
         const playPauseBtn = getElement<HTMLButtonElement>('#play-pause-btn');
-        playPauseBtn.onclick = () => waveSurfer.playPause();
+        playPauseBtn.onclick = () => {
+            if (waveSurfer.isPlaying()) {
+                waveSurfer.pause();
+            } else if (activeRegion) {
+                activeRegion.play();
+            }
+        };
 
         waveSurfer.on('play', () => { playPauseBtn.innerHTML = ICONS['mic-pause']; playPauseBtn.setAttribute('aria-label', 'Pause audio'); });
         waveSurfer.on('pause', () => { playPauseBtn.innerHTML = ICONS['play']; playPauseBtn.setAttribute('aria-label', 'Play audio'); });
@@ -1140,59 +1342,96 @@ const showAudioFileProcessor = async (file: File) => {
 
     } catch (error) {
         console.error("Error setting up audio processor:", error);
-        showError('Could not load audio editor.', true);
+        showError(`Could not load audio editor. ${error}`, true);
         resetProcessorUI();
     }
 };
 
 const startFileTranscription = async (startTime: number, endTime: number) => {
-     if (!ai || !waveSurfer) return;
-    
+    if (!ai || !waveSurfer) return;
+
+    if (sttFileProcessingController) {
+        sttFileProcessingController.abort();
+    }
+    sttFileProcessingController = new AbortController();
+    const { signal } = sttFileProcessingController;
+
     updateSttUI('processingFile');
     const processorBox = getElement<HTMLDivElement>('#stt-file-processor');
     processorBox.style.display = 'none';
-    
+
     finalTranscript = '';
     interimTranscript = '';
     updateTranscriptDisplay();
 
+    let sendIntervalId: number | null = null;
+    let isCleanupRun = false;
+
+    const cleanup = () => {
+        if (isCleanupRun) return;
+        isCleanupRun = true;
+        
+        if (sendIntervalId) {
+            clearInterval(sendIntervalId);
+            sendIntervalId = null;
+        }
+        sttSessionPromise?.then(session => session.close()).catch(() => {});
+        sttSessionPromise = null;
+
+        if (sttFileProcessingController?.signal === signal) {
+            sttFileProcessingController = null;
+        }
+    };
+    
+    signal.addEventListener('abort', () => {
+        cleanup();
+        updateSttUI('idle');
+    });
+
     try {
         const originalBuffer = waveSurfer.getDecodedData();
-        const sampleRate = originalBuffer.sampleRate;
-        const channels = originalBuffer.numberOfChannels;
-        const startSample = Math.floor(startTime * sampleRate);
-        const endSample = Math.floor(endTime * sampleRate);
-        const length = endSample - startSample;
+        const duration = endTime - startTime;
+        const targetSampleRate = 16000;
+        const numChannels = 1;
+        
+        const offlineCtx = new (window.OfflineAudioContext || (window as any).webkitOfflineAudioContext)(
+            numChannels,
+            duration * targetSampleRate,
+            targetSampleRate
+        );
+        
+        const source = offlineCtx.createBufferSource();
+        source.buffer = originalBuffer;
+        source.connect(offlineCtx.destination);
+        source.start(0, startTime);
 
-        // Create a new AudioContext to build the trimmed buffer
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const trimmedBuffer = audioCtx.createBuffer(channels, length, sampleRate);
-        for (let i = 0; i < channels; i++) {
-            trimmedBuffer.copyToChannel(originalBuffer.getChannelData(i).subarray(startSample, endSample), i);
+        const renderedBuffer = await offlineCtx.startRendering();
+        if (signal.aborted) {
+            cleanup();
+            return;
         }
-        await audioCtx.close();
 
         sttSessionPromise = ai.live.connect({
-             model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-             callbacks: {
-                 onopen: () => {
-                     // Resample and send audio data in chunks
-                     const targetSampleRate = 16000;
-                     const inputSampleRate = trimmedBuffer.sampleRate;
-                     const inputData = trimmedBuffer.getChannelData(0); // Use channel 0 for transcription
-                     const ratio = inputSampleRate / targetSampleRate;
-                     const outputLength = Math.floor(inputData.length / ratio);
-                     const pcmData = new Float32Array(outputLength);
-                     for (let i = 0; i < outputLength; i++) {
-                        pcmData[i] = inputData[Math.floor(i * ratio)];
-                     }
-                     
-                     const chunkSize = 4096;
-                     let currentPosition = 0;
-                     const sendInterval = setInterval(() => {
+            model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+            callbacks: {
+                onopen: () => {
+                    if (signal.aborted) {
+                        sttSessionPromise?.then(s => s.close());
+                        cleanup();
+                        return;
+                    }
+                    const pcmData = renderedBuffer.getChannelData(0);
+                    const chunkSize = 4096;
+                    let currentPosition = 0;
+                    
+                    sendIntervalId = window.setInterval(() => {
+                        if (signal.aborted) {
+                            cleanup();
+                            return;
+                        }
+                        
                         sttSessionPromise?.then(session => {
                             if (currentPosition >= pcmData.length) {
-                                clearInterval(sendInterval);
                                 session.close();
                                 return;
                             }
@@ -1200,14 +1439,17 @@ const startFileTranscription = async (startTime: number, endTime: number) => {
                             session.sendRealtimeInput({ media: createBlob(chunk) });
                             currentPosition += chunkSize;
                         }).catch(e => {
-                            clearInterval(sendInterval);
-                            console.error(e);
-                            showError("Connection error during transcription.", true);
-                            updateSttUI('idle');
+                            if (!signal.aborted) {
+                                console.error("Connection error during transcription:", e);
+                                showError("Connection error during transcription.", true);
+                                cleanup();
+                                updateSttUI('idle');
+                            }
                         });
-                     }, 150);
-                 },
-                 onmessage: (message: LiveServerMessage) => {
+                    }, 150);
+                },
+                onmessage: (message: LiveServerMessage) => {
+                    if (signal.aborted) return;
                     if (message.serverContent?.inputTranscription) {
                         interimTranscript = message.serverContent.inputTranscription.text;
                     }
@@ -1216,27 +1458,36 @@ const startFileTranscription = async (startTime: number, endTime: number) => {
                         interimTranscript = '';
                     }
                     updateTranscriptDisplay();
-                 },
-                 onerror: (e) => {
-                     console.error('File STT Error:', e);
-                     showError("Transcription failed.", true);
-                     updateSttUI('idle');
-                 },
-                 onclose: () => {
-                     updateSttUI('idle');
-                 }
-             },
-             config: {
-                 responseModalities: [Modality.AUDIO],
-                 inputAudioTranscription: {},
-                 systemInstruction: `The user has provided an audio file in ${currentTool?.language || 'en-US'}. Transcribe it accurately.`,
-             }
+                },
+                onerror: (e) => {
+                    if (!signal.aborted) {
+                        console.error('File STT Error:', e);
+                        showError("Transcription failed.", true);
+                        cleanup();
+                        updateSttUI('idle');
+                    }
+                },
+                onclose: () => {
+                    if (!signal.aborted) {
+                        cleanup();
+                        updateSttUI('idle');
+                    }
+                }
+            },
+            config: {
+                responseModalities: [Modality.AUDIO],
+                inputAudioTranscription: {},
+                systemInstruction: `The user has provided an audio file in ${currentTool?.language || 'en-US'}. Transcribe it accurately.`,
+            }
         });
 
     } catch (e) {
-        console.error("Failed to process audio file", e);
-        showError("Invalid or corrupted audio file.", true);
-        updateSttUI('idle');
+        if (!signal.aborted) {
+            console.error("Failed to process audio file for transcription:", e);
+            showError("Invalid or corrupted audio file. Could not process for transcription.", true);
+            cleanup();
+            updateSttUI('idle');
+        }
     }
 }
 
@@ -1265,18 +1516,23 @@ const updateSttUI = (state: 'idle' | 'recording' | 'paused' | 'processingFile') 
     pauseBtn.style.display = state === 'recording' ? 'inline-flex' : 'none';
     stopBtn.style.display = isRecordingActive ? 'inline-flex' : 'none';
     
-    statusContainer.style.visibility = isRecordingActive ? 'visible' : 'hidden';
-    if(statusText) statusText.textContent = state === 'paused' ? 'Paused' : 'Recording...';
+    statusContainer.style.visibility = isRecordingActive || isFileProcessing ? 'visible' : 'hidden';
+    if(statusText) {
+        if(isFileProcessing) {
+            statusText.textContent = 'Transcribing...';
+        } else {
+            statusText.textContent = state === 'paused' ? 'Paused' : 'Recording...';
+        }
+    }
     
     liveBox.classList.toggle('disabled', isFileProcessing);
     uploadBox.classList.toggle('disabled', isRecordingActive);
-    if(uploadBox) uploadBox.style.display = 'flex'; // Always ready to show unless processor is up
     
-    if(processorBox) processorBox.style.display = 'none'; // Hide processor by default
-
-    if (isIdle) {
+    if(isIdle) {
         liveBox.classList.remove('disabled');
         uploadBox.classList.remove('disabled');
+        uploadBox.style.display = 'flex';
+        processorBox.style.display = 'none';
         if (waveSurfer) {
             waveSurfer.destroy();
             waveSurfer = null;
@@ -1290,7 +1546,7 @@ const updateSttUI = (state: 'idle' | 'recording' | 'paused' | 'processingFile') 
     editableArea.classList.toggle('is-recording', !isIdle);
     editableArea.contentEditable = isIdle ? 'true' : 'false';
 
-    const hasText = editableArea.innerText.trim().length > 0;
+    const hasText = finalTranscript.trim().length > 0;
     copyBtn.disabled = !isIdle || !hasText;
     downloadBtn.disabled = !isIdle || !hasText;
     
@@ -1401,6 +1657,8 @@ const renderAudioTrimUI = async (file: File) => {
     const container = getElement<HTMLDivElement>('#trim-audio-container');
     container.innerHTML = `<p>Loading audio editor...</p>`;
 
+    const thisToolId = currentTool?.id; // Capture tool ID at start
+
     const resetUI = () => {
         if (waveSurfer) {
             waveSurfer.destroy();
@@ -1410,16 +1668,21 @@ const renderAudioTrimUI = async (file: File) => {
     };
 
     try {
-        await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/wavesurfer.min.js', 'wavesurfer-lib');
-        await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/plugins/regions.min.js', 'wavesurfer-regions-lib');
-
-        if (!(window as any).WaveSurfer?.plugins?.Regions) {
-            throw new Error("WaveSurfer Regions plugin failed to load correctly.");
-        }
+        const { WaveSurfer, RegionsPlugin } = await loadWaveSurferWithPlugins();
         
+        // RACE CONDITION FIX: Check if the modal was closed while loading the library
+        if (!currentTool || currentTool.id !== thisToolId) {
+            console.warn("Audio trim UI setup cancelled: modal was closed or tool changed while loading.");
+            if (waveSurfer) {
+                try { waveSurfer.destroy(); } catch(e){}
+                waveSurfer = null;
+            }
+            return;
+        }
+
         container.innerHTML = `
             <h4>Trim Audio File</h4>
-            <p class="api-notice">Drag the handles on the timeline to select a portion of the audio.</p>
+            <p class="api-notice">Drag the handles to select a portion. The play button previews only your selection.</p>
             <div id="waveform-container"></div>
             <div id="waveform-controls">
                 <button id="play-pause-btn" aria-label="Play audio">${ICONS['play']}</button>
@@ -1433,8 +1696,6 @@ const renderAudioTrimUI = async (file: File) => {
         `;
         
         if (waveSurfer) waveSurfer.destroy();
-        const WaveSurfer = (window as any).WaveSurfer;
-        const RegionsPlugin = (window as any).WaveSurfer.plugins.Regions;
         
         waveSurfer = WaveSurfer.create({
             container: '#waveform-container',
@@ -1468,7 +1729,13 @@ const renderAudioTrimUI = async (file: File) => {
         });
 
         const playPauseBtn = getElement<HTMLButtonElement>('#play-pause-btn');
-        playPauseBtn.onclick = () => waveSurfer.playPause();
+        playPauseBtn.onclick = () => {
+            if (waveSurfer.isPlaying()) {
+                waveSurfer.pause();
+            } else if (activeRegion) {
+                activeRegion.play();
+            }
+        };
 
         waveSurfer.on('play', () => { playPauseBtn.innerHTML = ICONS['mic-pause']; });
         waveSurfer.on('pause', () => { playPauseBtn.innerHTML = ICONS['play']; });
@@ -1487,25 +1754,34 @@ const renderAudioTrimUI = async (file: File) => {
 
     } catch (error) {
         console.error("Error in audio trim UI:", error);
-        showError("Could not load the audio editor.", true);
+        showError(`Could not load the audio editor. ${error}`, true);
         resetUI();
     }
 };
 
-const trimAudioBuffer = async (originalBuffer: AudioBuffer, startTime: number, endTime: number): Promise<AudioBuffer> => {
-    const sampleRate = originalBuffer.sampleRate;
-    const channels = originalBuffer.numberOfChannels;
-    const startSample = Math.floor(startTime * sampleRate);
-    const endSample = Math.floor(endTime * sampleRate);
-    const length = endSample - startSample;
-
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const trimmedBuffer = audioCtx.createBuffer(channels, length, sampleRate);
-    for (let i = 0; i < channels; i++) {
-        trimmedBuffer.copyToChannel(originalBuffer.getChannelData(i).subarray(startSample, endSample), i);
+const trimAudioBuffer = (originalBuffer: AudioBuffer, startTime: number, endTime: number): Promise<AudioBuffer> => {
+    const duration = endTime - startTime;
+    if (duration <= 0) {
+        return Promise.reject(new Error("End time must be after start time."));
     }
-    await audioCtx.close();
-    return trimmedBuffer;
+    
+    // Use an OfflineAudioContext for efficient, non-real-time processing. This is much faster 
+    // and uses less memory than a standard AudioContext for this task.
+    const offlineCtx = new (window.OfflineAudioContext || (window as any).webkitOfflineAudioContext)(
+        originalBuffer.numberOfChannels,
+        Math.ceil(duration * originalBuffer.sampleRate),
+        originalBuffer.sampleRate
+    );
+    
+    const source = offlineCtx.createBufferSource();
+    source.buffer = originalBuffer;
+    source.connect(offlineCtx.destination);
+    
+    // Start playing from the specified start time. The OfflineAudioContext will process only for its specified duration.
+    source.start(0, startTime); 
+
+    // startRendering returns a Promise that resolves with the rendered AudioBuffer.
+    return offlineCtx.startRendering();
 };
 
 const audioBufferToWav = (buffer: AudioBuffer): Blob => {
@@ -1647,6 +1923,12 @@ const init = () => {
     setTimeout(() => {
         DOMElements.bottomAdPopup?.classList.add('visible');
     }, 5000);
+
+    // Preload the audio editor immediately in the background to ensure it's
+    // ready when the user clicks an audio tool, preventing race conditions.
+    loadWaveSurferWithPlugins().catch(err => {
+        console.warn("Audio editor preloading failed. It will be attempted again on tool open.", err);
+    });
 };
 
 // The app can now initialize even if AI fails
