@@ -393,10 +393,21 @@ const renderRecentTools = () => {
         if (tool) {
             const card = document.createElement('div');
             card.className = 'tool-card';
-             if (tool.isComingSoon) {
+            if (tool.isComingSoon) {
                 card.classList.add('coming-soon');
+                card.setAttribute('aria-disabled', 'true');
+                card.setAttribute('aria-label', `${tool.title}. Coming soon.`);
             } else {
+                card.setAttribute('role', 'button');
+                card.setAttribute('tabindex', '0');
+                card.setAttribute('aria-label', `Open ${tool.title} tool. ${tool.subtitle}`);
                 card.onclick = () => openToolModal(tool);
+                card.onkeydown = (e: KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openToolModal(tool);
+                    }
+                };
             }
             card.innerHTML = `
                 ${tool.icon}
@@ -444,8 +455,19 @@ const renderTools = (filter = '', category = 'All') => {
                 card.style.animationDelay = `${toolIndex * 50}ms`; // Staggered animation
                 if (tool.isComingSoon) {
                     card.classList.add('coming-soon');
+                    card.setAttribute('aria-disabled', 'true');
+                    card.setAttribute('aria-label', `${tool.title}. Coming soon.`);
                 } else {
+                    card.setAttribute('role', 'button');
+                    card.setAttribute('tabindex', '0');
+                    card.setAttribute('aria-label', `Open ${tool.title} tool. ${tool.subtitle}`);
                     card.onclick = () => openToolModal(tool);
+                    card.onkeydown = (e: KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openToolModal(tool);
+                        }
+                    };
                 }
                 card.innerHTML = `
                     ${tool.icon}
