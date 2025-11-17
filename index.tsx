@@ -190,18 +190,18 @@ const TOOLS: Record<string, Tool> = {
     'trim-audio': { id: 'trim-audio', title: 'Trim Audio', subtitle: 'Cut MP3, WAV, and other audio formats.', icon: ICONS['trim-audio'], accept: 'audio/*', isFileTool: true },
     'wav-to-mp3': { id: 'wav-to-mp3', title: 'WAV to MP3', subtitle: 'Convert WAV files to MP3 format.', icon: ICONS['wav-to-mp3'], accept: '.wav', isFileTool: true, isComingSoon: true },
     'convert-audio': { id: 'convert-audio', title: 'Convert Audio Format', subtitle: 'Change audio file format.', icon: ICONS['convert-audio'], accept: 'audio/*', isFileTool: true, isComingSoon: true },
-    'speech-to-text-en-us': createSpeechToTextTool('English (US)', 'en-US', ICONS['flag-us']),
-    'speech-to-text-en-gb': createSpeechToTextTool('English (UK)', 'en-GB', ICONS['flag-uk']),
-    'speech-to-text-es': createSpeechToTextTool('Spanish', 'es-ES', ICONS['flag-es']),
-    'speech-to-text-fr': createSpeechToTextTool('French', 'fr-FR', ICONS['flag-fr']),
-    'speech-to-text-de': createSpeechToTextTool('German', 'de-DE', ICONS['flag-de']),
-    'speech-to-text-it': createSpeechToTextTool('Italian', 'it-IT', ICONS['flag-it']),
-    'speech-to-text-pt': createSpeechToTextTool('Portuguese', 'pt-PT', ICONS['flag-pt']),
-    'speech-to-text-ru': createSpeechToTextTool('Russian', 'ru-RU', ICONS['flag-ru']),
-    'speech-to-text-zh': createSpeechToTextTool('Chinese', 'zh-CN', ICONS['flag-cn']),
-    'speech-to-text-ja': createSpeechToTextTool('Japanese', 'ja-JP', ICONS['flag-jp']),
-    'speech-to-text-hi': createSpeechToTextTool('Hindi', 'hi-IN', ICONS['flag-in']),
-    'speech-to-text-ur': createSpeechToTextTool('Urdu', 'ur-PK', ICONS['flag-pk']),
+    'speech-to-text-en-US': createSpeechToTextTool('English (US)', 'en-US', ICONS['flag-us']),
+    'speech-to-text-en-GB': createSpeechToTextTool('English (UK)', 'en-GB', ICONS['flag-uk']),
+    'speech-to-text-es-ES': createSpeechToTextTool('Spanish', 'es-ES', ICONS['flag-es']),
+    'speech-to-text-fr-FR': createSpeechToTextTool('French', 'fr-FR', ICONS['flag-fr']),
+    'speech-to-text-de-DE': createSpeechToTextTool('German', 'de-DE', ICONS['flag-de']),
+    'speech-to-text-it-IT': createSpeechToTextTool('Italian', 'it-IT', ICONS['flag-it']),
+    'speech-to-text-pt-PT': createSpeechToTextTool('Portuguese', 'pt-PT', ICONS['flag-pt']),
+    'speech-to-text-ru-RU': createSpeechToTextTool('Russian', 'ru-RU', ICONS['flag-ru']),
+    'speech-to-text-zh-CN': createSpeechToTextTool('Chinese', 'zh-CN', ICONS['flag-cn']),
+    'speech-to-text-ja-JP': createSpeechToTextTool('Japanese', 'ja-JP', ICONS['flag-jp']),
+    'speech-to-text-hi-IN': createSpeechToTextTool('Hindi', 'hi-IN', ICONS['flag-in']),
+    'speech-to-text-ur-PK': createSpeechToTextTool('Urdu', 'ur-PK', ICONS['flag-pk']),
 };
 
 // Gracefully disable AI tools if the API key is missing
@@ -223,7 +223,7 @@ const CATEGORIES: Category[] = [
     { title: 'Convert from PDF', tools: ['pdf-to-word', 'pdf-to-powerpoint', 'pdf-to-excel', 'pdf-to-jpg'] },
     { title: 'Image Tools', tools: ['background-remover', 'image-to-gif', 'resize-image', 'png-to-jpg', 'jpg-to-png'] },
     { title: 'Video Tools', tools: ['mp4-to-gif', 'convert-video'] },
-    { title: 'Audio Tools', tools: ['trim-audio', 'wav-to-mp3', 'convert-audio', 'speech-to-text-en-us', 'speech-to-text-en-gb', 'speech-to-text-es', 'speech-to-text-fr', 'speech-to-text-de', 'speech-to-text-it', 'speech-to-text-pt', 'speech-to-text-ru', 'speech-to-text-zh', 'speech-to-text-ja', 'speech-to-text-hi', 'speech-to-text-ur'] }
+    { title: 'Audio Tools', tools: ['trim-audio', 'wav-to-mp3', 'convert-audio', 'speech-to-text-en-US', 'speech-to-text-en-GB', 'speech-to-text-es-ES', 'speech-to-text-fr-FR', 'speech-to-text-de-DE', 'speech-to-text-it-IT', 'speech-to-text-pt-PT', 'speech-to-text-ru-RU', 'speech-to-text-zh-CN', 'speech-to-text-ja-JP', 'speech-to-text-hi-IN', 'speech-to-text-ur-PK'] }
 ];
 
 // --- DOM ELEMENTS ---
@@ -342,11 +342,10 @@ const getFileTypeIcon = (file: File): string => {
 // ... (near the top of your file)
 const RECENT_TOOLS_KEY = 'genie-recent-tools';
 
-// ... (later in your file)
 const getRecentTools = (): string[] => {
     const data = localStorage.getItem(RECENT_TOOLS_KEY);
     
-    // [FIXED LINE] Check for null, empty string, OR the literal string "undefined"
+    // Check for null, empty string, OR the literal string "undefined"
     if (!data || data === "undefined") {
         return [];
     }
@@ -355,7 +354,7 @@ const getRecentTools = (): string[] => {
         const parsed = JSON.parse(data);
 
         // Validate that the parsed data is a valid array of tool IDs.
-        if (Array.isArray(parsed) && parsed.every(id => typeof id === 'string' && TOOLS[id.toLowerCase()])) {
+        if (Array.isArray(parsed) && parsed.every(id => typeof id === 'string' && TOOLS[id])) {
             return parsed;
         }
         
@@ -369,6 +368,7 @@ const getRecentTools = (): string[] => {
         return [];
     }
 };
+
 
 const updateRecentTools = (toolId: string) => {
     let recent = getRecentTools();
