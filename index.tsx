@@ -1,5 +1,4 @@
 
-
 import { GoogleGenAI, Modality, LiveServerMessage, Blob as GenAIBlob } from "@google/genai";
 
 // --- ICON DEFINITIONS ---
@@ -131,19 +130,6 @@ try {
     // We'll proceed with `ai` as null, and disable AI features gracefully.
 }
 
-
-// --- TOOL FACTORY ---
-const createSpeechToTextTool = (languageName: string, langCode: string, icon: string): Tool => ({
-    id: `speech-to-text-${langCode}`,
-    title: `Speech to Text ${languageName}`,
-    subtitle: `Transcribe ${languageName} audio to text`,
-    icon,
-    accept: 'audio/*',
-    isFileTool: false,
-    language: langCode,
-});
-
-
 // --- TOOL DEFINITIONS ---
 const TOOLS: Record<string, Tool> = {
     // PDF Tools
@@ -156,7 +142,6 @@ const TOOLS: Record<string, Tool> = {
     'rotate-pdf': { id: 'rotate-pdf', title: 'Rotate PDF', subtitle: 'Rotate all or specific pages.', icon: ICONS['rotate-pdf'], accept: '.pdf', isFileTool: true },
     'protect-pdf': { id: 'protect-pdf', title: 'Protect PDF', subtitle: 'Add password and encryption.', icon: ICONS['protect-pdf'], accept: '.pdf', isFileTool: true },
     'unlock-pdf': { id: 'unlock-pdf', title: 'Unlock PDF', subtitle: 'Remove password from a PDF.', icon: ICONS['unlock-pdf'], accept: '.pdf', isFileTool: true },
-    // Fix: Added subtitle property and corrected title to match convention.
     'organize-pdf': { id: 'organize-pdf', title: 'Organize PDF', subtitle: 'Reorder, delete, or add pages.', icon: ICONS['organize-pdf'], accept: '.pdf', isFileTool: true },
     'page-numbers': { id: 'page-numbers', title: 'Add Page Numbers', subtitle: 'Insert page numbers into PDF.', icon: ICONS['page-numbers'], accept: '.pdf', isFileTool: true },
     'ocr-pdf': { id: 'ocr-pdf', title: 'OCR PDF', subtitle: 'Recognize text in scanned PDFs.', icon: ICONS['ocr-pdf'], accept: '.pdf', isFileTool: true },
@@ -190,18 +175,18 @@ const TOOLS: Record<string, Tool> = {
     'trim-audio': { id: 'trim-audio', title: 'Trim Audio', subtitle: 'Cut MP3, WAV, and other audio formats.', icon: ICONS['trim-audio'], accept: 'audio/*', isFileTool: true },
     'wav-to-mp3': { id: 'wav-to-mp3', title: 'WAV to MP3', subtitle: 'Convert WAV files to MP3 format.', icon: ICONS['wav-to-mp3'], accept: '.wav', isFileTool: true, isComingSoon: true },
     'convert-audio': { id: 'convert-audio', title: 'Convert Audio Format', subtitle: 'Change audio file format.', icon: ICONS['convert-audio'], accept: 'audio/*', isFileTool: true, isComingSoon: true },
-    'speech-to-text-en-US': createSpeechToTextTool('English (US)', 'en-US', ICONS['flag-us']),
-    'speech-to-text-en-GB': createSpeechToTextTool('English (UK)', 'en-GB', ICONS['flag-uk']),
-    'speech-to-text-es-ES': createSpeechToTextTool('Spanish', 'es-ES', ICONS['flag-es']),
-    'speech-to-text-fr-FR': createSpeechToTextTool('French', 'fr-FR', ICONS['flag-fr']),
-    'speech-to-text-de-DE': createSpeechToTextTool('German', 'de-DE', ICONS['flag-de']),
-    'speech-to-text-it-IT': createSpeechToTextTool('Italian', 'it-IT', ICONS['flag-it']),
-    'speech-to-text-pt-PT': createSpeechToTextTool('Portuguese', 'pt-PT', ICONS['flag-pt']),
-    'speech-to-text-ru-RU': createSpeechToTextTool('Russian', 'ru-RU', ICONS['flag-ru']),
-    'speech-to-text-zh-CN': createSpeechToTextTool('Chinese', 'zh-CN', ICONS['flag-cn']),
-    'speech-to-text-ja-JP': createSpeechToTextTool('Japanese', 'ja-JP', ICONS['flag-jp']),
-    'speech-to-text-hi-IN': createSpeechToTextTool('Hindi', 'hi-IN', ICONS['flag-in']),
-    'speech-to-text-ur-PK': createSpeechToTextTool('Urdu', 'ur-PK', ICONS['flag-pk']),
+    'speech-to-text-en-US': { id: 'speech-to-text-en-US', title: 'Speech to Text English (US)', subtitle: 'Transcribe English (US) audio to text', icon: ICONS['flag-us'], accept: 'audio/*', isFileTool: false, language: 'en-US' },
+    'speech-to-text-en-GB': { id: 'speech-to-text-en-GB', title: 'Speech to Text English (UK)', subtitle: 'Transcribe English (UK) audio to text', icon: ICONS['flag-uk'], accept: 'audio/*', isFileTool: false, language: 'en-GB' },
+    'speech-to-text-es-ES': { id: 'speech-to-text-es-ES', title: 'Speech to Text Spanish', subtitle: 'Transcribe Spanish audio to text', icon: ICONS['flag-es'], accept: 'audio/*', isFileTool: false, language: 'es-ES' },
+    'speech-to-text-fr-FR': { id: 'speech-to-text-fr-FR', title: 'Speech to Text French', subtitle: 'Transcribe French audio to text', icon: ICONS['flag-fr'], accept: 'audio/*', isFileTool: false, language: 'fr-FR' },
+    'speech-to-text-de-DE': { id: 'speech-to-text-de-DE', title: 'Speech to Text German', subtitle: 'Transcribe German audio to text', icon: ICONS['flag-de'], accept: 'audio/*', isFileTool: false, language: 'de-DE' },
+    'speech-to-text-it-IT': { id: 'speech-to-text-it-IT', title: 'Speech to Text Italian', subtitle: 'Transcribe Italian audio to text', icon: ICONS['flag-it'], accept: 'audio/*', isFileTool: false, language: 'it-IT' },
+    'speech-to-text-pt-PT': { id: 'speech-to-text-pt-PT', title: 'Speech to Text Portuguese', subtitle: 'Transcribe Portuguese audio to text', icon: ICONS['flag-pt'], accept: 'audio/*', isFileTool: false, language: 'pt-PT' },
+    'speech-to-text-ru-RU': { id: 'speech-to-text-ru-RU', title: 'Speech to Text Russian', subtitle: 'Transcribe Russian audio to text', icon: ICONS['flag-ru'], accept: 'audio/*', isFileTool: false, language: 'ru-RU' },
+    'speech-to-text-zh-CN': { id: 'speech-to-text-zh-CN', title: 'Speech to Text Chinese', subtitle: 'Transcribe Chinese audio to text', icon: ICONS['flag-cn'], accept: 'audio/*', isFileTool: false, language: 'zh-CN' },
+    'speech-to-text-ja-JP': { id: 'speech-to-text-ja-JP', title: 'Speech to Text Japanese', subtitle: 'Transcribe Japanese audio to text', icon: ICONS['flag-jp'], accept: 'audio/*', isFileTool: false, language: 'ja-JP' },
+    'speech-to-text-hi-IN': { id: 'speech-to-text-hi-IN', title: 'Speech to Text Hindi', subtitle: 'Transcribe Hindi audio to text', icon: ICONS['flag-in'], accept: 'audio/*', isFileTool: false, language: 'hi-IN' },
+    'speech-to-text-ur-PK': { id: 'speech-to-text-ur-PK', title: 'Speech to Text Urdu', subtitle: 'Transcribe Urdu audio to text', icon: ICONS['flag-pk'], accept: 'audio/*', isFileTool: false, language: 'ur-PK' },
 };
 
 // Gracefully disable AI tools if the API key is missing
