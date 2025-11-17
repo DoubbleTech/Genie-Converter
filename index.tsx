@@ -346,8 +346,8 @@ const RECENT_TOOLS_KEY = 'genie-recent-tools';
 const getRecentTools = (): string[] => {
     const data = localStorage.getItem(RECENT_TOOLS_KEY);
     
-    // If there's no data, no need to proceed.
-    if (!data) {
+    // [FIXED LINE] Check for null, empty string, OR the literal string "undefined"
+    if (!data || data === "undefined") {
         return [];
     }
 
