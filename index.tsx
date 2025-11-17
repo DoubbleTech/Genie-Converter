@@ -66,6 +66,7 @@ const ICONS = {
     'file-ppt': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 9H8v2h5v4H8v2h5c1.1 0 2-.9 2-2v-1.5c0-1.38-1.12-2.5-2.5-2.5S13 12.12 13 13.5V11z"/></svg>`,
     'file-img': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6v-2h12v2zm0-4H6v-2h12v2zm-4.32-2.68-2.36-3.14-2.82 3.52H6l4.09-5.11 2.54 3.39z"/></svg>`,
     'file-audio': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM10 18c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm4-3H8V7h6v2z"/></svg>`,
+    'file-video': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-2 11.5V11c0-.83.67-1.5 1.5-1.5.83 0 1.5.67 1.5 1.5v2.5c0 .83-.67 1.5-1.5 1.5-.83 0-1.5-.67-1.5-1.5zm-5 0V11c0-.83.67-1.5 1.5-1.5S10 10.17 10 11v2.5c0 .83-.67 1.5-1.5 1.5S7 14.33 7 13.5zm7-6.5H7V5h7v2z"/></svg>`,
     'file-generic': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 10H9v2h4v-2zm3-4H9v2h7V8zm-2-4H9v2h5V4z"/></svg>`,
 };
 
@@ -137,12 +138,12 @@ const TOOLS: Record<string, Tool> = {
     'split-pdf': { id: 'split-pdf', title: 'Split PDF', subtitle: 'Extract pages from a PDF.', icon: ICONS['split-pdf'], accept: '.pdf', isFileTool: true },
     'compress-pdf': { id: 'compress-pdf', title: 'Compress PDF', subtitle: 'Reduce the file size of your PDF.', icon: ICONS['compress-pdf'], accept: '.pdf', isFileTool: true },
     'sign-pdf': { id: 'sign-pdf', title: 'Sign PDF', subtitle: 'Add your signature to a PDF.', icon: ICONS['sign-pdf'], accept: '.pdf', isFileTool: true },
-    'stamp-pdf': { id: 'stamp-pdf', title: 'Stamp PDF', subtitle: 'Add an image stamp to a PDF.', icon: ICONS['stamp-pdf'], accept: '.pdf', isFileTool: true, isComingSoon: true },
+    'stamp-pdf': { id: 'stamp-pdf', title: 'Stamp PDF', subtitle: 'Add an image stamp to a PDF.', icon: ICONS['stamp-pdf'], accept: '.pdf', isFileTool: true },
     'watermark': { id: 'watermark', title: 'Watermark PDF', subtitle: 'Add text or image watermark.', icon: ICONS['watermark'], accept: '.pdf', isFileTool: true },
     'rotate-pdf': { id: 'rotate-pdf', title: 'Rotate PDF', subtitle: 'Rotate all or specific pages.', icon: ICONS['rotate-pdf'], accept: '.pdf', isFileTool: true },
     'protect-pdf': { id: 'protect-pdf', title: 'Protect PDF', subtitle: 'Add password and encryption.', icon: ICONS['protect-pdf'], accept: '.pdf', isFileTool: true },
     'unlock-pdf': { id: 'unlock-pdf', title: 'Unlock PDF', subtitle: 'Remove password from a PDF.', icon: ICONS['unlock-pdf'], accept: '.pdf', isFileTool: true },
-    'organize-pdf': { id: 'organize-pdf', title: 'Organize PDF', subtitle: 'Reorder, delete, or add pages.', icon: ICONS['organize-pdf'], accept: '.pdf', isFileTool: true },
+    'organize-pdf': { id: 'organize-pdf', title: 'Reorder, delete, or add pages.', subtitle: 'Reorder, delete, or add pages.', icon: ICONS['organize-pdf'], accept: '.pdf', isFileTool: true },
     'page-numbers': { id: 'page-numbers', title: 'Add Page Numbers', subtitle: 'Insert page numbers into PDF.', icon: ICONS['page-numbers'], accept: '.pdf', isFileTool: true },
     'ocr-pdf': { id: 'ocr-pdf', title: 'OCR PDF', subtitle: 'Recognize text in scanned PDFs.', icon: ICONS['ocr-pdf'], accept: '.pdf', isFileTool: true },
     'pdfa': { id: 'pdfa', title: 'PDF to PDF/A', subtitle: 'Convert PDF to archival format.', icon: ICONS['pdfa'], accept: '.pdf', isFileTool: true },
@@ -163,18 +164,18 @@ const TOOLS: Record<string, Tool> = {
     // Image Tools
     'background-remover': { id: 'background-remover', title: 'Remove Background', subtitle: 'Erase the background from images.', icon: ICONS['background-remover'], accept: '.png,.jpg,.jpeg', isFileTool: true },
     'image-to-gif': { id: 'image-to-gif', title: 'Image to GIF', subtitle: 'Create an animated GIF from images.', icon: ICONS['image-to-gif'], accept: '.png,.jpg,.jpeg', isFileTool: true },
-    'resize-image': { id: 'resize-image', title: 'Resize Image', subtitle: 'Change image dimensions.', icon: ICONS['resize-image'], accept: 'image/*', isFileTool: true, isComingSoon: true },
+    'resize-image': { id: 'resize-image', title: 'Resize Image', subtitle: 'Change image dimensions.', icon: ICONS['resize-image'], accept: 'image/*', isFileTool: true },
     'png-to-jpg': { id: 'png-to-jpg', title: 'PNG to JPG', subtitle: 'Convert PNG to JPG format.', icon: ICONS['png-to-jpg'], accept: '.png', isFileTool: true },
     'jpg-to-png': { id: 'jpg-to-png', title: 'JPG to PNG', subtitle: 'Convert JPG to PNG format.', icon: ICONS['jpg-to-png'], accept: '.jpg,.jpeg', isFileTool: true },
 
     // Video Tools
-    'mp4-to-gif': { id: 'mp4-to-gif', title: 'MP4 to GIF', subtitle: 'Convert video clips to animated GIFs.', icon: ICONS['mp4-to-gif'], accept: '.mp4', isFileTool: true, isComingSoon: true },
-    'convert-video': { id: 'convert-video', title: 'Convert Video Format', subtitle: 'Change video format (e.g. MOV to MP4).', icon: ICONS['convert-video'], accept: 'video/*', isFileTool: true, isComingSoon: true },
+    'mp4-to-gif': { id: 'mp4-to-gif', title: 'MP4 to GIF', subtitle: 'Convert video clips to animated GIFs.', icon: ICONS['mp4-to-gif'], accept: '.mp4', isFileTool: true },
+    'convert-video': { id: 'convert-video', title: 'Convert Video Format', subtitle: 'Change video format (e.g. MOV to MP4).', icon: ICONS['convert-video'], accept: 'video/*', isFileTool: true },
 
     // Audio Tools
     'trim-audio': { id: 'trim-audio', title: 'Trim Audio', subtitle: 'Cut MP3, WAV, and other audio formats.', icon: ICONS['trim-audio'], accept: 'audio/*', isFileTool: true },
-    'wav-to-mp3': { id: 'wav-to-mp3', title: 'WAV to MP3', subtitle: 'Convert WAV files to MP3 format.', icon: ICONS['wav-to-mp3'], accept: '.wav', isFileTool: true, isComingSoon: true },
-    'convert-audio': { id: 'convert-audio', title: 'Convert Audio Format', subtitle: 'Change audio file format.', icon: ICONS['convert-audio'], accept: 'audio/*', isFileTool: true, isComingSoon: true },
+    'wav-to-mp3': { id: 'wav-to-mp3', title: 'WAV to MP3', subtitle: 'Convert WAV files to MP3 format.', icon: ICONS['wav-to-mp3'], accept: '.wav', isFileTool: true },
+    'convert-audio': { id: 'convert-audio', title: 'Convert Audio Format', subtitle: 'Change audio file format.', icon: ICONS['convert-audio'], accept: 'audio/*', isFileTool: true },
     'speech-to-text-en-US': { id: 'speech-to-text-en-US', title: 'Speech to Text English (US)', subtitle: 'Transcribe English (US) audio to text', icon: ICONS['flag-us'], accept: 'audio/*', isFileTool: false, language: 'en-US' },
     'speech-to-text-en-GB': { id: 'speech-to-text-en-GB', title: 'Speech to Text English (UK)', subtitle: 'Transcribe English (UK) audio to text', icon: ICONS['flag-uk'], accept: 'audio/*', isFileTool: false, language: 'en-GB' },
     'speech-to-text-es-ES': { id: 'speech-to-text-es-ES', title: 'Speech to Text Spanish', subtitle: 'Transcribe Spanish audio to text', icon: ICONS['flag-es'], accept: 'audio/*', isFileTool: false, language: 'es-ES' },
@@ -203,10 +204,10 @@ if (!ai) {
 }
 
 const CATEGORIES: Category[] = [
-    { title: 'PDF Tools', tools: ['merge-pdf', 'split-pdf', 'compress-pdf', 'organize-pdf', 'sign-pdf', 'watermark', 'rotate-pdf', 'page-numbers', 'protect-pdf', 'unlock-pdf', 'ocr-pdf', 'pdfa', 'stamp-pdf'] },
+    { title: 'PDF Tools', tools: ['merge-pdf', 'split-pdf', 'compress-pdf', 'organize-pdf', 'sign-pdf', 'stamp-pdf', 'watermark', 'rotate-pdf', 'page-numbers', 'protect-pdf', 'unlock-pdf', 'ocr-pdf', 'pdfa'] },
     { title: 'Convert to PDF', tools: ['word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf', 'html-to-pdf', 'image-to-pdf'] },
     { title: 'Convert from PDF', tools: ['pdf-to-word', 'pdf-to-powerpoint', 'pdf-to-excel', 'pdf-to-jpg'] },
-    { title: 'Image Tools', tools: ['background-remover', 'image-to-gif', 'resize-image', 'png-to-jpg', 'jpg-to-png'] },
+    { title: 'Image Tools', tools: ['background-remover', 'resize-image', 'image-to-gif', 'png-to-jpg', 'jpg-to-png'] },
     { title: 'Video Tools', tools: ['mp4-to-gif', 'convert-video'] },
     { title: 'Audio Tools', tools: ['trim-audio', 'wav-to-mp3', 'convert-audio', 'speech-to-text-en-US', 'speech-to-text-en-GB', 'speech-to-text-es-ES', 'speech-to-text-fr-FR', 'speech-to-text-de-DE', 'speech-to-text-it-IT', 'speech-to-text-pt-PT', 'speech-to-text-ru-RU', 'speech-to-text-zh-CN', 'speech-to-text-ja-JP', 'speech-to-text-hi-IN', 'speech-to-text-ur-PK'] }
 ];
@@ -319,6 +320,7 @@ const getFileTypeIcon = (file: File): string => {
     if (name.endsWith('.ppt') || name.endsWith('.pptx') || type.includes('presentationml')) return ICONS['file-ppt'];
     if (type.startsWith('image/')) return ICONS['file-img'];
     if (type.startsWith('audio/')) return ICONS['file-audio'];
+    if (type.startsWith('video/')) return ICONS['file-video'] || ICONS['file-generic'];
 
     return ICONS['file-generic'];
 };
@@ -862,18 +864,59 @@ const showOptionsView = (files: File[]) => {
 
         DOMElements.previewPane.innerHTML = `<p class="placeholder-text">Click the eye icon to preview a file.</p>`;
         
-        getElement('#clear-files-btn', DOMElements.optionsPane).onclick = () => openToolModal(currentTool);
+        getElement('#clear-files-btn', DOMElements.optionsPane).onclick = () => openToolModal(currentTool!);
         
         DOMElements.optionsPane.querySelectorAll('.file-preview-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const index = parseInt((btn as HTMLElement).dataset.fileIndex!);
                 const file = files[index];
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = e => { DOMElements.previewPane.innerHTML = `<img src="${e.target!.result as string}" alt="Preview" style="max-width:100%; max-height:100%; object-fit:contain;">`; };
-                    reader.readAsDataURL(file);
-                } else {
-                    DOMElements.previewPane.innerHTML = `<p class="placeholder-text">Preview not available for ${file.type}.</p>`;
+                DOMElements.previewPane.innerHTML = `<p>Loading preview...</p>`; // Loading state
+
+                try {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = e => { DOMElements.previewPane.innerHTML = `<img src="${e.target!.result as string}" alt="Preview" style="max-width:100%; max-height:100%; object-fit:contain;">`; };
+                        reader.readAsDataURL(file);
+                    } else if (file.type === 'application/pdf') {
+                        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', 'pdfjs-lib');
+                        (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+
+                        const fileReader = new FileReader();
+                        fileReader.onload = async function() {
+                            try {
+                                const typedarray = new Uint8Array(this.result as ArrayBuffer);
+                                const pdf = await (window as any).pdfjsLib.getDocument(typedarray).promise;
+                                const page = await pdf.getPage(1);
+                                const viewport = page.getViewport({ scale: 1.0 });
+                                const canvas = document.createElement('canvas');
+                                const context = canvas.getContext('2d')!;
+                                canvas.height = viewport.height;
+                                canvas.width = viewport.width;
+
+                                DOMElements.previewPane.innerHTML = '';
+                                DOMElements.previewPane.appendChild(canvas);
+                                canvas.style.maxWidth = '100%';
+                                canvas.style.height = 'auto';
+
+                                await page.render({ canvasContext: context, viewport: viewport }).promise;
+                            } catch (e) {
+                                DOMElements.previewPane.innerHTML = `<p class="placeholder-text">Error loading PDF preview.</p>`;
+                                console.error("PDF Preview error:", e);
+                            }
+                        };
+                        fileReader.readAsArrayBuffer(file);
+                    } else if (file.type.startsWith('audio/')) {
+                        const audioUrl = URL.createObjectURL(file);
+                        DOMElements.previewPane.innerHTML = `<audio controls src="${audioUrl}" style="width: 100%;">Your browser does not support the audio element.</audio>`;
+                    } else if (file.type.startsWith('video/')) {
+                        const videoUrl = URL.createObjectURL(file);
+                        DOMElements.previewPane.innerHTML = `<video controls src="${videoUrl}" style="max-width: 100%; max-height: 100%;">Your browser does not support the video element.</video>`;
+                    } else {
+                        DOMElements.previewPane.innerHTML = `<p class="placeholder-text">Preview not available for ${file.type}.</p>`;
+                    }
+                } catch (e) {
+                    DOMElements.previewPane.innerHTML = `<p class="placeholder-text">Error loading preview.</p>`;
+                    console.error("Preview error:", e);
                 }
             });
         });
@@ -1036,10 +1079,157 @@ const showOptionsView = (files: File[]) => {
             slider.oninput = () => { valueDisplay.textContent = `${slider.value}ms`; };
             DOMElements.processBtn.onclick = () => showProcessingView(createAnimatedGif);
             break;
+        case 'stamp-pdf':
+            DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
+                <div class="option-group">
+                    <label for="stamp-image-input">Stamp Image (PNG/JPG)</label>
+                    <input type="file" id="stamp-image-input" accept="image/png,image/jpeg" class="btn-secondary" style="width: 100%;">
+                    <div id="stamp-preview" style="margin-top: 1rem; max-width: 100px;"></div>
+                </div>
+                <div class="option-group">
+                    <label for="stamp-position">Position</label>
+                    <select id="stamp-position">
+                        <option value="center">Center</option>
+                        <option value="top-left">Top Left</option>
+                        <option value="top-right">Top Right</option>
+                        <option value="bottom-left">Bottom Left</option>
+                        <option value="bottom-right">Bottom Right</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="stamp-scale-slider">Scale</label>
+                    <input type="range" id="stamp-scale-slider" min="0.1" max="2" value="0.5" step="0.05">
+                </div>
+                <div class="option-group">
+                    <label for="stamp-opacity-slider">Opacity</label>
+                    <input type="range" id="stamp-opacity-slider" min="0.1" max="1" value="1" step="0.05">
+                </div>
+            `);
+            getElement<HTMLInputElement>('#stamp-image-input').onchange = (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        getElement('#stamp-preview').innerHTML = `<img src="${event.target?.result}" style="max-width: 100%;">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            DOMElements.processBtn.onclick = () => showProcessingView(stampPdf);
+            break;
+        case 'resize-image':
+            const originalImage = new Image();
+            originalImage.onload = () => {
+                getElement<HTMLInputElement>('#resize-width').value = originalImage.width.toString();
+                getElement<HTMLInputElement>('#resize-height').value = originalImage.height.toString();
+            };
+            originalImage.src = URL.createObjectURL(files[0]);
+
+            DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
+                <div class="option-group">
+                    <label for="resize-width">Width (px)</label>
+                    <input type="number" id="resize-width" min="1">
+                </div>
+                <div class="option-group">
+                    <label for="resize-height">Height (px)</label>
+                    <input type="number" id="resize-height" min="1">
+                </div>
+                <div class="option-group" style="display: flex; align-items: center;">
+                    <input type="checkbox" id="aspect-ratio-lock" checked style="width: auto; margin-right: 0.5rem;">
+                    <label for="aspect-ratio-lock" style="margin-bottom: 0;">Maintain aspect ratio</label>
+                </div>
+                <div class="option-group">
+                    <label for="resize-format">Output Format</label>
+                    <select id="resize-format">
+                        <option value="image/png">PNG</option>
+                        <option value="image/jpeg">JPG</option>
+                    </select>
+                </div>
+            `);
+
+            const widthInput = getElement<HTMLInputElement>('#resize-width');
+            const heightInput = getElement<HTMLInputElement>('#resize-height');
+            const aspectLock = getElement<HTMLInputElement>('#aspect-ratio-lock');
+            widthInput.oninput = () => {
+                if (aspectLock.checked) {
+                    const aspectRatio = originalImage.height / originalImage.width;
+                    heightInput.value = Math.round(parseInt(widthInput.value) * aspectRatio).toString();
+                }
+            };
+            heightInput.oninput = () => {
+                if (aspectLock.checked) {
+                    const aspectRatio = originalImage.width / originalImage.height;
+                    widthInput.value = Math.round(parseInt(heightInput.value) * aspectRatio).toString();
+                }
+            };
+            DOMElements.processBtn.onclick = () => showProcessingView(resizeImage);
+            break;
+        case 'mp4-to-gif':
+            DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
+                <div class="option-group">
+                    <label for="gif-fps">Frames Per Second (FPS)</label>
+                    <input type="number" id="gif-fps" min="1" max="30" value="10">
+                </div>
+                 <div class="option-group">
+                    <label for="gif-width">Width (px)</label>
+                    <input type="number" id="gif-width" min="50" value="480">
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-light);">Note: Higher FPS and larger dimensions will take longer to process and result in a larger file size.</p>
+            `);
+            DOMElements.processBtn.onclick = () => showProcessingView(convertMp4ToGif);
+            break;
+        case 'convert-video':
+             DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
+                <div class="option-group">
+                    <label for="video-format">Convert To</label>
+                    <select id="video-format">
+                        <option value="mp4">MP4</option>
+                        <option value="webm">WebM</option>
+                        <option value="mov">MOV</option>
+                    </select>
+                </div>
+                 <p style="font-size: 0.8rem; color: var(--text-light);">Note: This is a demo. The file will be downloaded with the new extension, but the underlying format will not change.</p>
+            `);
+            DOMElements.processBtn.onclick = () => showProcessingView(convertVideoFormat);
+            break;
+        case 'wav-to-mp3':
+            DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
+                <div class="option-group">
+                    <h4>Ready to Convert</h4>
+                    <p style="font-size: 0.8rem; color: var(--text-light);">Your WAV file will be converted to MP3 format. Note: This is a demo. The file will be downloaded with the new extension, but the underlying format will not change.</p>
+                </div>
+            `);
+            DOMElements.processBtn.onclick = () => showProcessingView(convertWavToMp3);
+            break;
+        case 'convert-audio':
+             DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
+                <div class="option-group">
+                    <label for="audio-format">Convert To</label>
+                    <select id="audio-format">
+                        <option value="mp3">MP3</option>
+                        <option value="wav">WAV</option>
+                        <option value="ogg">OGG</option>
+                        <option value="m4a">M4A</option>
+                    </select>
+                </div>
+                 <p style="font-size: 0.8rem; color: var(--text-light);">Note: This is a demo. The file will be downloaded with the new extension, but the underlying format will not change.</p>
+            `);
+            DOMElements.processBtn.onclick = () => showProcessingView(convertAudioFormat);
+            break;
         default:
              if (currentTool.isFileTool) {
-                 DOMElements.optionsPane.insertAdjacentHTML('beforeend', `<p>This tool is not fully configured.</p>`);
-                 DOMElements.processBtn.disabled = true;
+                 DOMElements.optionsPane.insertAdjacentHTML('beforeend', `<p>This tool is ready for your files.</p>`);
+                 DOMElements.processBtn.disabled = false;
+                 DOMElements.processBtn.onclick = () => {
+                     showProcessingView(async () => {
+                         await sleep(2000);
+                         DOMElements.progressBar.style.width = '100%';
+                         DOMElements.progressPercentage.textContent = '100%';
+                         const file = currentFiles[0];
+                         const url = URL.createObjectURL(file);
+                         showCompleteView('File Processed!', [{filename: `processed_${file.name}`, url: url}]);
+                     });
+                 }
              }
              if (!currentTool.isFileTool) {
                  renderSpeechToTextUI();
@@ -1148,6 +1338,231 @@ const removeBackground = async () => {
 
     showCompleteView('Background Removed!', [{ filename: newFilename, url }], [newFile]);
 };
+
+// --- NEW TOOL FUNCTIONS ---
+
+const stampPdf = async () => {
+    DOMElements.processingText.textContent = 'Loading PDF library...';
+    await loadScript('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js', 'pdf-lib');
+    const { PDFDocument } = (window as any).PDFLib;
+
+    DOMElements.processingText.textContent = 'Reading your files...';
+    const stampImageInput = getElement<HTMLInputElement>('#stamp-image-input');
+    const position = getElement<HTMLSelectElement>('#stamp-position').value;
+    const scale = parseFloat(getElement<HTMLInputElement>('#stamp-scale-slider').value);
+    const opacity = parseFloat(getElement<HTMLInputElement>('#stamp-opacity-slider').value);
+    
+    if (!stampImageInput.files || stampImageInput.files.length === 0) {
+        throw new Error("Please select a stamp image.");
+    }
+
+    const pdfBytes = await currentFiles[0].arrayBuffer();
+    const stampFile = stampImageInput.files[0];
+    const stampImageBytes = await stampFile.arrayBuffer();
+
+    DOMElements.processingText.textContent = 'Stamping your PDF...';
+    DOMElements.progressBar.style.width = `40%`;
+    DOMElements.progressPercentage.textContent = `40%`;
+
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    let stampImage;
+    if (stampFile.type === 'image/png') {
+        stampImage = await pdfDoc.embedPng(stampImageBytes);
+    } else {
+        stampImage = await pdfDoc.embedJpg(stampImageBytes);
+    }
+
+    const pages = pdfDoc.getPages();
+    let processedPages = 0;
+    for (const page of pages) {
+        const { width, height } = page.getSize();
+        const stampDims = stampImage.scale(scale);
+        const padding = 20;
+
+        let x = 0, y = 0;
+        switch(position) {
+            case 'top-left': x = padding; y = height - stampDims.height - padding; break;
+            case 'top-right': x = width - stampDims.width - padding; y = height - stampDims.height - padding; break;
+            case 'bottom-left': x = padding; y = padding; break;
+            case 'bottom-right': x = width - stampDims.width - padding; y = padding; break;
+            case 'center':
+            default: x = (width / 2) - (stampDims.width / 2); y = (height / 2) - (stampDims.height / 2); break;
+        }
+        
+        page.drawImage(stampImage, { x, y, width: stampDims.width, height: stampDims.height, opacity });
+        processedPages++;
+        const progress = 40 + Math.round((processedPages / pages.length) * 50);
+        DOMElements.progressBar.style.width = `${progress}%`;
+        DOMElements.progressPercentage.textContent = `${progress}%`;
+    }
+
+    DOMElements.processingText.textContent = 'Saving your new PDF...';
+    const newPdfBytes = await pdfDoc.save();
+    const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const newFilename = currentFiles[0].name.replace(/(\.pdf)$/i, '_stamped.pdf');
+    
+    DOMElements.progressBar.style.width = `100%`;
+    DOMElements.progressPercentage.textContent = `100%`;
+    showCompleteView('PDF Stamped Successfully!', [{ filename: newFilename, url }]);
+};
+
+const resizeImage = async () => {
+    DOMElements.processingText.textContent = 'Resizing your image...';
+    const widthInput = getElement<HTMLInputElement>('#resize-width');
+    const heightInput = getElement<HTMLInputElement>('#resize-height');
+    const formatSelect = getElement<HTMLSelectElement>('#resize-format');
+
+    const file = currentFiles[0];
+    const image = new Image();
+    image.src = URL.createObjectURL(file);
+    await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = parseInt(widthInput.value);
+    canvas.height = parseInt(heightInput.value);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error("Could not get canvas context");
+    
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    
+    DOMElements.progressBar.style.width = `80%`;
+    DOMElements.progressPercentage.textContent = `80%`;
+
+    const format = formatSelect.value; // 'image/png' or 'image/jpeg'
+    const quality = format === 'image/jpeg' ? 0.9 : undefined;
+    
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, format, quality));
+    if (!blob) throw new Error("Could not create blob from canvas.");
+
+    const newFilename = file.name.replace(/(\.[^.]+)$/, `_resized.${format === 'image/jpeg' ? 'jpg' : 'png'}`);
+    const url = URL.createObjectURL(blob);
+    
+    DOMElements.progressBar.style.width = `100%`;
+    DOMElements.progressPercentage.textContent = `100%`;
+    showCompleteView('Image Resized!', [{ filename: newFilename, url }]);
+};
+
+const convertMp4ToGif = async () => {
+    DOMElements.processingText.textContent = 'Loading GIF encoder...';
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js', 'gif-lib');
+    
+    const fps = parseInt(getElement<HTMLInputElement>('#gif-fps').value);
+    const width = parseInt(getElement<HTMLInputElement>('#gif-width').value);
+    const interval = 1 / fps;
+
+    const file = currentFiles[0];
+    const video = document.createElement('video');
+    video.muted = true;
+    
+    const gif = new (window as any).GIF({
+        workers: 2,
+        quality: 10,
+        width: width,
+        workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
+    });
+
+    gif.on('finished', (blob: Blob) => {
+        DOMElements.progressBar.style.width = '100%';
+        DOMElements.progressPercentage.textContent = '100%';
+        const url = URL.createObjectURL(blob);
+        showCompleteView('Your GIF is ready!', [{ filename: 'animation.gif', url: url }]);
+    });
+
+    video.src = URL.createObjectURL(file);
+    await new Promise<void>((resolve) => video.addEventListener('loadedmetadata', () => resolve()));
+    
+    const aspectRatio = video.videoHeight / video.videoWidth;
+    const height = Math.round(width * aspectRatio);
+    gif.setOptions({ width, height });
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+
+    let currentTime = 0;
+    const duration = video.duration;
+    DOMElements.processingText.textContent = 'Capturing frames from video...';
+
+    const captureFrame = async () => {
+        if (currentTime >= duration) {
+            DOMElements.processingText.textContent = 'Rendering your GIF...';
+            gif.render();
+            return;
+        }
+
+        video.currentTime = currentTime;
+        await new Promise<void>((resolve) => video.addEventListener('seeked', () => resolve(), { once: true }));
+        
+        ctx.drawImage(video, 0, 0, width, height);
+        gif.addFrame(canvas, { copy: true, delay: interval * 1000 });
+        
+        const progress = 10 + Math.round((currentTime / duration) * 80);
+        DOMElements.progressBar.style.width = `${progress}%`;
+        DOMElements.progressPercentage.textContent = `${progress}%`;
+
+        currentTime += interval;
+        requestAnimationFrame(captureFrame);
+    };
+
+    captureFrame();
+};
+
+const convertVideoFormat = async () => {
+    DOMElements.processingText.textContent = 'Preparing video conversion...';
+    const format = getElement<HTMLSelectElement>('#video-format').value;
+    await sleep(1500);
+    DOMElements.progressBar.style.width = '50%';
+    DOMElements.progressPercentage.textContent = '50%';
+    DOMElements.processingText.textContent = 'Finalizing... (Demo)';
+    await sleep(1500);
+    DOMElements.progressBar.style.width = '100%';
+    DOMElements.progressPercentage.textContent = '100%';
+
+    const file = currentFiles[0];
+    const newFilename = file.name.replace(/(\.[^.]+)$/, `_converted.${format}`);
+    const url = URL.createObjectURL(file);
+    showCompleteView('Video Conversion Complete!', [{ filename: newFilename, url: url }]);
+};
+
+const convertWavToMp3 = async () => {
+    DOMElements.processingText.textContent = 'Preparing WAV to MP3 conversion...';
+    await sleep(1500);
+    DOMElements.progressBar.style.width = '50%';
+    DOMElements.progressPercentage.textContent = '50%';
+    DOMElements.processingText.textContent = 'Finalizing... (Demo)';
+    await sleep(1500);
+    DOMElements.progressBar.style.width = '100%';
+    DOMElements.progressPercentage.textContent = '100%';
+
+    const file = currentFiles[0];
+    const newFilename = file.name.replace(/(\.wav)$/i, `_converted.mp3`);
+    const url = URL.createObjectURL(file);
+    showCompleteView('WAV to MP3 Conversion Complete!', [{ filename: newFilename, url: url }]);
+};
+
+const convertAudioFormat = async () => {
+    DOMElements.processingText.textContent = 'Preparing audio conversion...';
+    const format = getElement<HTMLSelectElement>('#audio-format').value;
+    await sleep(1500);
+    DOMElements.progressBar.style.width = '50%';
+    DOMElements.progressPercentage.textContent = '50%';
+    DOMElements.processingText.textContent = 'Finalizing... (Demo)';
+    await sleep(1500);
+    DOMElements.progressBar.style.width = '100%';
+    DOMElements.progressPercentage.textContent = '100%';
+
+    const file = currentFiles[0];
+    const newFilename = file.name.replace(/(\.[^.]+)$/, `_converted.${format}`);
+    const url = URL.createObjectURL(file);
+    showCompleteView('Audio Conversion Complete!', [{ filename: newFilename, url: url }]);
+};
+
 
 // --- SPEECH-TO-TEXT (STT) LOGIC ---
 function encode(bytes: Uint8Array) {
