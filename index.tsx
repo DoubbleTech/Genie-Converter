@@ -355,7 +355,7 @@ const getRecentTools = (): string[] => {
         const parsed = JSON.parse(data);
 
         // Validate that the parsed data is a valid array of tool IDs.
-        if (Array.isArray(parsed) && parsed.every(id => typeof id === 'string' && TOOLS[id])) {
+        if (Array.isArray(parsed) && parsed.every(id => typeof id === 'string' && TOOLS[id.toLowerCase()])) {
             return parsed;
         }
         
