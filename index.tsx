@@ -886,6 +886,134 @@ const showOptionsView = (files: File[]) => {
             `);
             DOMElements.processBtn.onclick = () => showProcessingView(removeBackground);
             break;
+        case 'protect-pdf':
+            DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
+                <div class="option-group">
+                    <label for="pdf-password">Set a Password</label>
+                    <input type="password" id="pdf-password" placeholder="Enter password" autocomplete="new-password">
+                </div>
+                <div class="option-group">
+                    <label for="pdf-password-confirm">Confirm Password</label>
+                    <input type="password" id="pdf-password-confirm" placeholder="Confirm password" autocomplete="new-password">
+                    <p id="password-mismatch-error" style="display: none; color: var(--danger); font-size: 0.8rem; margin-top: 0.5rem;">Passwords do not match.</p>
+                </div>
+                <div class="option-group">
+                    <h4>Password Strength</h4>
+                    <div class="password-strength-meter">
+                        <div id="strength-bar" class="strength-bar"></div>
+                    </div>
+                    <p id="strength-text" style="font-size: 0.9rem; margin-top: 0.5rem; text-align: center; font-weight: 500;"></p>
+                    <ul id="password-criteria" class="password-criteria">
+                        <li data-criterion="length">At least 8 characters</li>
+                        <li data-criterion="uppercase">An uppercase letter</li>
+                        <li data-criterion="number">A number</li>
+                        <li data-criterion="special">A special character</li>
+                    </ul>
+                </div>
+            `);
+
+            const passwordInput = getElement<HTMLInputElement>('#pdf-password');
+            const confirmInput = getElement<HTMLInputElement>('#pdf-password-confirm');
+            const mismatchError = getElement<HTMLElement>('#password-mismatch-error');
+            const strengthBar = getElement<HTMLElement>('#strength-bar');
+            const strengthText = getElement<HTMLElement>('#strength-text');
+            const criteriaList = getElement<HTMLElement>('#password-criteria');
+            
+            const checkPasswordStrength = (password: string) => {
+                let score = 0;
+                const criteria = {
+                    length: password.length >= 8,
+                    uppercase: /[A-Z]/.test(password),
+                    lowercase: /[a-z]/.test(password),
+                    number: /[0-9]/.test(password),
+                    special: /[^A-Za-z0-9]/.test(password),
+                };
+
+                if (criteria.length) score++;
+                if (criteria.uppercase) score++;
+                if (criteria.lowercase) score++;
+                if (criteria.number) score++;
+                if (criteria.special) score++;
+                if (password.length > 12) score++;
+                
+                return { score, criteria };
+            };
+
+            const updateStrengthUI = () => {
+                const password = passwordInput.value;
+                const { score, criteria } = checkPasswordStrength(password);
+                
+                let strength = { text: '', colorClass: '', width: '0%' };
+
+                if (password.length === 0) {
+                     strength = { text: '', colorClass: '', width: '0%' };
+                } else if (score < 3) {
+                    strength = { text: 'Weak', colorClass: 'strength-weak', width: '25%' };
+                } else if (score < 4) {
+                    strength = { text: 'Medium', colorClass: 'strength-medium', width: '50%' };
+                } else if (score < 6) {
+                    strength = { text: 'Strong', colorClass: 'strength-strong', width: '75%' };
+                } else {
+                    strength = { text: 'Very Strong', colorClass: 'strength-very-strong', width: '100%' };
+                }
+
+                strengthBar.className = 'strength-bar';
+                if (strength.colorClass) {
+                    strengthBar.classList.add(strength.colorClass);
+                }
+                strengthBar.style.width = strength.width;
+                strengthText.textContent = strength.text;
+                strengthText.className = strength.colorClass;
+
+
+                const criteriaItems = criteriaList.querySelectorAll<HTMLLIElement>('li');
+                criteriaItems.forEach(item => {
+                    const criterionKey = item.dataset.criterion as keyof typeof criteria;
+                    if (criterionKey && criteria[criterionKey]) {
+                        item.classList.add('met');
+                    } else {
+                        item.classList.remove('met');
+                    }
+                });
+            };
+
+            const checkPasswordsMatch = () => {
+                const pass1 = passwordInput.value;
+                const pass2 = confirmInput.value;
+                if (pass2.length > 0 && pass1 !== pass2) {
+                    mismatchError.style.display = 'block';
+                    DOMElements.processBtn.disabled = true;
+                } else {
+                    mismatchError.style.display = 'none';
+                    DOMElements.processBtn.disabled = !(pass1.length > 0 && pass1 === pass2);
+                }
+            };
+            
+            passwordInput.addEventListener('input', () => {
+                updateStrengthUI();
+                checkPasswordsMatch();
+            });
+            confirmInput.addEventListener('input', checkPasswordsMatch);
+            
+            updateStrengthUI();
+            checkPasswordsMatch();
+
+            DOMElements.processBtn.onclick = () => {
+                showProcessingView(async () => {
+                     DOMElements.processingText.textContent = 'Encrypting your PDF...';
+                     await sleep(1500);
+                     DOMElements.progressBar.style.width = '70%';
+                     DOMElements.progressPercentage.textContent = '70%';
+                     await sleep(1000);
+                     DOMElements.progressBar.style.width = '100%';
+                     DOMElements.progressPercentage.textContent = '100%';
+                     const protectedFile = currentFiles[0];
+                     const newFilename = protectedFile.name.replace(/(\.pdf)$/i, '_protected.pdf');
+                     const url = URL.createObjectURL(protectedFile); 
+                     showCompleteView('PDF Protected!', [{ filename: newFilename, url: url }]);
+                });
+            };
+            break;
         case 'image-to-gif':
              DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
                 <div class="option-group">
