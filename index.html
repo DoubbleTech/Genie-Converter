@@ -1519,6 +1519,7 @@
                 min-height: 200px; /* Ensure textarea is usable on stacked view */
             }
         }
+
         @media (max-width: 768px) {
             .nav-links {
                 position: absolute;
@@ -1547,16 +1548,83 @@
 
             .main-title { font-size: 2rem; }
             .main-subtitle { font-size: 1rem; }
-            #modal-options-view { flex-direction: column; }
-            .options-sidebar-pane { width: 100%; max-height: 40vh; }
+            
+            .category-grid, #recent-tools-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+            
+            .tool-card {
+                padding: 1rem;
+            }
+            
+            /* Modal specific adjustments */
+            .modal { padding: 0; }
             .modal-content {
                 height: 90vh;
                 padding: 3rem 1.5rem 1.5rem;
             }
-            .modal-content-wrapper { padding: 0; }
-            .modal { padding: 0; }
+            #modal-options-view { 
+                flex-direction: column;
+                overflow-y: auto; /* Allow scrolling for the whole options view */
+            }
+            .options-sidebar-pane { 
+                width: 100%; 
+                max-height: none; /* Remove max-height to allow content to flow */
+            }
+            .options-preview-pane {
+                min-height: 200px; /* Ensure preview has some space */
+            }
             #modal-title { font-size: 1.5rem; }
             #modal-subtitle { font-size: 1rem; margin-bottom: 1.5rem; }
+            
+            .download-actions {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            .download-actions .btn-secondary {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .category-grid, #recent-tools-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .modal-content {
+                padding: 2.5rem 1rem 1rem;
+            }
+            #modal-title {
+                font-size: 1.25rem;
+            }
+            #modal-subtitle {
+                font-size: 0.9rem;
+            }
+            .btn-primary, .download-btn {
+                font-size: 1rem;
+                padding: 0.8rem 1.5rem;
+            }
+            #select-file-btn {
+                width: 100%;
+            }
+            .drop-zone {
+                padding: 2rem;
+            }
+            
+            .stt-left-pane {
+                gap: 1rem;
+            }
+            .stt-method-box {
+                padding: 1rem;
+                gap: 0.5rem;
+            }
+            .speech-to-text-container {
+                gap: 1.5rem;
+            }
+            #stt-editable-area {
+                font-size: 0.9rem;
+            }
         }
 
     </style>

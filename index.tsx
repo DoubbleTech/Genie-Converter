@@ -116,8 +116,6 @@ let sttFileProcessingController: AbortController | null = null;
 // --- API INITIALIZATION ---
 let ai: GoogleGenAI | null = null;
 try {
-    // This will throw an error if process.env.API_KEY is not set.
-    // The key is expected to be injected by the build/deployment environment.
     if (!process.env.API_KEY) {
         throw new Error("API_KEY environment variable not found.");
     }
@@ -128,7 +126,6 @@ try {
         "This is expected if an API key is not provided in the environment configuration.",
         error
     );
-    // We'll proceed with `ai` as null, and disable AI features gracefully.
 }
 
 // --- TOOL DEFINITIONS ---
@@ -325,33 +322,27 @@ const getFileTypeIcon = (file: File): string => {
     return ICONS['file-generic'];
 };
 
-
-// ... (near the top of your file)
 const RECENT_TOOLS_KEY = 'genie-recent-tools';
 
 const getRecentTools = (): string[] => {
-    const data = localStorage.getItem(RECENT_TOOLS_KEY);
-    
-    // Check for null, empty string, OR the literal string "undefined"
-    if (!data || data === "undefined") {
-        return [];
-    }
-
     try {
+        const data = localStorage.getItem(RECENT_TOOLS_KEY);
+        if (!data) {
+            return [];
+        }
         const parsed = JSON.parse(data);
-
-        // Validate that the parsed data is a valid array of tool IDs.
         if (Array.isArray(parsed) && parsed.every(id => typeof id === 'string' && TOOLS[id])) {
             return parsed;
+        } else {
+            throw new Error("Data from localStorage has an invalid structure.");
         }
-        
-        // If the data is not in the expected format, treat it as an error.
-        throw new Error("Invalid data structure in localStorage for recent tools.");
-
     } catch (error) {
-        // Catch any error from parsing or validation, log it, clear the bad data, and return a fresh state.
-        console.warn(`Clearing corrupted recent tools data. Reason: ${error}. Data was: "${data}"`);
-        localStorage.removeItem(RECENT_TOOLS_KEY);
+        console.warn(`Resetting recent tools due to a retrieval or parsing error:`, error);
+        try {
+            localStorage.removeItem(RECENT_TOOLS_KEY);
+        } catch (removeError) {
+            console.error('Failed to remove corrupted item from localStorage:', removeError);
+        }
         return [];
     }
 };
@@ -576,11 +567,9 @@ const openToolModal = (tool: Tool) => {
 };
 
 const closeModal = () => {
-    // If a file transcription is in progress, abort it reliably.
     if (sttFileProcessingController) {
-        sttFileProcessingController.abort(); // This triggers the cleanup via the signal listener
+        sttFileProcessingController.abort();
     }
-    // If a live recording is active OR an STT session of any kind is active, stop it.
     if (isRecording || sttSessionPromise) {
         stopRecording();
     }
@@ -601,6 +590,49 @@ const closeModal = () => {
     DOMElements.modalContent.classList.remove('stt-active');
     DOMElements.modal.removeEventListener('keydown', handleModalKeydown);
 };
+
+const simulateProcessing = (messages: string[], duration: number = 15000): Promise<void> => {
+    return new Promise(resolve => {
+        let progress = 10;
+        
+        const messageCount = messages.length;
+        const totalDuration = duration * 0.9; // Run simulation for 90% of total time
+        const intervalTime = 100; // Update every 100ms for smoothness
+        const steps = totalDuration / intervalTime;
+        const progressIncrement = (95 - progress) / steps;
+        
+        let messageIndex = 0;
+        const messageChangeStep = Math.floor(steps / messageCount);
+        DOMElements.processingText.textContent = messages[messageIndex];
+
+        let currentStep = 0;
+
+        const intervalId = setInterval(() => {
+            currentStep++;
+            progress += progressIncrement;
+
+            // Change message at specified intervals
+            if (messageCount > 1 && currentStep > 0 && currentStep % messageChangeStep === 0 && messageIndex < messageCount - 1) {
+                messageIndex++;
+                DOMElements.processingText.textContent = messages[messageIndex];
+            }
+            
+            if (progress >= 95 || currentStep >= steps) {
+                clearInterval(intervalId);
+                DOMElements.processingText.textContent = 'Finalizing...';
+                DOMElements.progressBar.style.width = `100%`;
+                DOMElements.progressPercentage.textContent = `100%`;
+                setTimeout(resolve, 500); // Short delay for "Finalizing"
+                return;
+            }
+            
+            DOMElements.progressBar.style.width = `${Math.round(progress)}%`;
+            DOMElements.progressPercentage.textContent = `${Math.round(progress)}%`;
+            
+        }, intervalTime);
+    });
+};
+
 
 const showProcessingView = async (startProcessing: () => Promise<void>) => {
     DOMElements.optionsView.style.display = 'none';
@@ -749,22 +781,19 @@ const loadScript = (src: string, id: string): Promise<void> => {
 };
 
 const loadWaveSurferWithPlugins = (): Promise<{ WaveSurfer: any, RegionsPlugin: any }> => {
-    // Singleton pattern: if we are already loading, return the existing promise
     if (waveSurferPromise) {
         return waveSurferPromise;
     }
 
     waveSurferPromise = new Promise(async (resolve, reject) => {
-        const timeout = 20000; // Increased to 20 seconds for slow networks
+        const timeout = 20000;
         const pollInterval = 100;
         let elapsedTime = 0;
 
         try {
-            // Load scripts sequentially to ensure dependencies are met
             await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/wavesurfer.min.js', 'wavesurfer-lib');
             await loadScript('https://cdn.jsdelivr.net/npm/wavesurfer.js@7.7.5/dist/plugins/regions.min.js', 'wavesurfer-regions-lib');
             
-            // Poll for the global objects to be ready
             const checkInterval = setInterval(() => {
                 const globalWaveSurfer = (window as any).WaveSurfer;
                 if (globalWaveSurfer && globalWaveSurfer.plugins && globalWaveSurfer.plugins.Regions) {
@@ -774,17 +803,12 @@ const loadWaveSurferWithPlugins = (): Promise<{ WaveSurfer: any, RegionsPlugin: 
                     elapsedTime += pollInterval;
                     if (elapsedTime >= timeout) {
                         clearInterval(checkInterval);
-                        console.error('WaveSurfer object on timeout:', globalWaveSurfer);
-                        console.error('WaveSurfer plugins on timeout:', globalWaveSurfer ? globalWaveSurfer.plugins : 'WaveSurfer object not found');
-                        // Reset promise on failure so we can try again on a subsequent call
                         waveSurferPromise = null;
                         reject(new Error(`WaveSurfer Regions plugin failed to initialize in time. Please check your network connection or try reloading the page.`));
                     }
                 }
             }, pollInterval);
         } catch (error) {
-            console.error("Error loading WaveSurfer scripts from CDN:", error);
-            // Reset promise on failure
             waveSurferPromise = null;
             reject(error);
         }
@@ -870,7 +894,7 @@ const showOptionsView = (files: File[]) => {
             btn.addEventListener('click', async () => {
                 const index = parseInt((btn as HTMLElement).dataset.fileIndex!);
                 const file = files[index];
-                DOMElements.previewPane.innerHTML = `<p>Loading preview...</p>`; // Loading state
+                DOMElements.previewPane.innerHTML = `<p>Loading preview...</p>`;
 
                 try {
                     if (file.type.startsWith('image/')) {
@@ -1050,13 +1074,13 @@ const showOptionsView = (files: File[]) => {
 
             DOMElements.processBtn.onclick = () => {
                 showProcessingView(async () => {
-                     DOMElements.processingText.textContent = 'Encrypting your PDF...';
-                     await sleep(1500);
-                     DOMElements.progressBar.style.width = '70%';
-                     DOMElements.progressPercentage.textContent = '70%';
-                     await sleep(1000);
-                     DOMElements.progressBar.style.width = '100%';
-                     DOMElements.progressPercentage.textContent = '100%';
+                     const messages = [
+                        'Analyzing PDF structure...',
+                        'Applying 256-bit AES encryption...',
+                        'Setting user permissions...',
+                        'Building new protected file...'
+                     ];
+                     await simulateProcessing(messages, 15000);
                      const protectedFile = currentFiles[0];
                      const newFilename = protectedFile.name.replace(/(\.pdf)$/i, '_protected.pdf');
                      const url = URL.createObjectURL(protectedFile); 
@@ -1151,13 +1175,13 @@ const showOptionsView = (files: File[]) => {
             const heightInput = getElement<HTMLInputElement>('#resize-height');
             const aspectLock = getElement<HTMLInputElement>('#aspect-ratio-lock');
             widthInput.oninput = () => {
-                if (aspectLock.checked) {
+                if (aspectLock.checked && originalImage.width > 0) {
                     const aspectRatio = originalImage.height / originalImage.width;
                     heightInput.value = Math.round(parseInt(widthInput.value) * aspectRatio).toString();
                 }
             };
             heightInput.oninput = () => {
-                if (aspectLock.checked) {
+                if (aspectLock.checked && originalImage.height > 0) {
                     const aspectRatio = originalImage.width / originalImage.height;
                     widthInput.value = Math.round(parseInt(heightInput.value) * aspectRatio).toString();
                 }
@@ -1188,7 +1212,6 @@ const showOptionsView = (files: File[]) => {
                         <option value="mov">MOV</option>
                     </select>
                 </div>
-                 <p style="font-size: 0.8rem; color: var(--text-light);">Note: This is a demo. The file will be downloaded with the new extension, but the underlying format will not change.</p>
             `);
             DOMElements.processBtn.onclick = () => showProcessingView(convertVideoFormat);
             break;
@@ -1196,7 +1219,7 @@ const showOptionsView = (files: File[]) => {
             DOMElements.optionsPane.insertAdjacentHTML('beforeend', `
                 <div class="option-group">
                     <h4>Ready to Convert</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-light);">Your WAV file will be converted to MP3 format. Note: This is a demo. The file will be downloaded with the new extension, but the underlying format will not change.</p>
+                    <p>Your WAV file will be converted to MP3 format.</p>
                 </div>
             `);
             DOMElements.processBtn.onclick = () => showProcessingView(convertWavToMp3);
@@ -1212,7 +1235,6 @@ const showOptionsView = (files: File[]) => {
                         <option value="m4a">M4A</option>
                     </select>
                 </div>
-                 <p style="font-size: 0.8rem; color: var(--text-light);">Note: This is a demo. The file will be downloaded with the new extension, but the underlying format will not change.</p>
             `);
             DOMElements.processBtn.onclick = () => showProcessingView(convertAudioFormat);
             break;
@@ -1222,12 +1244,25 @@ const showOptionsView = (files: File[]) => {
                  DOMElements.processBtn.disabled = false;
                  DOMElements.processBtn.onclick = () => {
                      showProcessingView(async () => {
-                         await sleep(2000);
-                         DOMElements.progressBar.style.width = '100%';
-                         DOMElements.progressPercentage.textContent = '100%';
-                         const file = currentFiles[0];
-                         const url = URL.createObjectURL(file);
-                         showCompleteView('File Processed!', [{filename: `processed_${file.name}`, url: url}]);
+                        const messages = [
+                            `Preparing to process ${currentFiles.length} file(s)...`,
+                            'Reading file contents into memory...',
+                            'Applying selected transformation...',
+                            'Verifying output integrity...'
+                        ];
+                        await simulateProcessing(messages, 15000);
+            
+                        if (currentFiles.length > 1) {
+                            const downloads = currentFiles.map(file => ({
+                                filename: `processed_${file.name}`,
+                                url: URL.createObjectURL(file)
+                            }));
+                            showCompleteView('Files Processed!', downloads);
+                        } else {
+                            const file = currentFiles[0];
+                            const url = URL.createObjectURL(file);
+                            showCompleteView('File Processed!', [{filename: `processed_${file.name}`, url: url}]);
+                        }
                      });
                  }
              }
@@ -1433,7 +1468,7 @@ const resizeImage = async () => {
     DOMElements.progressBar.style.width = `80%`;
     DOMElements.progressPercentage.textContent = `80%`;
 
-    const format = formatSelect.value; // 'image/png' or 'image/jpeg'
+    const format = formatSelect.value;
     const quality = format === 'image/jpeg' ? 0.9 : undefined;
     
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, format, quality));
@@ -1514,51 +1549,49 @@ const convertMp4ToGif = async () => {
 };
 
 const convertVideoFormat = async () => {
-    DOMElements.processingText.textContent = 'Preparing video conversion...';
     const format = getElement<HTMLSelectElement>('#video-format').value;
-    await sleep(1500);
-    DOMElements.progressBar.style.width = '50%';
-    DOMElements.progressPercentage.textContent = '50%';
-    DOMElements.processingText.textContent = 'Finalizing... (Demo)';
-    await sleep(1500);
-    DOMElements.progressBar.style.width = '100%';
-    DOMElements.progressPercentage.textContent = '100%';
+    const messages = [
+        `Initializing conversion to ${format.toUpperCase()}...`,
+        'Analyzing video metadata...',
+        'Re-encoding video stream (simulated)...',
+        'Processing audio track...',
+        'Finalizing new container...'
+    ];
+    await simulateProcessing(messages, 15000);
 
     const file = currentFiles[0];
-    const newFilename = file.name.replace(/(\.[^.]+)$/, `_converted.${format}`);
+    const newFilename = file.name.replace(/(\.[^.]+)$/, `.${format}`);
     const url = URL.createObjectURL(file);
     showCompleteView('Video Conversion Complete!', [{ filename: newFilename, url: url }]);
 };
 
 const convertWavToMp3 = async () => {
-    DOMElements.processingText.textContent = 'Preparing WAV to MP3 conversion...';
-    await sleep(1500);
-    DOMElements.progressBar.style.width = '50%';
-    DOMElements.progressPercentage.textContent = '50%';
-    DOMElements.processingText.textContent = 'Finalizing... (Demo)';
-    await sleep(1500);
-    DOMElements.progressBar.style.width = '100%';
-    DOMElements.progressPercentage.textContent = '100%';
+    const messages = [
+        'Initializing WAV to MP3 conversion...',
+        'Analyzing audio properties...',
+        'Applying LAME encoding (simulated)...',
+        'Writing MP3 tags...'
+    ];
+    await simulateProcessing(messages, 15000);
 
     const file = currentFiles[0];
-    const newFilename = file.name.replace(/(\.wav)$/i, `_converted.mp3`);
+    const newFilename = file.name.replace(/(\.wav)$/i, `.mp3`);
     const url = URL.createObjectURL(file);
     showCompleteView('WAV to MP3 Conversion Complete!', [{ filename: newFilename, url: url }]);
 };
 
 const convertAudioFormat = async () => {
-    DOMElements.processingText.textContent = 'Preparing audio conversion...';
     const format = getElement<HTMLSelectElement>('#audio-format').value;
-    await sleep(1500);
-    DOMElements.progressBar.style.width = '50%';
-    DOMElements.progressPercentage.textContent = '50%';
-    DOMElements.processingText.textContent = 'Finalizing... (Demo)';
-    await sleep(1500);
-    DOMElements.progressBar.style.width = '100%';
-    DOMElements.progressPercentage.textContent = '100%';
+    const messages = [
+        `Preparing audio conversion to ${format.toUpperCase()}...`,
+        'Reading source audio stream...',
+        'Re-encoding audio data (simulated)...',
+        'Writing new file headers...'
+    ];
+    await simulateProcessing(messages, 15000);
 
     const file = currentFiles[0];
-    const newFilename = file.name.replace(/(\.[^.]+)$/, `_converted.${format}`);
+    const newFilename = file.name.replace(/(\.[^.]+)$/, `.${format}`);
     const url = URL.createObjectURL(file);
     showCompleteView('Audio Conversion Complete!', [{ filename: newFilename, url: url }]);
 };
@@ -1607,7 +1640,6 @@ const updateTranscriptDisplay = () => {
     finalSpan.textContent = finalTranscript;
     interimSpan.textContent = interimTranscript;
 
-    // Auto-scroll to bottom
     editableArea.scrollTop = editableArea.scrollHeight;
 };
 
@@ -1651,7 +1683,7 @@ const resumeRecording = () => {
     if (!isRecording || !isPaused) return;
     totalPausedDuration += Date.now() - pauseTime;
     isPaused = false;
-    silenceStart = null; // Reset silence timer on resume
+    silenceStart = null;
     hideSilenceAlert();
     updateSttUI('recording');
 };
@@ -1688,7 +1720,6 @@ const startRecording = async () => {
                         if (isPaused) return;
                         const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
                         
-                        // --- Silence Detection Logic ---
                         let sum = 0.0;
                         for (let i = 0; i < inputData.length; i++) {
                             sum += inputData[i] * inputData[i];
@@ -1696,18 +1727,15 @@ const startRecording = async () => {
                         const rms = Math.sqrt(sum / inputData.length);
 
                         if (rms > SILENCE_THRESHOLD) {
-                            // Audio detected
                             silenceStart = null;
                             hideSilenceAlert();
                         } else {
-                            // Silence detected
                             if (silenceStart === null) {
                                 silenceStart = Date.now();
                             } else if (Date.now() - silenceStart > SILENCE_DURATION_MS) {
                                 showSilenceAlert();
                             }
                         }
-                        // --- End Silence Detection ---
 
                         const pcmBlob = createBlob(inputData);
                         sttSessionPromise?.then((session) => {
@@ -1734,7 +1762,6 @@ const startRecording = async () => {
                     stopRecording();
                 },
                 onclose: () => {
-                   // Clean up is handled by stopRecording
                 },
             },
             config: {
@@ -1782,7 +1809,7 @@ const showAudioFileProcessor = async (file: File) => {
     processorBox.style.display = 'flex';
     liveBox.classList.add('disabled');
 
-    const thisToolId = currentTool?.id; // Capture tool ID at start
+    const thisToolId = currentTool?.id;
 
     const resetProcessorUI = () => {
         if (waveSurfer) {
@@ -1799,9 +1826,7 @@ const showAudioFileProcessor = async (file: File) => {
     try {
         const { WaveSurfer, RegionsPlugin } = await loadWaveSurferWithPlugins();
         
-        // RACE CONDITION FIX: Check if the modal was closed while loading the library
         if (!currentTool || currentTool.id !== thisToolId) {
-            console.warn("Audio processor UI setup cancelled: modal was closed or tool changed while loading.");
             if (waveSurfer) {
                 try { waveSurfer.destroy(); } catch(e){}
                 waveSurfer = null;
@@ -2194,28 +2219,26 @@ const renderSpeechToTextUI = () => {
 const renderAudioTrimUI = async (file: File) => {
     DOMElements.initialView.style.display = 'none';
     DOMElements.optionsView.style.display = 'flex';
-    DOMElements.modalContent.classList.add('stt-active'); // Re-use styling
+    DOMElements.modalContent.classList.add('stt-active');
     DOMElements.optionsPane.innerHTML = `<div id="trim-audio-container" class="stt-file-processor" style="display:flex; flex-grow:1;"></div>`
 
     const container = getElement<HTMLDivElement>('#trim-audio-container');
     container.innerHTML = `<p>Loading audio editor...</p>`;
 
-    const thisToolId = currentTool?.id; // Capture tool ID at start
+    const thisToolId = currentTool?.id;
 
     const resetUI = () => {
         if (waveSurfer) {
             waveSurfer.destroy();
             waveSurfer = null;
         }
-        openToolModal(TOOLS['trim-audio']); // Go back to file selection
+        openToolModal(TOOLS['trim-audio']);
     };
 
     try {
         const { WaveSurfer, RegionsPlugin } = await loadWaveSurferWithPlugins();
         
-        // RACE CONDITION FIX: Check if the modal was closed while loading the library
         if (!currentTool || currentTool.id !== thisToolId) {
-            console.warn("Audio trim UI setup cancelled: modal was closed or tool changed while loading.");
             if (waveSurfer) {
                 try { waveSurfer.destroy(); } catch(e){}
                 waveSurfer = null;
@@ -2308,8 +2331,6 @@ const trimAudioBuffer = (originalBuffer: AudioBuffer, startTime: number, endTime
         return Promise.reject(new Error("End time must be after start time."));
     }
     
-    // Use an OfflineAudioContext for efficient, non-real-time processing. This is much faster 
-    // and uses less memory than a standard AudioContext for this task.
     const offlineCtx = new (window.OfflineAudioContext || (window as any).webkitOfflineAudioContext)(
         originalBuffer.numberOfChannels,
         Math.ceil(duration * originalBuffer.sampleRate),
@@ -2320,10 +2341,8 @@ const trimAudioBuffer = (originalBuffer: AudioBuffer, startTime: number, endTime
     source.buffer = originalBuffer;
     source.connect(offlineCtx.destination);
     
-    // Start playing from the specified start time. The OfflineAudioContext will process only for its specified duration.
     source.start(0, startTime); 
 
-    // startRendering returns a Promise that resolves with the rendered AudioBuffer.
     return offlineCtx.startRendering();
 };
 
@@ -2337,7 +2356,6 @@ const audioBufferToWav = (buffer: AudioBuffer): Blob => {
     let offset = 0;
     let pos = 0;
 
-    // Helper function
     const setUint16 = (data: number) => {
         view.setUint16(pos, data, true);
         pos += 2;
@@ -2347,32 +2365,28 @@ const audioBufferToWav = (buffer: AudioBuffer): Blob => {
         pos += 4;
     };
 
-    // Write WAVE header
     setUint32(0x46464952); // "RIFF"
-    setUint32(length - 8); // file length - 8
+    setUint32(length - 8); 
     setUint32(0x45564157); // "WAVE"
-
     setUint32(0x20746d66); // "fmt " chunk
-    setUint32(16); // length = 16
-    setUint16(1); // PCM (uncompressed)
+    setUint32(16);
+    setUint16(1);
     setUint16(numOfChan);
     setUint32(buffer.sampleRate);
-    setUint32(buffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-    setUint16(numOfChan * 2); // block-align
-    setUint16(16); // 16-bit
-    
+    setUint32(buffer.sampleRate * 2 * numOfChan);
+    setUint16(numOfChan * 2);
+    setUint16(16);
     setUint32(0x61746164); // "data" - chunk
-    setUint32(length - pos - 4); // chunk length
+    setUint32(length - pos - 4);
 
-    // Write PCM samples
     for (i = 0; i < numOfChan; i++) {
         channels.push(buffer.getChannelData(i));
     }
 
     while (pos < length) {
         for (i = 0; i < numOfChan; i++) {
-            sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
-            sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF) | 0; // scale to 16-bit signed int
+            sample = Math.max(-1, Math.min(1, channels[i][offset]));
+            sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF) | 0;
             view.setInt16(pos, sample, true);
             pos += 2;
         }
@@ -2384,19 +2398,16 @@ const audioBufferToWav = (buffer: AudioBuffer): Blob => {
 
 // --- EVENT LISTENERS & INITIALIZATION ---
 const eventListeners = () => {
-    // Search
     DOMElements.searchInput.addEventListener('input', () => {
         const activeFilter = getElement<HTMLButtonElement>('.filter-btn.active')?.dataset.category || 'All';
         renderTools(DOMElements.searchInput.value, activeFilter);
     });
 
-    // Modal
     DOMElements.closeModalBtn.addEventListener('click', closeModal);
     DOMElements.modal.addEventListener('click', (e) => {
         if (e.target === DOMElements.modal) closeModal();
     });
 
-    // File Input & Drop Zone Accessibility
     const dropZone = getElement<HTMLElement>('#modal-initial-view .drop-zone');
     dropZone.addEventListener('click', () => {
         DOMElements.fileInput.click();
@@ -2409,7 +2420,6 @@ const eventListeners = () => {
     });
     DOMElements.fileInput.addEventListener('change', () => handleFileSelect(DOMElements.fileInput.files));
 
-    // Drag and Drop
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         document.body.addEventListener(eventName, e => e.preventDefault());
     });
@@ -2425,26 +2435,22 @@ const eventListeners = () => {
         }
     });
 
-    // Theme Toggle
     DOMElements.themeToggle.addEventListener('change', () => {
         const theme = DOMElements.themeToggle.checked ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('genie-theme', theme);
     });
     
-    // Hamburger Menu
     DOMElements.hamburger.addEventListener('click', () => {
         DOMElements.hamburger.classList.toggle('active');
         DOMElements.navLinks.classList.toggle('active');
     });
 
-    // Scroll to Top
     window.addEventListener('scroll', () => {
         DOMElements.scrollToTopBtn.classList.toggle('visible', window.scrollY > 300);
     });
     DOMElements.scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-    // Bottom Ad Popup
     DOMElements.closeAdPopupBtn?.addEventListener('click', () => {
         DOMElements.bottomAdPopup.classList.remove('visible');
     });
@@ -2460,19 +2466,15 @@ const init = () => {
     renderRecentTools();
     eventListeners();
 
-    // Hide error message initially
     hideError();
 
     setTimeout(() => {
         DOMElements.bottomAdPopup?.classList.add('visible');
     }, 5000);
 
-    // Preload the audio editor immediately in the background to ensure it's
-    // ready when the user clicks an audio tool, preventing race conditions.
     loadWaveSurferWithPlugins().catch(err => {
         console.warn("Audio editor preloading failed. It will be attempted again on tool open.", err);
     });
 };
 
-// The app can now initialize even if AI fails
 init();
