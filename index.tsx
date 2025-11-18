@@ -93,6 +93,7 @@ interface Category {
 // --- GLOBAL STATE ---
 let currentTool: Tool | null = null;
 let currentFiles: File[] = [];
+let signatureKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
 // STT State
 let sttSessionPromise: Promise<any> | null = null;
@@ -258,6 +259,39 @@ const DOMElements = {
     closeAdPopupBtn: getElement<HTMLButtonElement>('#close-ad-popup'),
 };
 
+// --- LAZY LOAD LIBRARIES ---
+const loadPdfLib = async () => {
+    const { PDFDocument, rgb, degrees } = await import('https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.esm.js');
+    return { PDFDocument, rgb, degrees };
+};
+
+const loadPdfJs = async () => {
+    // @ts-ignore
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    if (!pdfjsLib) {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+        document.head.appendChild(script);
+        await new Promise(resolve => { script.onload = resolve; });
+        // @ts-ignore
+        window['pdfjs-dist/build/pdf'].GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
+    }
+    // @ts-ignore
+    return window['pdfjs-dist/build/pdf'];
+};
+
+const loadJszip = async () => {
+    // @ts-ignore
+    if (!window.JSZip) {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+        document.head.appendChild(script);
+        await new Promise(resolve => { script.onload = resolve; });
+    }
+    // @ts-ignore
+    return window.JSZip;
+};
+
 // --- UTILITY FUNCTIONS ---
 const showError = (message: string, isSttError: boolean = false) => {
     if (isSttError) {
@@ -298,6 +332,14 @@ const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reje
     reader.onload = () => resolve((reader.result as string).split(',')[1]);
     reader.onerror = error => reject(error);
 });
+
+const fileToArrayBuffer = (file: File): Promise<ArrayBuffer> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(file);
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = error => reject(error);
+});
+
 
 const base64ToBlob = (base64: string, contentType: string = 'image/png'): Blob => {
     const byteCharacters = atob(base64);
@@ -551,6 +593,1038 @@ const openToolModal = (tool: Tool) => {
         DOMElements.processBtnContainer.style.display = 'block';
         DOMElements.initialView.style.display = 'flex';
         DOMElements.fileInput.accept = tool.accept;
-        const isMultiple = ['merge-pdf', 'organize-pdf', 'image-to-pdf', 'image-to-gif'].includes(tool.id);
+        const isMultiple = ['merge-pdf', 'organize-pdf', 'sign-pdf', 'image-to-pdf', 'image-to-gif'].includes(tool.id);
         DOMElements.fileInput.multiple = isMultiple;
-        (getElement('.drop-text')).textContent = isMultiple
+        (getElement('.drop-text')).textContent = isMultiple ? 'or drop files here' : 'or drop file here';
+        (getElement<HTMLButtonElement>('#select-file-btn')).textContent = isMultiple ? 'Select Files' : 'Select File';
+
+    } else if (tool.id.startsWith('speech-to-text')) {
+        renderSpeechToTextUI();
+    } else if (tool.id === 'trim-audio') {
+        renderAudioTrimUI();
+    }
+
+    DOMElements.modal.classList.add('visible');
+    document.body.classList.add('modal-open');
+    document.addEventListener('keydown', handleModalKeydown);
+    (getElement('#tool-modal .modal-content button, #tool-modal .modal-content a, #tool-modal .modal-content input') as HTMLElement)?.focus();
+};
+
+const closeModal = () => {
+    DOMElements.modal.classList.remove('visible');
+    document.body.classList.remove('modal-open');
+    document.removeEventListener('keydown', handleModalKeydown);
+    DOMElements.fileInput.value = '';
+
+    // Clean up tool-specific handlers
+    if (signatureKeydownHandler) {
+        document.removeEventListener('keydown', signatureKeydownHandler);
+        signatureKeydownHandler = null;
+    }
+
+    currentTool = null;
+    currentFiles = [];
+    DOMElements.optionsView.className = '';
+    DOMElements.modalContent.className = 'modal-content';
+
+    // Reset STT specific state if it was active
+    if (isRecording || isPaused || sttSessionPromise) {
+        // ... (add STT cleanup logic here)
+    }
+};
+
+// --- FILE HANDLING ---
+const handleFilesSelected = async (files: FileList | File[]) => {
+    const filesArray = Array.from(files);
+    if (filesArray.length === 0) return;
+
+    if (currentTool?.id === 'sign-pdf') {
+        await showSignatureUI(filesArray);
+    } else if (currentTool?.id === 'organize-pdf') {
+        await showOrganizeUI(filesArray);
+    } else {
+        showFileProcessorUI(filesArray);
+    }
+};
+
+
+// --- UI Component Renderers ---
+const showSignatureUI = async (files: File[]) => {
+    currentFiles = files;
+    DOMElements.initialView.style.display = 'none';
+    DOMElements.optionsView.className = 'sign-mode';
+    DOMElements.optionsView.style.display = 'flex';
+    DOMElements.previewPane.innerHTML = '<p class="placeholder-text">Loading document preview...</p>';
+    DOMElements.optionsSidebarPane.innerHTML = '';
+    DOMElements.optionsSidebarPane.style.display = 'flex';
+    DOMElements.processBtnContainer.style.display = 'none';
+
+    // --- STATE ---
+    let savedSignatures: { src: string }[] = [];
+    let placedSignature: { id: string, imgSrc: string, x: number, y: number, width: number, height: number, opacity: number, pageIndex: number, pageContainer: HTMLElement } | null = null;
+    let activeSignatureSrc: string | null = null;
+    let isDrawing = false;
+    let canvasCtx: CanvasRenderingContext2D | null = null;
+    let lastX = 0, lastY = 0, lastTime = 0;
+    const MIN_LINE_WIDTH = 0.5, MAX_LINE_WIDTH = 3;
+    let signatureColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#FFFFFF' : '#000000';
+
+    // --- HELPER FUNCTIONS ---
+    const textToImage = (text: string, font: string, color: string, targetFontSize: number): string => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        const maxWidth = 280;
+        let fontSize = targetFontSize;
+
+        ctx.font = `${fontSize}px "${font}"`;
+        const textMetrics = ctx.measureText(text);
+        
+        // Adjust font size if text is too wide
+        if (textMetrics.width > maxWidth - 20) {
+            fontSize = Math.floor(fontSize * ((maxWidth - 20) / textMetrics.width));
+        }
+        
+        // Final measurement
+        ctx.font = `${fontSize}px "${font}"`;
+        const finalMetrics = ctx.measureText(text);
+        canvas.width = finalMetrics.width + 20;
+        canvas.height = fontSize * 1.5;
+        
+        ctx.font = `${fontSize}px "${font}"`;
+        ctx.fillStyle = color;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+        
+        return canvas.toDataURL('image/png');
+    };
+
+    const updateInstructionText = (text: string) => {
+        getElement('#signature-instructions').textContent = text;
+    };
+
+    const renderSignaturePalette = () => {
+        const container = getElement('#saved-signatures-container');
+        if (savedSignatures.length === 0) {
+            container.innerHTML = `<p class="placeholder-text">Your saved signatures will appear here.</p>`;
+            return;
+        }
+        container.innerHTML = '';
+        savedSignatures.forEach(sig => {
+            const div = document.createElement('div');
+            div.className = 'saved-signature';
+            div.innerHTML = `<img src="${sig.src}" alt="Saved signature">`;
+            div.onclick = () => {
+                document.querySelectorAll('.saved-signature').forEach(el => el.classList.remove('active'));
+                div.classList.add('active');
+                activeSignatureSrc = sig.src;
+                DOMElements.previewPane.classList.add('placement-mode');
+                updateInstructionText('Click on the document to place your signature.');
+            };
+            container.appendChild(div);
+        });
+    };
+    
+    const removePlacedSignature = () => {
+        if (placedSignature) {
+            const sigToRemove = document.getElementById(placedSignature.id);
+            sigToRemove?.remove();
+            placedSignature = null;
+            getElement('#selected-signature-editor').style.display = 'none';
+        }
+    };
+
+    if (signatureKeydownHandler) {
+        document.removeEventListener('keydown', signatureKeydownHandler);
+    }
+    signatureKeydownHandler = (e: KeyboardEvent) => {
+        if ((e.key === 'Delete' || e.key === 'Backspace')) {
+            const selectedSignature = document.querySelector('.placed-signature.selected');
+            if (selectedSignature) {
+                e.preventDefault();
+                removePlacedSignature();
+                updateInstructionText('Signature removed. Select one from the palette to place it again.');
+            }
+        }
+    };
+    document.addEventListener('keydown', signatureKeydownHandler);
+
+
+    // --- UI SETUP ---
+    const sidebarHTML = `
+        <div id="signature-creator" style="flex-grow: 1; display: flex; flex-direction: column;">
+            <h4>Create Signature</h4>
+            <div class="signature-tabs">
+                <button class="signature-tab-btn active" data-tab="draw">Draw</button>
+                <button class="signature-tab-btn" data-tab="type">Type</button>
+                <button class="signature-tab-btn" data-tab="upload">Upload</button>
+            </div>
+            <div id="signature-tab-content-draw" class="signature-tab-content active">
+                <div class="option-group">
+                    <label for="signature-color-draw">Color</label>
+                    <input type="color" id="signature-color-draw" value="${signatureColor}">
+                </div>
+                <canvas id="signature-canvas" width="280" height="150" style="background-color: var(--input-bg);"></canvas>
+                <div class="signature-actions">
+                    <button id="clear-signature-btn" class="btn-secondary">Clear</button>
+                    <button id="save-signature-btn" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Save Signature</button>
+                </div>
+            </div>
+            <div id="signature-tab-content-type" class="signature-tab-content">
+                <input type="text" id="typed-signature-input" class="option-group" placeholder="Type your name">
+                <div class="option-group">
+                    <label for="signature-color-type">Color</label>
+                    <input type="color" id="signature-color-type" value="${signatureColor}">
+                </div>
+                <div class="option-group">
+                    <label for="signature-font-size">Font Size</label>
+                    <div class="slider-container">
+                        <input type="range" id="signature-font-size" min="24" max="72" value="48">
+                        <span id="signature-font-size-value">48px</span>
+                    </div>
+                </div>
+                <div class="typed-signature-preview-container">
+                    <div class="typed-signature-preview font-dancing" data-font="Dancing Script">Your Name</div>
+                    <div class="typed-signature-preview font-caveat" data-font="Caveat">Your Name</div>
+                    <div class="typed-signature-preview font-pacifico" data-font="Pacifico">Your Name</div>
+                </div>
+            </div>
+            <div id="signature-tab-content-upload" class="signature-tab-content">
+                 <button id="upload-signature-btn" class="btn-secondary">Upload Image</button>
+                 <input type="file" id="signature-upload-input" hidden accept="image/png, image/jpeg">
+            </div>
+            <div id="signature-palette">
+                <h4 style="margin-top: 1rem;">Your Signatures</h4>
+                <div id="saved-signatures-container" style="max-height: 150px; overflow-y: auto; padding: 0.5rem; background: var(--modal-preview-bg); border-radius: 0.25rem;">
+                    <p class="placeholder-text">Your saved signatures will appear here.</p>
+                </div>
+            </div>
+            <div id="signature-instructions" class="placeholder-text" style="margin-top: 1rem;">Create or select a signature to begin.</div>
+            <div id="selected-signature-editor" class="option-group" style="display: none; margin-top: 1rem; border-top: 1px solid var(--input-border); padding-top: 1rem;">
+                <h4>Edit Placed Signature</h4>
+                <label for="signature-opacity">Opacity</label>
+                <div class="slider-container">
+                    <input type="range" id="signature-opacity" min="0.1" max="1" step="0.1" value="1">
+                    <span id="signature-opacity-value">100%</span>
+                </div>
+            </div>
+        </div>
+        <div class="process-btn-container">
+            <button id="process-btn" class="btn-primary">Apply & Download</button>
+        </div>
+    `;
+    DOMElements.optionsSidebarPane.innerHTML = sidebarHTML;
+
+    const processBtn = getElement('#process-btn');
+    processBtn.onclick = () => {
+        if (!placedSignature) {
+            showError("Please place a signature on the document before processing.");
+            return;
+        }
+        
+        const finalSignatures = [placedSignature].map(sig => {
+            const pageContainerRect = sig.pageContainer.getBoundingClientRect();
+            const pdfPageData = sig.pageContainer.dataset.pdfPage;
+            if (!pdfPageData) return null;
+            const { width: pdfWidth, height: pdfHeight } = JSON.parse(pdfPageData);
+
+            const scaleX = pdfWidth / pageContainerRect.width;
+            const scaleY = pdfHeight / pageContainerRect.height;
+            
+            const pdfX = sig.x * scaleX;
+            const pdfY = pdfHeight - (sig.y * scaleY) - (sig.height * scaleY); // Y is from bottom in PDF
+            const pdfWidthSig = sig.width * scaleX;
+            const pdfHeightSig = sig.height * scaleY;
+            
+            return {
+                imgSrc: sig.imgSrc,
+                pageIndex: sig.pageIndex,
+                x: pdfX,
+                y: pdfY,
+                width: pdfWidthSig,
+                height: pdfHeightSig,
+                opacity: sig.opacity
+            };
+        }).filter(Boolean);
+        
+        DOMElements.optionsView.dataset.placedSignatures = JSON.stringify(finalSignatures);
+        startProcessing();
+    };
+
+    // --- TAB LOGIC ---
+    document.querySelectorAll<HTMLElement>('.signature-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.signature-tab-btn, .signature-tab-content').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            const contentEl = getElement(`#signature-tab-content-${btn.dataset.tab}`);
+            if (contentEl) contentEl.classList.add('active');
+        });
+    });
+
+    // --- DRAW LOGIC ---
+    const canvas = getElement<HTMLCanvasElement>('#signature-canvas');
+    canvasCtx = canvas.getContext('2d')!;
+    canvasCtx.lineCap = 'round';
+    canvasCtx.lineJoin = 'round';
+
+    const colorDrawInput = getElement<HTMLInputElement>('#signature-color-draw');
+    colorDrawInput.oninput = () => signatureColor = colorDrawInput.value;
+
+    const draw = (e: MouseEvent | TouchEvent) => {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const x = ('touches' in e ? e.touches[0].clientX : e.clientX) - rect.left;
+        const y = ('touches' in e ? e.touches[0].clientY : e.clientY) - rect.top;
+
+        const currentTime = performance.now();
+        const timeDelta = currentTime - lastTime;
+        const distance = Math.hypot(x - lastX, y - lastY);
+        const speed = timeDelta > 0 ? distance / timeDelta : 0;
+        
+        const newWidth = Math.max(MAX_LINE_WIDTH - speed * 1.5, MIN_LINE_WIDTH);
+        canvasCtx.lineWidth = canvasCtx.lineWidth * 0.7 + newWidth * 0.3;
+
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(lastX, lastY);
+        canvasCtx.lineTo(x, y);
+        canvasCtx.strokeStyle = signatureColor;
+        canvasCtx.stroke();
+        
+        [lastX, lastY, lastTime] = [x, y, currentTime];
+    };
+
+    const startDrawing = (e: MouseEvent | TouchEvent) => {
+        isDrawing = true;
+        const rect = canvas.getBoundingClientRect();
+        [lastX, lastY] = [
+            ('touches' in e ? e.touches[0].clientX : e.clientX) - rect.left,
+            ('touches' in e ? e.touches[0].clientY : e.clientY) - rect.top
+        ];
+        lastTime = performance.now();
+        canvasCtx.lineWidth = MAX_LINE_WIDTH;
+    };
+    
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseleave', () => isDrawing = false);
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', () => isDrawing = false);
+
+    getElement('#clear-signature-btn').onclick = () => canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+    getElement('#save-signature-btn').onclick = () => {
+        savedSignatures.push({ src: canvas.toDataURL() });
+        renderSignaturePalette();
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        updateInstructionText('Signature saved! Select it from the palette to place it.');
+    };
+
+    // --- TYPE LOGIC ---
+    const typedInput = getElement<HTMLInputElement>('#typed-signature-input');
+    const colorTypeInput = getElement<HTMLInputElement>('#signature-color-type');
+    const fontSizeSlider = getElement<HTMLInputElement>('#signature-font-size');
+    const fontSizeValue = getElement<HTMLSpanElement>('#signature-font-size-value');
+    const previews = document.querySelectorAll<HTMLElement>('.typed-signature-preview');
+
+    const updateTypedPreviews = () => {
+        const text = typedInput.value || 'Your Name';
+        const color = colorTypeInput.value;
+        const size = parseInt(fontSizeSlider.value);
+        fontSizeValue.textContent = `${size}px`;
+        previews.forEach(p => {
+            p.textContent = text;
+            p.style.color = color;
+            p.style.fontSize = `${size * 0.6}px`; // Scale down for preview
+        });
+    };
+    
+    typedInput.addEventListener('input', updateTypedPreviews);
+    colorTypeInput.addEventListener('input', updateTypedPreviews);
+    fontSizeSlider.addEventListener('input', updateTypedPreviews);
+    
+    previews.forEach(p => {
+        p.addEventListener('click', () => {
+            const text = typedInput.value || 'Your Name';
+            const font = p.dataset.font!;
+            const color = colorTypeInput.value;
+            const size = parseInt(fontSizeSlider.value);
+            const imgSrc = textToImage(text, font, color, size);
+            savedSignatures.push({ src: imgSrc });
+            renderSignaturePalette();
+            updateInstructionText('Signature saved! Select it from the palette to place it.');
+        });
+    });
+    updateTypedPreviews();
+
+    // --- UPLOAD LOGIC ---
+    const uploadInput = getElement<HTMLInputElement>('#signature-upload-input');
+    getElement('#upload-signature-btn').onclick = () => uploadInput.click();
+    uploadInput.addEventListener('change', () => {
+        if (uploadInput.files && uploadInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                savedSignatures.push({ src: e.target.result as string });
+                renderSignaturePalette();
+                updateInstructionText('Signature uploaded! Select it from the palette to place it.');
+            };
+            reader.readAsDataURL(uploadInput.files[0]);
+        }
+    });
+
+    // --- PDF RENDERING ---
+    const { PDFDocument } = await loadPdfLib();
+    const pdfjsLib = await loadPdfJs();
+    const mergedPdfDoc = await PDFDocument.create();
+    for (const file of files) {
+        const pdfBytes = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const copiedPages = await mergedPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+        copiedPages.forEach(page => mergedPdfDoc.addPage(page));
+    }
+    const mergedPdfBytes = await mergedPdfDoc.save();
+    const pdfDocProxy = await pdfjsLib.getDocument({ data: mergedPdfBytes }).promise;
+    DOMElements.previewPane.innerHTML = '';
+    
+    for (let i = 1; i <= pdfDocProxy.numPages; i++) {
+        const page = await pdfDocProxy.getPage(i);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d')!;
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+        const pageContainer = document.createElement('div');
+        pageContainer.className = 'pdf-page-container';
+        pageContainer.dataset.pageIndex = (i - 1).toString();
+        const pdfLibPage = mergedPdfDoc.getPage(i - 1);
+        pageContainer.dataset.pdfPage = JSON.stringify({ width: pdfLibPage.getWidth(), height: pdfLibPage.getHeight() });
+        pageContainer.appendChild(canvas);
+        DOMElements.previewPane.appendChild(pageContainer);
+    }
+    
+    // --- SIGNATURE PLACEMENT & INTERACTION LOGIC ---
+    DOMElements.previewPane.addEventListener('click', (e) => {
+        if (!activeSignatureSrc) return;
+        const target = e.target as HTMLElement;
+        const pageContainer = target.closest<HTMLElement>('.pdf-page-container');
+        if (!pageContainer) return;
+        
+        removePlacedSignature();
+
+        const rect = pageContainer.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const signatureEl = document.createElement('div');
+        const id = `sig-${Date.now()}`;
+        signatureEl.id = id;
+        signatureEl.className = 'placed-signature';
+        signatureEl.innerHTML = `<img src="${activeSignatureSrc}" alt="Signature"><div class="resize-handle br"></div><button class="delete-signature-btn" aria-label="Delete signature">${ICONS['delete']}</button>`;
+        
+        const img = new Image();
+        img.onload = () => {
+            let width = img.width > 150 ? 150 : img.width;
+            let height = (width / img.width) * img.height;
+            signatureEl.style.left = `${x - width / 2}px`;
+            signatureEl.style.top = `${y - height / 2}px`;
+            signatureEl.style.width = `${width}px`;
+            signatureEl.style.height = `${height}px`;
+            pageContainer.appendChild(signatureEl);
+            
+            signatureEl.querySelector<HTMLButtonElement>('.delete-signature-btn')!.onclick = (event) => {
+                event.stopPropagation();
+                removePlacedSignature();
+                updateInstructionText('Signature removed. Select another to place it.');
+            };
+
+            placedSignature = {
+                id,
+                imgSrc: activeSignatureSrc!,
+                x: x - width / 2,
+                y: y - height / 2,
+                width,
+                height,
+                opacity: 1.0,
+                pageIndex: parseInt(pageContainer.dataset.pageIndex!),
+                pageContainer,
+            };
+
+            activeSignatureSrc = null;
+            DOMElements.previewPane.classList.remove('placement-mode');
+            document.querySelectorAll('.saved-signature').forEach(el => el.classList.remove('active'));
+            updateInstructionText('Signature placed! Drag to move, use handle to resize, or delete it.');
+        };
+        img.src = activeSignatureSrc;
+    });
+
+    // Interaction logic for moving/resizing and editing
+    let activeDragTarget: HTMLElement | null = null;
+    let isResizing = false;
+    let dragStartX = 0, dragStartY = 0, elStartX = 0, elStartY = 0, elStartW = 0, elStartH = 0;
+    
+    document.addEventListener('mousedown', (e) => {
+        const target = e.target as HTMLElement;
+        const signatureElement = target.closest<HTMLElement>('.placed-signature');
+        
+        if (signatureElement) {
+            if (placedSignature && placedSignature.id !== signatureElement.id) {
+                 // This case shouldn't happen with the new single-signature logic, but as a safeguard:
+                const oldSelected = document.getElementById(placedSignature.id);
+                oldSelected?.classList.remove('selected');
+            }
+
+            activeDragTarget = signatureElement;
+            activeDragTarget.classList.add('selected');
+            
+            const opacityEditor = getElement<HTMLElement>('#selected-signature-editor');
+            opacityEditor.style.display = 'block';
+            const opacitySlider = getElement<HTMLInputElement>('#signature-opacity');
+            const opacityValue = getElement<HTMLSpanElement>('#signature-opacity-value');
+            opacitySlider.value = placedSignature!.opacity.toString();
+            opacityValue.textContent = `${Math.round(placedSignature!.opacity * 100)}%`;
+
+
+            const rect = activeDragTarget.getBoundingClientRect();
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            elStartX = activeDragTarget.offsetLeft;
+            elStartY = activeDragTarget.offsetTop;
+            elStartW = rect.width;
+            elStartH = rect.height;
+            isResizing = target.classList.contains('resize-handle');
+        } else {
+            // Clicked outside a signature
+            if (placedSignature) {
+                const sigEl = document.getElementById(placedSignature.id);
+                sigEl?.classList.remove('selected');
+                getElement<HTMLElement>('#selected-signature-editor').style.display = 'none';
+            }
+            activeDragTarget = null;
+        }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!activeDragTarget) return;
+        e.preventDefault();
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        
+        if (isResizing) {
+            const newWidth = Math.max(20, elStartW + dx);
+            const aspectRatio = elStartW / elStartH;
+            activeDragTarget.style.width = `${newWidth}px`;
+            activeDragTarget.style.height = `${newWidth / aspectRatio}px`;
+        } else {
+            activeDragTarget.style.left = `${elStartX + dx}px`;
+            activeDragTarget.style.top = `${elStartY + dy}px`;
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (activeDragTarget && placedSignature) {
+            placedSignature.x = activeDragTarget.offsetLeft;
+            placedSignature.y = activeDragTarget.offsetTop;
+            placedSignature.width = activeDragTarget.offsetWidth;
+            placedSignature.height = activeDragTarget.offsetHeight;
+        }
+        activeDragTarget = null;
+        isResizing = false;
+    });
+    
+    getElement<HTMLInputElement>('#signature-opacity').oninput = (e) => {
+        if (placedSignature) {
+            const newOpacity = parseFloat((e.target as HTMLInputElement).value);
+            placedSignature.opacity = newOpacity;
+            const sigEl = document.getElementById(placedSignature.id);
+            if(sigEl) sigEl.style.opacity = newOpacity.toString();
+            getElement<HTMLSpanElement>('#signature-opacity-value').textContent = `${Math.round(newOpacity * 100)}%`;
+        }
+    };
+};
+
+const showOrganizeUI = async (files: File[]) => {
+    // This is a complex UI, so we'll handle its state locally
+    console.warn("showOrganizeUI is not fully implemented. Using fallback UI.");
+    showFileProcessorUI(files);
+    const pageData = files.map((f, docIndex) => ({ docIndex, pageIndex: 0, rotation: 0, file: f.name }));
+    DOMElements.optionsView.dataset.pageData = JSON.stringify(pageData);
+};
+
+const showFileProcessorUI = (files: File[]) => {
+    currentFiles = files;
+    DOMElements.initialView.style.display = 'none';
+    DOMElements.optionsView.style.display = 'flex';
+    DOMElements.optionsView.className = '';
+    DOMElements.optionsSidebarPane.style.display = 'flex';
+    DOMElements.processBtnContainer.style.display = 'block';
+    DOMElements.previewPane.innerHTML = `<p class="placeholder-text">Click the eye icon on a file to preview it.</p>`;
+    DOMElements.optionsSidebarPane.innerHTML = '';
+    
+    const sidebarContent = document.createElement('div');
+    sidebarContent.style.display = 'flex';
+    sidebarContent.style.flexDirection = 'column';
+    sidebarContent.style.height = '100%';
+
+    const toolOptions = document.createElement('div');
+    toolOptions.id = 'tool-options';
+    toolOptions.style.flexGrow = '1';
+
+    const processBtnContainer = document.createElement('div');
+    processBtnContainer.className = 'process-btn-container';
+    processBtnContainer.innerHTML = `<button id="process-btn" class="btn-primary">Let Genie Process</button>`;
+    
+    sidebarContent.appendChild(toolOptions);
+    sidebarContent.appendChild(processBtnContainer);
+    DOMElements.optionsSidebarPane.appendChild(sidebarContent);
+    
+    getElement('#process-btn', sidebarContent).onclick = startProcessing;
+
+    const fileListHTML = `
+        <div class="file-actions">
+            <div class="file-list">
+                ${files.map((file, index) => `
+                    <div class="file-item" data-index="${index}">
+                        <div class="file-icon">${getFileTypeIcon(file)}</div>
+                        <span class="file-name" title="${file.name}">${file.name}</span>
+                        <button class="file-preview-btn" aria-label="Preview ${file.name}">
+                           ${ICONS['eye-preview']}
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="btn-secondary" id="start-over-btn">Start Over</button>
+        </div>
+    `;
+    toolOptions.insertAdjacentHTML('beforeend', fileListHTML);
+    
+    getElement<HTMLButtonElement>('#start-over-btn', toolOptions).onclick = () => {
+        DOMElements.optionsView.style.display = 'none';
+        DOMElements.initialView.style.display = 'flex';
+        currentFiles = [];
+        DOMElements.fileInput.value = '';
+    };
+
+    toolOptions.querySelectorAll('.file-preview-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const fileItem = (e.currentTarget as HTMLElement).closest('.file-item');
+            if (fileItem) {
+                const index = parseInt((fileItem as HTMLElement).dataset.index!, 10);
+                const file = currentFiles[index];
+                await renderPreview(file);
+            }
+        });
+    });
+
+    // Add tool-specific options
+    if (currentTool.id === 'split-pdf') {
+        const optionGroup = document.createElement('div');
+        optionGroup.className = 'option-group';
+        optionGroup.innerHTML = `
+            <h4>Page Range</h4>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input type="number" id="start-page" placeholder="Start" min="1">
+                <input type="number" id="end-page" placeholder="End" min="1">
+            </div>
+            <p id="page-count-info" style="font-size: 0.8rem; margin-top: 0.5rem; color: var(--text-light);"></p>
+        `;
+        toolOptions.appendChild(optionGroup);
+        
+        const startInput = getElement<HTMLInputElement>('#start-page', toolOptions);
+        const endInput = getElement<HTMLInputElement>('#end-page', toolOptions);
+        const pageInfo = getElement<HTMLParagraphElement>('#page-count-info', toolOptions);
+
+        const validateInputs = (maxPages: number) => {
+            const start = parseInt(startInput.value, 10);
+            const end = parseInt(endInput.value, 10);
+            let isValid = true;
+            if (isNaN(start) || isNaN(end) || start < 1 || end < 1 || start > end || end > maxPages) {
+                isValid = false;
+            }
+            (getElement('#process-btn', DOMElements.optionsSidebarPane) as HTMLButtonElement).disabled = !isValid;
+        };
+
+        (async () => {
+            const { PDFDocument } = await loadPdfLib();
+            const pdfDoc = await PDFDocument.load(await files[0].arrayBuffer());
+            const pageCount = pdfDoc.getPageCount();
+            pageInfo.textContent = `This document has ${pageCount} pages.`;
+            startInput.max = pageCount.toString();
+            endInput.max = pageCount.toString();
+            startInput.oninput = () => validateInputs(pageCount);
+            endInput.oninput = () => validateInputs(pageCount);
+        })();
+
+        (getElement('#process-btn', DOMElements.optionsSidebarPane) as HTMLButtonElement).disabled = true;
+    }
+};
+
+const renderPreview = async (file: File) => {
+    DOMElements.previewPane.innerHTML = '<h4>Loading preview...</h4>';
+    if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            DOMElements.previewPane.innerHTML = `<img src="${e.target!.result}" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+        };
+        reader.readAsDataURL(file);
+    } else if (file.type === 'application/pdf') {
+        try {
+            const pdfjsLib = await loadPdfJs();
+            const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d')!;
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            await page.render({ canvasContext: context!, viewport: viewport }).promise;
+            DOMElements.previewPane.innerHTML = '';
+            DOMElements.previewPane.appendChild(canvas);
+        } catch (error) {
+            DOMElements.previewPane.innerHTML = `<p class="placeholder-text">Could not render PDF preview.</p>`;
+            console.error("PDF Preview Error:", error);
+        }
+    } else {
+        DOMElements.previewPane.innerHTML = `<p class="placeholder-text">Preview not available for this file type.</p>`;
+    }
+};
+
+const showCompleteUI = (downloads: { filename: string; blob: Blob }[]) => {
+    DOMElements.processingView.style.display = 'none';
+    DOMElements.completeView.style.display = 'flex';
+    DOMElements.completeView.style.flexDirection = 'column';
+
+    DOMElements.downloadArea.innerHTML = '';
+
+    if (downloads.length === 1) {
+        const download = downloads[0];
+        const url = URL.createObjectURL(download.blob);
+        DOMElements.downloadArea.innerHTML = `
+            <div class="download-actions">
+                <a href="${url}" download="${download.filename}" class="download-btn">Download File</a>
+                <button id="start-over-complete" class="btn-secondary">Start Over</button>
+            </div>
+        `;
+    } else {
+        DOMElements.downloadArea.innerHTML = `
+            <div class="download-actions">
+                <button id="download-all-zip" class="download-btn">Download All (.zip)</button>
+                <button id="start-over-complete" class="btn-secondary">Start Over</button>
+            </div>
+            <div id="individual-downloads">
+                <h4>Individual Files</h4>
+                <div id="individual-downloads-list">
+                    ${downloads.map((d, i) => `<a href="${URL.createObjectURL(d.blob)}" download="${d.filename}" class="individual-download-link">${d.filename}</a>`).join('')}
+                </div>
+            </div>
+        `;
+        getElement('#download-all-zip').onclick = async () => {
+            const JSZip = await loadJszip();
+            const zip = new JSZip();
+            downloads.forEach(d => zip.file(d.filename, d.blob));
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentTool!.id}_files.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+    }
+    
+    getElement('#start-over-complete').onclick = () => {
+        DOMElements.completeView.style.display = 'none';
+        DOMElements.initialView.style.display = 'flex';
+        currentFiles = [];
+        DOMElements.fileInput.value = '';
+    };
+
+    // Continue with...
+    const continueSection = getElement('.continue-section');
+    if (currentTool?.continue && currentFiles.length === 1 && currentFiles[0].type === 'application/pdf') {
+        continueSection.style.display = 'block';
+        DOMElements.continueToolsGrid.innerHTML = '';
+        currentTool.continue.forEach(toolId => {
+            const tool = TOOLS[toolId];
+            const card = document.createElement('div');
+            card.className = 'continue-tool-card';
+            card.innerHTML = `${tool.icon} <span>${tool.title}</span>`;
+            card.onclick = () => {
+                // To continue, we need to convert the processed blob back to a File object
+                const newFile = new File([downloads[0].blob], downloads[0].filename, { type: 'application/pdf' });
+                openToolModal(tool);
+                // Directly move to the options view of the new tool
+                setTimeout(() => handleFilesSelected([newFile]), 100);
+            };
+            DOMElements.continueToolsGrid.appendChild(card);
+        });
+    } else {
+        continueSection.style.display = 'none';
+    }
+};
+
+// --- PDF Tool Implementations ---
+const processMergePdf = async (files: File[], updateProgress: (p: number, t: string) => void) => {
+    updateProgress(10, 'Loading PDF library...');
+    const { PDFDocument } = await loadPdfLib();
+    const mergedPdf = await PDFDocument.create();
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const progress = 10 + (80 * (i / files.length));
+        updateProgress(progress, `Merging ${file.name}...`);
+        const pdfBytes = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+        const copiedPages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+    }
+
+    updateProgress(95, 'Saving merged document...');
+    const mergedPdfBytes = await mergedPdf.save();
+    return [{ filename: 'merged_document.pdf', blob: new Blob([mergedPdfBytes], { type: 'application/pdf' }) }];
+};
+
+const processSplitPdf = async (files: File[], updateProgress: (p: number, t: string) => void) => {
+    updateProgress(10, 'Loading PDF library...');
+    const { PDFDocument } = await loadPdfLib();
+    const startPage = parseInt(getElement<HTMLInputElement>('#start-page').value, 10);
+    const endPage = parseInt(getElement<HTMLInputElement>('#end-page').value, 10);
+
+    updateProgress(30, `Loading ${files[0].name}...`);
+    const pdfBytes = await files[0].arrayBuffer();
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+
+    updateProgress(60, `Extracting pages ${startPage} to ${endPage}...`);
+    const newPdf = await PDFDocument.create();
+    const indicesToCopy = Array.from({ length: endPage - startPage + 1 }, (_, i) => i + startPage - 1);
+    const copiedPages = await newPdf.copyPages(pdfDoc, indicesToCopy);
+    copiedPages.forEach(page => newPdf.addPage(page));
+
+    updateProgress(95, 'Saving split document...');
+    const newPdfBytes = await newPdf.save();
+    return [{ filename: `split_document_p${startPage}-${endPage}.pdf`, blob: new Blob([newPdfBytes], { type: 'application/pdf' }) }];
+};
+
+const processOrganizePdf = async (pages: { doc: any, pageIndex: number, rotation: number }[], updateProgress: (p: number, t: string) => void) => {
+    updateProgress(10, 'Loading PDF library...');
+    const { PDFDocument } = await loadPdfLib();
+    const newPdf = await PDFDocument.create();
+    
+    const totalPages = pages.length;
+    for (let i = 0; i < totalPages; i++) {
+        const pageInfo = pages[i];
+        updateProgress(10 + (80 * (i / totalPages)), `Processing page ${i + 1} of ${totalPages}...`);
+        
+        const [copiedPage] = await newPdf.copyPages(pageInfo.doc, [pageInfo.pageIndex]);
+        copiedPage.setRotation(pageInfo.rotation);
+        newPdf.addPage(copiedPage);
+    }
+    
+    updateProgress(95, 'Saving organized document...');
+    const newPdfBytes = await newPdf.save();
+    return [{ filename: 'organized_document.pdf', blob: new Blob([newPdfBytes], { type: 'application/pdf' }) }];
+};
+
+const processSignPdf = async (files: File[], placedSignatures: any[], updateProgress: (p: number, t: string) => void) => {
+    updateProgress(10, 'Loading PDF library...');
+    const { PDFDocument } = await loadPdfLib();
+    
+    updateProgress(20, 'Combining documents if necessary...');
+    const mergedPdfDoc = await PDFDocument.create();
+    for (const file of files) {
+        const pdfBytes = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const copiedPages = await mergedPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+        copiedPages.forEach(page => mergedPdfDoc.addPage(page));
+    }
+    const pages = mergedPdfDoc.getPages();
+
+    for (let i = 0; i < placedSignatures.length; i++) {
+        const sig = placedSignatures[i];
+        updateProgress(40 + (50 * (i / placedSignatures.length)), `Applying signature ${i + 1}...`);
+        
+        const page = pages[sig.pageIndex];
+        const sigImageBytes = await fetch(sig.imgSrc).then(res => res.arrayBuffer());
+        const sigImage = await mergedPdfDoc.embedPng(sigImageBytes);
+
+        page.drawImage(sigImage, {
+            x: sig.x,
+            y: sig.y,
+            width: sig.width,
+            height: sig.height,
+            opacity: sig.opacity,
+        });
+    }
+
+    updateProgress(95, 'Saving signed document...');
+    const signedPdfBytes = await mergedPdfDoc.save();
+    return [{ filename: 'signed_document.pdf', blob: new Blob([signedPdfBytes], { type: 'application/pdf' }) }];
+};
+
+
+const PROCESS_MAP: Record<string, Function> = {
+    'merge-pdf': processMergePdf,
+    'split-pdf': processSplitPdf,
+};
+
+const startProcessing = async () => {
+    const toolId = currentTool?.id;
+    if (!toolId) return;
+    
+    if (toolId === 'sign-pdf' && signatureKeydownHandler) {
+        document.removeEventListener('keydown', signatureKeydownHandler);
+        signatureKeydownHandler = null;
+    }
+
+    DOMElements.optionsView.style.display = 'none';
+    DOMElements.processingView.style.display = 'flex';
+    DOMElements.processingView.style.flexDirection = 'column';
+
+    const updateProgress = (percentage: number, text: string) => {
+        const p = Math.round(percentage);
+        DOMElements.progressBar.style.width = `${p}%`;
+        DOMElements.progressPercentage.textContent = `${p}%`;
+        DOMElements.processingText.textContent = text;
+    };
+    
+    try {
+        updateProgress(0, 'Starting...');
+        await sleep(200);
+
+        let downloads: { filename: string, blob: Blob }[];
+        if (toolId === 'organize-pdf') {
+            const { PDFDocument } = await loadPdfLib();
+            const pageData = JSON.parse(DOMElements.optionsView.dataset.pageData!);
+            const docs = await Promise.all(
+                currentFiles.map(f => fileToArrayBuffer(f).then(b => PDFDocument.load(b)))
+            );
+            const pagesWithDocs = pageData.map((p: any) => ({ ...p, doc: docs[p.docIndex] }));
+            downloads = await processOrganizePdf(pagesWithDocs, updateProgress);
+        } else if (toolId === 'sign-pdf') {
+            const placedSignatures = JSON.parse(DOMElements.optionsView.dataset.placedSignatures!);
+            downloads = await processSignPdf(currentFiles, placedSignatures, updateProgress);
+        } else {
+            const processFn = PROCESS_MAP[toolId];
+            if (processFn) {
+                downloads = await processFn(currentFiles, updateProgress);
+            } else {
+                throw new Error(`Processing function for ${toolId} not found.`);
+            }
+        }
+        
+        updateProgress(100, 'Done!');
+        await sleep(500);
+        showCompleteUI(downloads);
+    } catch (error: any) {
+        console.error("Processing Error:", error);
+        showError(`An error occurred: ${error.message}`);
+        DOMElements.processingView.style.display = 'none';
+        DOMElements.optionsView.style.display = 'flex'; // Go back to options
+    }
+};
+
+// Tool-specific UI renderers
+const renderSpeechToTextUI = () => { /* Stub */ };
+const renderAudioTrimUI = () => { /* Stub */ };
+
+// --- MAIN INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', () => {
+    renderTools();
+    renderCategoryFilters();
+    renderRecentTools();
+    
+    // Theme toggle
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const savedTheme = localStorage.getItem('theme');
+    const isDark = savedTheme === 'dark' || (savedTheme === null && prefersDark);
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    DOMElements.themeToggle.checked = isDark;
+    
+    DOMElements.themeToggle.addEventListener('change', (e) => {
+        const theme = (e.target as HTMLInputElement).checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    });
+
+    // Search functionality
+    DOMElements.searchInput.addEventListener('input', (e) => {
+        const searchTerm = (e.target as HTMLInputElement).value;
+        const activeCategory = getElement<HTMLButtonElement>('.filter-btn.active')?.dataset.category || 'All';
+        renderTools(searchTerm, activeCategory);
+    });
+
+    // Modal listeners
+    DOMElements.closeModalBtn.addEventListener('click', closeModal);
+    DOMElements.modal.addEventListener('click', (e) => {
+        if (e.target === DOMElements.modal) closeModal();
+    });
+    
+    // File input listeners
+    DOMElements.selectFileBtn.addEventListener('click', () => DOMElements.fileInput.click());
+    DOMElements.initialView.addEventListener('click', (e) => {
+        if((e.target as HTMLElement).classList.contains('drop-zone')) {
+             DOMElements.fileInput.click()
+        }
+    });
+    DOMElements.fileInput.addEventListener('change', (e) => {
+        const files = (e.target as HTMLInputElement).files;
+        if (files) handleFilesSelected(files);
+    });
+
+    // Drag and drop listeners
+    const dropZone = getElement('.drop-zone');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        document.body.addEventListener(eventName, e => e.preventDefault());
+    });
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        document.body.addEventListener(eventName, () => {
+            document.body.classList.add('is-dragging');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        document.body.addEventListener(eventName, () => {
+            document.body.classList.remove('is-dragging');
+        });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const files = (e as DragEvent).dataTransfer?.files;
+        if (files) {
+           handleFilesSelected(files);
+        }
+    });
+    
+    DOMElements.processBtn.onclick = startProcessing;
+
+    // Hamburger menu
+    DOMElements.hamburger.addEventListener('click', () => {
+        DOMElements.hamburger.classList.toggle('active');
+        DOMElements.navLinks.classList.toggle('active');
+    });
+
+    // Scroll to top
+    window.addEventListener('scroll', () => {
+        if (window.pageYOffset > 300) {
+            DOMElements.scrollToTopBtn.classList.add('visible');
+        } else {
+            DOMElements.scrollToTopBtn.classList.remove('visible');
+        }
+    });
+    DOMElements.scrollToTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    
+    // Ad Popup
+    setTimeout(() => {
+        DOMElements.bottomAdPopup.classList.add('visible');
+    }, 5000);
+    DOMElements.closeAdPopupBtn.addEventListener('click', () => {
+        DOMElements.bottomAdPopup.classList.remove('visible');
+    });
+
+});
