@@ -648,7 +648,8 @@
             text-align: left;
             gap: 2rem;
             flex-grow: 1;
-            overflow: hidden;
+            overflow: auto;
+            min-height: 0; /* Fix for flexbox scrolling */
         }
         .options-preview-pane {
             flex-grow: 1;
@@ -874,7 +875,6 @@
             width: 100%;
             text-align: left;
             flex-grow: 1;
-            overflow: hidden;
         }
         .stt-left-pane {
             width: 350px;
@@ -1506,7 +1506,7 @@
             }
             .speech-to-text-container {
                 flex-direction: column;
-                overflow-y: auto;
+                /* overflow-y: auto; -- Removed to prevent double scroll */
                 padding-right: 0.5rem; /* Space for scrollbar */
             }
             .stt-left-pane {
@@ -1565,7 +1565,7 @@
             }
             #modal-options-view { 
                 flex-direction: column;
-                overflow-y: auto; /* Allow scrolling for the whole options view */
+                /* overflow-y: auto; Now handled by base style */
             }
             .options-sidebar-pane { 
                 width: 100%; 
