@@ -10,7 +10,7 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Caveat&family=Pacifico&family=Kalam&display=swap" rel="stylesheet">
     
     <!-- Google Analytics & Search Console Placeholder -->
     <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=YOUR_GA_ID"></script> -->
@@ -866,6 +866,250 @@
             color: var(--success);
         }
 
+        /* --- ORGANIZE PDF STYLES --- */
+        #modal-options-view.organize-mode .options-sidebar-pane {
+            display: none;
+        }
+        #modal-options-view.organize-mode .options-preview-pane {
+            flex-basis: 100%;
+            max-width: 100%;
+            align-content: flex-start; /* Ensure items wrap from the top */
+        }
+        .page-thumbnail-container {
+            position: relative;
+            border: 1px solid var(--input-border);
+            border-radius: 0.25rem;
+            padding: 0.25rem;
+            background: var(--modal-bg);
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            cursor: grab;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .page-thumbnail-container.dragging {
+            opacity: 0.4;
+            box-shadow: var(--card-hover-shadow);
+            transform: scale(1.05);
+            cursor: grabbing;
+        }
+        .page-thumbnail-container canvas {
+            max-width: 120px;
+            height: auto;
+            display: block;
+            border-radius: 0.1rem;
+            transition: transform 0.3s ease;
+        }
+        .page-thumbnail-controls {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            display: flex;
+            gap: 0.25rem;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .page-thumbnail-container:hover .page-thumbnail-controls {
+            opacity: 1;
+        }
+        .page-thumbnail-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        .page-thumbnail-btn:hover {
+            background-color: #f0f0f0;
+        }
+        .page-thumbnail-btn:active {
+            transform: scale(0.9);
+        }
+        .page-thumbnail-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        .page-thumbnail-container.deleted {
+            opacity: 0.4;
+        }
+        .page-thumbnail-container.deleted canvas {
+            filter: grayscale(1);
+        }
+        .drag-placeholder {
+            width: 126px; /* width of thumbnail + padding + border */
+            height: 180px; /* approx height */
+            background: var(--drop-zone-hover-bg);
+            border: 2px dashed var(--primary-indigo);
+            border-radius: 0.25rem;
+            flex-shrink: 0;
+        }
+        .page-number-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-light);
+        }
+
+        /* --- SIGN PDF STYLES --- */
+        #modal-options-view.sign-mode .options-sidebar-pane {
+            display: flex;
+        }
+        #modal-options-view.sign-mode .options-preview-pane {
+             flex-direction: column;
+             flex-wrap: nowrap;
+             justify-content: flex-start;
+             align-items: center;
+             gap: 0.5rem;
+             padding: 0.5rem;
+        }
+        .pdf-page-container {
+            position: relative;
+            margin-bottom: 0.5rem;
+            box-shadow: var(--card-shadow);
+        }
+        .pdf-page-container canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .signature-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--input-border);
+            margin-bottom: 1rem;
+        }
+        .signature-tab-btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--text-light);
+            font-weight: 500;
+            position: relative;
+        }
+        .signature-tab-btn.active {
+            color: var(--primary-indigo);
+        }
+        .signature-tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary-indigo);
+        }
+        .signature-tab-content {
+            display: none;
+        }
+        .signature-tab-content.active {
+            display: block;
+        }
+        
+        #signature-canvas {
+            border: 1px solid var(--input-border);
+            border-radius: 0.25rem;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .signature-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        #typed-signature-input {
+            margin-bottom: 1rem;
+        }
+        .typed-signature-preview-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .typed-signature-preview {
+            padding: 1rem;
+            border: 1px solid var(--input-border);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+            font-size: 2rem;
+            color: var(--text-dark);
+        }
+        .typed-signature-preview:hover {
+            border-color: var(--primary-indigo);
+            background-color: var(--drop-zone-hover-bg);
+        }
+        .typed-signature-preview.font-dancing { font-family: 'Dancing Script', cursive; }
+        .typed-signature-preview.font-caveat { font-family: 'Caveat', cursive; }
+        .typed-signature-preview.font-pacifico { font-family: 'Pacifico', cursive; }
+        .typed-signature-preview.font-kalam { font-family: 'Kalam', cursive; }
+        
+        #signature-palette {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--input-border);
+        }
+        #signature-palette h4 {
+            margin-bottom: 0.5rem;
+        }
+        .saved-signature {
+            padding: 0.5rem;
+            border: 2px solid transparent;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            background-color: var(--drop-zone-bg);
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: center;
+        }
+        .saved-signature.active {
+            border-color: var(--primary-indigo);
+        }
+        .saved-signature img {
+            max-width: 150px;
+            max-height: 50px;
+            object-fit: contain;
+        }
+        html[data-theme="dark"] .saved-signature img {
+            filter: invert(1);
+        }
+        
+        .placed-signature {
+            position: absolute;
+            cursor: grab;
+            border: 1px dashed transparent;
+            user-select: none;
+        }
+        .placed-signature:hover, .placed-signature.selected {
+            border-color: var(--primary-indigo);
+        }
+        .placed-signature img {
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Allows clicks to pass through to parent div */
+        }
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--primary-indigo);
+            border: 1px solid white;
+            border-radius: 50%;
+            display: none;
+        }
+        .placed-signature.selected .resize-handle {
+            display: block;
+        }
+        .resize-handle.br { bottom: -5px; right: -5px; cursor: se-resize; }
+        
         /* --- REFINED SPEECH TO TEXT STYLES --- */
         .speech-to-text-container {
             display: flex;
