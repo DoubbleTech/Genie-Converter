@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Modality, LiveServerMessage, Blob as GenAIBlob } from "@google/genai";
 
 // --- ICON DEFINITIONS ---
@@ -59,12 +58,16 @@ const ICONS = {
     'eye-preview': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`,
     'play': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>`,
     'delete': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>`,
+    'edit': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+    'plus': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
     'rotate-right': `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.55 5.55L11 1v3.07C7.06 4.56 4 7.92 4 12s3.06 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91s2.17-5.43 5-5.91V11l4.55-4.55zM18.93 11c.48 2.83 2.94 5 5.91 5v2.02c-3.94-.49-7-3.85-7-7.93s3.06-7.44 7-7.93v2.02c-2.83.48-5 2.94-5 5.91z"></path></svg>`,
+    'undo': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>`,
+    'redo': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg>`,
 
     // File Type Icons
     'file-pdf': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm-2 16c-2.05 0-3.81-1.24-4.58-3h1.71c.63.9 1.68 1.5 2.87 1.5 1.93 0 3.5-1.57 3.5-3.5S13.93 9.5 12 9.5c-1.18 0-2.24.6-2.87 1.5H7.42c.77-1.76 2.53-3 4.58-3 2.76 0 5 2.24 5 5s-2.24 5-5 5zm-3-4.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5-1.5.67-1.5 1.5z"/></svg>`,
     'file-doc': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 12H9v2h4v-2zm3-4H9v2h7V10zm-2-4H9v2h5V6z"/></svg>`,
-    'file-xls': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM9.91 17.42l-1.41-1.41 1.06-1.06-1.06-1.06-1.41 1.41-1.06-1.06 1.41-1.41 1.06-1.06-1.41-1.41 1.06-1.06 1.41 1.41 1.41-1.41 1.06 1.06-1.41 1.41 1.06 1.06 1.41-1.41 1.06 1.06-1.41 1.41 1.41 1.41-1.06 1.06-1.41-1.41-1.06 1.06zM15 18h-3v-2h3v2zm0-4h-3v-2h3v2zm0-4h-3V8h3v2z"/></svg>`,
+    'file-xls': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM9.91 17.42l-1.41-1.41 1.06-1.06-1.06-1.06-1.41 1.41-1.06-1.06 1.41-1.41 1.06-1.06-1.41-1.41 1.41-1.41 1.06 1.06-1.41 1.41 1.06 1.06-1.41-1.41 1.06 1.06-1.41 1.41 1.41 1.41-1.06 1.06-1.41-1.41-1.06 1.06zM15 18h-3v-2h3v2zm0-4h-3v-2h3v2zm0-4h-3V8h3v2z"/></svg>`,
     'file-ppt': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 9H8v2h5v4H8v2h5c1.1 0 2-.9 2-2v-1.5c0-1.38-1.12-2.5-2.5-2.5S13 12.12 13 13.5V11z"/></svg>`,
     'file-img': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6v-2h12v2zm0-4H6v-2h12v2zm-4.32-2.68-2.36-3.14-2.82 3.52H6l4.09-5.11 2.54 3.39z"/></svg>`,
     'file-audio': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM10 18c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm4-3H8V7h6v2z"/></svg>`,
@@ -94,6 +97,7 @@ interface Category {
 let currentTool: Tool | null = null;
 let currentFiles: File[] = [];
 let signatureKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
+let signatureCleanup: (() => void) | null = null;
 
 // STT State
 let sttSessionPromise: Promise<any> | null = null;
@@ -617,6 +621,10 @@ const closeModal = () => {
     DOMElements.fileInput.value = '';
 
     // Clean up tool-specific handlers
+    if (signatureCleanup) {
+        signatureCleanup();
+        signatureCleanup = null;
+    }
     if (signatureKeydownHandler) {
         document.removeEventListener('keydown', signatureKeydownHandler);
         signatureKeydownHandler = null;
@@ -638,6 +646,28 @@ const handleFilesSelected = async (files: FileList | File[]) => {
     const filesArray = Array.from(files);
     if (filesArray.length === 0) return;
 
+    // Ensure we restore the DOM structure before rendering tool UI
+    // This fixes the "Element not found" error when switching tools
+    if (!DOMElements.processBtnContainer || !DOMElements.processBtnContainer.parentNode) {
+        // If the button container was removed (by Sign PDF), recreate the sidebar structure
+        const sidebar = DOMElements.optionsSidebarPane;
+        sidebar.innerHTML = '';
+        
+        const toolOptions = document.createElement('div');
+        toolOptions.id = 'tool-options';
+        toolOptions.style.flexGrow = '1';
+        sidebar.appendChild(toolOptions);
+
+        const btnContainer = document.createElement('div');
+        btnContainer.className = 'process-btn-container';
+        btnContainer.innerHTML = `<button id="process-btn" class="btn-primary">Let Genie Process</button>`;
+        sidebar.appendChild(btnContainer);
+        
+        // Re-acquire references
+        DOMElements.processBtnContainer = btnContainer;
+        DOMElements.optionsPane = toolOptions;
+    }
+
     if (currentTool?.id === 'sign-pdf') {
         await showSignatureUI(filesArray);
     } else if (currentTool?.id === 'organize-pdf') {
@@ -657,19 +687,106 @@ const showSignatureUI = async (files: File[]) => {
     DOMElements.previewPane.innerHTML = '<p class="placeholder-text">Loading document preview...</p>';
     DOMElements.optionsSidebarPane.innerHTML = '';
     DOMElements.optionsSidebarPane.style.display = 'flex';
-    DOMElements.processBtnContainer.style.display = 'none';
-
+    
     // --- STATE ---
-    let savedSignatures: { src: string }[] = [];
-    let placedSignature: { id: string, imgSrc: string, x: number, y: number, width: number, height: number, opacity: number, pageIndex: number, pageContainer: HTMLElement } | null = null;
-    let activeSignatureSrc: string | null = null;
+    let signatureSlots = {
+        draw: null as string | null,
+        type: null as string | null,
+        upload: null as string | null
+    };
+
+    interface SignatureState {
+        id: string;
+        imgSrc: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        opacity: number;
+        pageIndex: number;
+        pageContainer: HTMLElement;
+    }
+
+    let placedSignature: SignatureState | null = null;
+    let activeSignatureSrc: string | null = null; // For click-to-place
     let isDrawing = false;
     let canvasCtx: CanvasRenderingContext2D | null = null;
     let lastX = 0, lastY = 0, lastTime = 0;
     const MIN_LINE_WIDTH = 0.5, MAX_LINE_WIDTH = 3;
     let signatureColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#FFFFFF' : '#000000';
 
+    // Undo/Redo History
+    let history: SignatureState[][] = [];
+    let historyIndex = -1;
+
     // --- HELPER FUNCTIONS ---
+    const addToHistory = () => {
+        // Create a deep copy of the current state (placedSignature)
+        // Since we only allow ONE signature at a time, the state is basically [placedSignature] or []
+        const currentState = placedSignature ? [placedSignature] : [];
+        
+        // Remove any future history if we are in the middle of the stack
+        if (historyIndex < history.length - 1) {
+            history = history.slice(0, historyIndex + 1);
+        }
+        
+        // Don't add duplicate consecutive states (simple check)
+        const lastState = history[historyIndex];
+        if (lastState && JSON.stringify(lastState) === JSON.stringify(currentState)) {
+            return;
+        }
+
+        history.push(JSON.parse(JSON.stringify(currentState)));
+        historyIndex++;
+        updateUndoRedoButtons();
+    };
+
+    const updateUndoRedoButtons = () => {
+        const undoBtn = getElement<HTMLButtonElement>('#undo-btn');
+        const redoBtn = getElement<HTMLButtonElement>('#redo-btn');
+        if (undoBtn) undoBtn.disabled = historyIndex <= 0;
+        if (redoBtn) redoBtn.disabled = historyIndex >= history.length - 1;
+    };
+
+    const performUndo = () => {
+        if (historyIndex > 0) {
+            historyIndex--;
+            restoreState(history[historyIndex]);
+            updateUndoRedoButtons();
+        }
+    };
+
+    const performRedo = () => {
+        if (historyIndex < history.length - 1) {
+            historyIndex++;
+            restoreState(history[historyIndex]);
+            updateUndoRedoButtons();
+        }
+    };
+
+    const restoreState = (state: SignatureState[]) => {
+        // Clear current
+        if (placedSignature) {
+            const el = document.getElementById(placedSignature.id);
+            if (el) el.remove();
+            placedSignature = null;
+        }
+
+        // Restore new
+        if (state.length > 0) {
+            const savedSig = state[0];
+            // We need to find the page container again because elements might have been re-rendered or lost reference
+            const pageContainer = document.querySelector(`.pdf-page-container[data-page-index="${savedSig.pageIndex}"]`) as HTMLElement;
+            
+            if (pageContainer) {
+                renderPlacedSignatureElement(savedSig, pageContainer);
+                placedSignature = { ...savedSig, pageContainer }; // Re-attach live DOM element
+            }
+        }
+        getElement<HTMLElement>('#selected-signature-editor').style.display = placedSignature ? 'block' : 'none';
+    };
+
+
     const textToImage = (text: string, font: string, color: string, targetFontSize: number): string => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d')!;
@@ -679,12 +796,10 @@ const showSignatureUI = async (files: File[]) => {
         ctx.font = `${fontSize}px "${font}"`;
         const textMetrics = ctx.measureText(text);
         
-        // Adjust font size if text is too wide
         if (textMetrics.width > maxWidth - 20) {
             fontSize = Math.floor(fontSize * ((maxWidth - 20) / textMetrics.width));
         }
         
-        // Final measurement
         ctx.font = `${fontSize}px "${font}"`;
         const finalMetrics = ctx.measureText(text);
         canvas.width = finalMetrics.width + 20;
@@ -700,29 +815,78 @@ const showSignatureUI = async (files: File[]) => {
     };
 
     const updateInstructionText = (text: string) => {
-        getElement('#signature-instructions').textContent = text;
+        const el = getElement('#signature-instructions');
+        if(el) el.textContent = text;
+    };
+
+    const switchTab = (tabName: string) => {
+        document.querySelectorAll('.signature-tab-btn, .signature-tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelector(`.signature-tab-btn[data-tab="${tabName}"]`)?.classList.add('active');
+        getElement(`#signature-tab-content-${tabName}`)?.classList.add('active');
     };
 
     const renderSignaturePalette = () => {
-        const container = getElement('#saved-signatures-container');
-        if (savedSignatures.length === 0) {
-            container.innerHTML = `<p class="placeholder-text">Your saved signatures will appear here.</p>`;
-            return;
-        }
+        const container = getElement('#signature-palette-slots');
         container.innerHTML = '';
-        savedSignatures.forEach(sig => {
-            const div = document.createElement('div');
-            div.className = 'saved-signature';
-            div.innerHTML = `<img src="${sig.src}" alt="Saved signature">`;
-            div.onclick = () => {
-                document.querySelectorAll('.saved-signature').forEach(el => el.classList.remove('active'));
-                div.classList.add('active');
-                activeSignatureSrc = sig.src;
-                DOMElements.previewPane.classList.add('placement-mode');
-                updateInstructionText('Click on the document to place your signature.');
-            };
-            container.appendChild(div);
-        });
+
+        const createSlotUI = (type: 'draw' | 'type' | 'upload', title: string) => {
+            const slot = document.createElement('div');
+            slot.className = 'signature-slot';
+            const header = document.createElement('div');
+            header.className = 'slot-header';
+            header.textContent = title;
+            slot.appendChild(header);
+
+            const content = document.createElement('div');
+            const imgSrc = signatureSlots[type];
+
+            if (imgSrc) {
+                content.className = 'slot-filled';
+                content.innerHTML = `
+                    <img src="${imgSrc}" alt="${title} Signature" draggable="true">
+                    <div class="slot-actions">
+                        <button class="icon-btn edit-btn" title="Edit">${ICONS['edit']}</button>
+                        <button class="icon-btn delete-btn" title="Delete" style="color: var(--danger);">${ICONS['delete']}</button>
+                    </div>
+                `;
+                
+                // Drag functionality
+                const img = content.querySelector('img')!;
+                img.addEventListener('dragstart', (e) => {
+                    e.dataTransfer!.setData('application/json', JSON.stringify({ type: 'signature', src: imgSrc }));
+                    e.dataTransfer!.effectAllowed = 'copy';
+                    DOMElements.previewPane.classList.add('drag-over');
+                });
+                img.addEventListener('dragend', () => {
+                    DOMElements.previewPane.classList.remove('drag-over');
+                });
+                
+                // Edit (Replace)
+                content.querySelector('.edit-btn')!.addEventListener('click', () => {
+                    switchTab(type);
+                    updateInstructionText(`Edit your ${title} signature.`);
+                });
+
+                // Delete
+                content.querySelector('.delete-btn')!.addEventListener('click', () => {
+                    signatureSlots[type] = null;
+                    renderSignaturePalette();
+                });
+
+            } else {
+                content.className = 'slot-empty';
+                content.innerHTML = `<button class="icon-btn add-btn" title="Create ${title} Signature">${ICONS['plus']} Create</button>`;
+                content.querySelector('.add-btn')!.addEventListener('click', () => {
+                     switchTab(type);
+                });
+            }
+            slot.appendChild(content);
+            container.appendChild(slot);
+        };
+
+        createSlotUI('draw', 'Drawn');
+        createSlotUI('type', 'Typed');
+        createSlotUI('upload', 'Uploaded');
     };
     
     const removePlacedSignature = () => {
@@ -731,29 +895,21 @@ const showSignatureUI = async (files: File[]) => {
             sigToRemove?.remove();
             placedSignature = null;
             getElement('#selected-signature-editor').style.display = 'none';
+            addToHistory(); // Add empty state to history
         }
     };
-
-    if (signatureKeydownHandler) {
-        document.removeEventListener('keydown', signatureKeydownHandler);
-    }
-    signatureKeydownHandler = (e: KeyboardEvent) => {
-        if ((e.key === 'Delete' || e.key === 'Backspace')) {
-            const selectedSignature = document.querySelector('.placed-signature.selected');
-            if (selectedSignature) {
-                e.preventDefault();
-                removePlacedSignature();
-                updateInstructionText('Signature removed. Select one from the palette to place it again.');
-            }
-        }
-    };
-    document.addEventListener('keydown', signatureKeydownHandler);
 
 
     // --- UI SETUP ---
     const sidebarHTML = `
         <div id="signature-creator" style="flex-grow: 1; display: flex; flex-direction: column;">
-            <h4>Create Signature</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h4>Create Signature</h4>
+                <div id="undo-redo-controls">
+                    <button id="undo-btn" class="icon-btn" title="Undo" disabled>${ICONS['undo']}</button>
+                    <button id="redo-btn" class="icon-btn" title="Redo" disabled>${ICONS['redo']}</button>
+                </div>
+            </div>
             <div class="signature-tabs">
                 <button class="signature-tab-btn active" data-tab="draw">Draw</button>
                 <button class="signature-tab-btn" data-tab="type">Type</button>
@@ -767,7 +923,7 @@ const showSignatureUI = async (files: File[]) => {
                 <canvas id="signature-canvas" width="280" height="150" style="background-color: var(--input-bg);"></canvas>
                 <div class="signature-actions">
                     <button id="clear-signature-btn" class="btn-secondary">Clear</button>
-                    <button id="save-signature-btn" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Save Signature</button>
+                    <button id="save-signature-btn" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Save to Slot</button>
                 </div>
             </div>
             <div id="signature-tab-content-type" class="signature-tab-content">
@@ -795,11 +951,11 @@ const showSignatureUI = async (files: File[]) => {
             </div>
             <div id="signature-palette">
                 <h4 style="margin-top: 1rem;">Your Signatures</h4>
-                <div id="saved-signatures-container" style="max-height: 150px; overflow-y: auto; padding: 0.5rem; background: var(--modal-preview-bg); border-radius: 0.25rem;">
-                    <p class="placeholder-text">Your saved signatures will appear here.</p>
+                <div id="signature-palette-slots">
+                    <!-- Slots generated by JS -->
                 </div>
             </div>
-            <div id="signature-instructions" class="placeholder-text" style="margin-top: 1rem;">Create or select a signature to begin.</div>
+            <div id="signature-instructions" class="placeholder-text" style="margin-top: 1rem;">Drag a signature from the palette or create one.</div>
             <div id="selected-signature-editor" class="option-group" style="display: none; margin-top: 1rem; border-top: 1px solid var(--input-border); padding-top: 1rem;">
                 <h4>Edit Placed Signature</h4>
                 <label for="signature-opacity">Opacity</label>
@@ -814,6 +970,11 @@ const showSignatureUI = async (files: File[]) => {
         </div>
     `;
     DOMElements.optionsSidebarPane.innerHTML = sidebarHTML;
+
+    // Initialize Undo/Redo
+    addToHistory(); // Initial empty state
+    getElement('#undo-btn').onclick = performUndo;
+    getElement('#redo-btn').onclick = performRedo;
 
     const processBtn = getElement('#process-btn');
     processBtn.onclick = () => {
@@ -851,13 +1012,12 @@ const showSignatureUI = async (files: File[]) => {
         startProcessing();
     };
 
+    renderSignaturePalette();
+
     // --- TAB LOGIC ---
     document.querySelectorAll<HTMLElement>('.signature-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.signature-tab-btn, .signature-tab-content').forEach(el => el.classList.remove('active'));
-            btn.classList.add('active');
-            const contentEl = getElement(`#signature-tab-content-${btn.dataset.tab}`);
-            if (contentEl) contentEl.classList.add('active');
+            switchTab(btn.dataset.tab!);
         });
     });
 
@@ -915,10 +1075,10 @@ const showSignatureUI = async (files: File[]) => {
 
     getElement('#clear-signature-btn').onclick = () => canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
     getElement('#save-signature-btn').onclick = () => {
-        savedSignatures.push({ src: canvas.toDataURL() });
+        signatureSlots.draw = canvas.toDataURL();
         renderSignaturePalette();
         canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-        updateInstructionText('Signature saved! Select it from the palette to place it.');
+        updateInstructionText('Drawn signature saved! Drag it from the palette to the document.');
     };
 
     // --- TYPE LOGIC ---
@@ -951,9 +1111,9 @@ const showSignatureUI = async (files: File[]) => {
             const color = colorTypeInput.value;
             const size = parseInt(fontSizeSlider.value);
             const imgSrc = textToImage(text, font, color, size);
-            savedSignatures.push({ src: imgSrc });
+            signatureSlots.type = imgSrc;
             renderSignaturePalette();
-            updateInstructionText('Signature saved! Select it from the palette to place it.');
+            updateInstructionText('Typed signature saved! Drag it from the palette to the document.');
         });
     });
     updateTypedPreviews();
@@ -961,17 +1121,24 @@ const showSignatureUI = async (files: File[]) => {
     // --- UPLOAD LOGIC ---
     const uploadInput = getElement<HTMLInputElement>('#signature-upload-input');
     getElement('#upload-signature-btn').onclick = () => uploadInput.click();
-    uploadInput.addEventListener('change', () => {
+    // Use onchange directly on the element to avoid duplicate listeners
+    uploadInput.onchange = () => {
         if (uploadInput.files && uploadInput.files[0]) {
+            const file = uploadInput.files[0];
+            if (!file.type.startsWith('image/')) {
+                showError("Please upload an image file (PNG or JPG).");
+                return;
+            }
             const reader = new FileReader();
             reader.onload = e => {
-                savedSignatures.push({ src: e.target.result as string });
+                signatureSlots.upload = e.target!.result as string;
                 renderSignaturePalette();
-                updateInstructionText('Signature uploaded! Select it from the palette to place it.');
+                updateInstructionText('Signature uploaded! Drag it from the palette to the document.');
+                uploadInput.value = ''; // Reset
             };
-            reader.readAsDataURL(uploadInput.files[0]);
+            reader.readAsDataURL(file);
         }
-    });
+    };
 
     // --- PDF RENDERING ---
     const { PDFDocument } = await loadPdfLib();
@@ -1003,145 +1170,190 @@ const showSignatureUI = async (files: File[]) => {
         pageContainer.dataset.pdfPage = JSON.stringify({ width: pdfLibPage.getWidth(), height: pdfLibPage.getHeight() });
         pageContainer.appendChild(canvas);
         DOMElements.previewPane.appendChild(pageContainer);
+        
+        // Drop Logic on Page Container
+        pageContainer.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Allow Drop
+            e.dataTransfer!.dropEffect = 'copy';
+        });
+        
+        pageContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const data = e.dataTransfer!.getData('application/json');
+            if (!data) return;
+            
+            try {
+                const { type, src } = JSON.parse(data);
+                if (type === 'signature' && src) {
+                    placeSignatureOnPage(src, pageContainer, e.clientX, e.clientY);
+                }
+            } catch (err) {
+                console.error("Drop error", err);
+            }
+        });
     }
     
-    // --- SIGNATURE PLACEMENT & INTERACTION LOGIC ---
-    DOMElements.previewPane.addEventListener('click', (e) => {
-        if (!activeSignatureSrc) return;
-        const target = e.target as HTMLElement;
-        const pageContainer = target.closest<HTMLElement>('.pdf-page-container');
-        if (!pageContainer) return;
+    // --- SIGNATURE PLACEMENT HELPERS ---
+    const renderPlacedSignatureElement = (sigState: SignatureState, container: HTMLElement) => {
+        const signatureEl = document.createElement('div');
+        signatureEl.id = sigState.id;
+        signatureEl.className = 'placed-signature';
+        signatureEl.innerHTML = `<img src="${sigState.imgSrc}" alt="Signature"><div class="resize-handle br"></div><button class="delete-signature-btn" aria-label="Delete signature">${ICONS['delete']}</button>`;
         
+        signatureEl.style.left = `${sigState.x}px`;
+        signatureEl.style.top = `${sigState.y}px`;
+        signatureEl.style.width = `${sigState.width}px`;
+        signatureEl.style.height = `${sigState.height}px`;
+        signatureEl.style.opacity = sigState.opacity.toString();
+        
+        signatureEl.querySelector<HTMLButtonElement>('.delete-signature-btn')!.onclick = (event) => {
+            event.stopPropagation();
+            removePlacedSignature();
+            updateInstructionText('Signature removed.');
+        };
+
+        container.appendChild(signatureEl);
+    };
+
+    const placeSignatureOnPage = (src: string, pageContainer: HTMLElement, clientX: number, clientY: number) => {
+        // Enforce single signature
         removePlacedSignature();
 
         const rect = pageContainer.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const signatureEl = document.createElement('div');
-        const id = `sig-${Date.now()}`;
-        signatureEl.id = id;
-        signatureEl.className = 'placed-signature';
-        signatureEl.innerHTML = `<img src="${activeSignatureSrc}" alt="Signature"><div class="resize-handle br"></div><button class="delete-signature-btn" aria-label="Delete signature">${ICONS['delete']}</button>`;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
         
+        // Calculate centered dimensions
         const img = new Image();
         img.onload = () => {
             let width = img.width > 150 ? 150 : img.width;
             let height = (width / img.width) * img.height;
-            signatureEl.style.left = `${x - width / 2}px`;
-            signatureEl.style.top = `${y - height / 2}px`;
-            signatureEl.style.width = `${width}px`;
-            signatureEl.style.height = `${height}px`;
-            pageContainer.appendChild(signatureEl);
             
-            signatureEl.querySelector<HTMLButtonElement>('.delete-signature-btn')!.onclick = (event) => {
-                event.stopPropagation();
-                removePlacedSignature();
-                updateInstructionText('Signature removed. Select another to place it.');
-            };
+            // Center on mouse
+            const finalX = x - width / 2;
+            const finalY = y - height / 2;
 
-            placedSignature = {
-                id,
-                imgSrc: activeSignatureSrc!,
-                x: x - width / 2,
-                y: y - height / 2,
+            const newSigState: SignatureState = {
+                id: `sig-${Date.now()}`,
+                imgSrc: src,
+                x: finalX,
+                y: finalY,
                 width,
                 height,
                 opacity: 1.0,
                 pageIndex: parseInt(pageContainer.dataset.pageIndex!),
-                pageContainer,
+                pageContainer: pageContainer
             };
 
-            activeSignatureSrc = null;
-            DOMElements.previewPane.classList.remove('placement-mode');
-            document.querySelectorAll('.saved-signature').forEach(el => el.classList.remove('active'));
-            updateInstructionText('Signature placed! Drag to move, use handle to resize, or delete it.');
+            renderPlacedSignatureElement(newSigState, pageContainer);
+            placedSignature = newSigState;
+            addToHistory(); // Save state
+            updateInstructionText('Signature placed! Drag to move, resize, or undo.');
         };
-        img.src = activeSignatureSrc;
-    });
-
-    // Interaction logic for moving/resizing and editing
-    let activeDragTarget: HTMLElement | null = null;
-    let isResizing = false;
-    let dragStartX = 0, dragStartY = 0, elStartX = 0, elStartY = 0, elStartW = 0, elStartH = 0;
+        img.src = src;
+    };
     
-    document.addEventListener('mousedown', (e) => {
+
+    // --- INTERACTION LOGIC (Move/Resize) ---
+    // Global handlers for robust drag/resize
+    
+    const handleMouseDown = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         const signatureElement = target.closest<HTMLElement>('.placed-signature');
         
         if (signatureElement) {
-            if (placedSignature && placedSignature.id !== signatureElement.id) {
-                 // This case shouldn't happen with the new single-signature logic, but as a safeguard:
-                const oldSelected = document.getElementById(placedSignature.id);
-                oldSelected?.classList.remove('selected');
-            }
-
-            activeDragTarget = signatureElement;
-            activeDragTarget.classList.add('selected');
-            
+            e.stopPropagation(); // Prevent other selections
             const opacityEditor = getElement<HTMLElement>('#selected-signature-editor');
             opacityEditor.style.display = 'block';
             const opacitySlider = getElement<HTMLInputElement>('#signature-opacity');
             const opacityValue = getElement<HTMLSpanElement>('#signature-opacity-value');
-            opacitySlider.value = placedSignature!.opacity.toString();
-            opacityValue.textContent = `${Math.round(placedSignature!.opacity * 100)}%`;
-
-
-            const rect = activeDragTarget.getBoundingClientRect();
-            dragStartX = e.clientX;
-            dragStartY = e.clientY;
-            elStartX = activeDragTarget.offsetLeft;
-            elStartY = activeDragTarget.offsetTop;
-            elStartW = rect.width;
-            elStartH = rect.height;
-            isResizing = target.classList.contains('resize-handle');
-        } else {
-            // Clicked outside a signature
+            
             if (placedSignature) {
+                opacitySlider.value = placedSignature.opacity.toString();
+                opacityValue.textContent = `${Math.round(placedSignature.opacity * 100)}%`;
+            }
+
+            signatureElement.classList.add('selected');
+
+            const isResizing = target.classList.contains('resize-handle');
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startLeft = signatureElement.offsetLeft;
+            const startTop = signatureElement.offsetTop;
+            const startWidth = signatureElement.offsetWidth;
+            const startHeight = signatureElement.offsetHeight;
+            const aspectRatio = startWidth / startHeight;
+            
+            // For Undo logic, we only record if something actually changed
+            let hasMoved = false;
+
+            const handleMouseMove = (moveEvent: MouseEvent) => {
+                moveEvent.preventDefault();
+                const dx = moveEvent.clientX - startX;
+                const dy = moveEvent.clientY - startY;
+
+                if (dx !== 0 || dy !== 0) hasMoved = true;
+
+                if (isResizing) {
+                    const newWidth = Math.max(30, startWidth + dx);
+                    const newHeight = newWidth / aspectRatio;
+                    signatureElement.style.width = `${newWidth}px`;
+                    signatureElement.style.height = `${newHeight}px`;
+                } else {
+                    signatureElement.style.left = `${startLeft + dx}px`;
+                    signatureElement.style.top = `${startTop + dy}px`;
+                }
+            };
+
+            const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                
+                if (hasMoved && placedSignature) {
+                    placedSignature.x = signatureElement.offsetLeft;
+                    placedSignature.y = signatureElement.offsetTop;
+                    placedSignature.width = signatureElement.offsetWidth;
+                    placedSignature.height = signatureElement.offsetHeight;
+                    addToHistory(); // Save state after move/resize
+                }
+            };
+
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+
+        } else {
+            // Clicked outside
+             if (placedSignature) {
                 const sigEl = document.getElementById(placedSignature.id);
                 sigEl?.classList.remove('selected');
                 getElement<HTMLElement>('#selected-signature-editor').style.display = 'none';
             }
-            activeDragTarget = null;
         }
-    });
-
-    document.addEventListener('mousemove', (e) => {
-        if (!activeDragTarget) return;
-        e.preventDefault();
-        const dx = e.clientX - dragStartX;
-        const dy = e.clientY - dragStartY;
-        
-        if (isResizing) {
-            const newWidth = Math.max(20, elStartW + dx);
-            const aspectRatio = elStartW / elStartH;
-            activeDragTarget.style.width = `${newWidth}px`;
-            activeDragTarget.style.height = `${newWidth / aspectRatio}px`;
-        } else {
-            activeDragTarget.style.left = `${elStartX + dx}px`;
-            activeDragTarget.style.top = `${elStartY + dy}px`;
-        }
-    });
-
-    document.addEventListener('mouseup', () => {
-        if (activeDragTarget && placedSignature) {
-            placedSignature.x = activeDragTarget.offsetLeft;
-            placedSignature.y = activeDragTarget.offsetTop;
-            placedSignature.width = activeDragTarget.offsetWidth;
-            placedSignature.height = activeDragTarget.offsetHeight;
-        }
-        activeDragTarget = null;
-        isResizing = false;
-    });
+    };
     
-    getElement<HTMLInputElement>('#signature-opacity').oninput = (e) => {
-        if (placedSignature) {
-            const newOpacity = parseFloat((e.target as HTMLInputElement).value);
-            placedSignature.opacity = newOpacity;
-            const sigEl = document.getElementById(placedSignature.id);
-            if(sigEl) sigEl.style.opacity = newOpacity.toString();
-            getElement<HTMLSpanElement>('#signature-opacity-value').textContent = `${Math.round(newOpacity * 100)}%`;
+    // Handle opacity change for Undo/Redo
+    const opacityInput = getElement<HTMLInputElement>('#signature-opacity');
+    // Use 'change' for history (committed value), 'input' for live preview
+    opacityInput.oninput = (e) => {
+         if (placedSignature) {
+            const val = parseFloat((e.target as HTMLInputElement).value);
+            placedSignature.opacity = val;
+            const el = document.getElementById(placedSignature.id);
+            if (el) el.style.opacity = val.toString();
+            getElement<HTMLSpanElement>('#signature-opacity-value').textContent = `${Math.round(val * 100)}%`;
         }
+    };
+    opacityInput.onchange = () => {
+        addToHistory();
+    };
+
+    DOMElements.previewPane.addEventListener('mousedown', handleMouseDown);
+
+    // --- CLEANUP ---
+    signatureCleanup = () => {
+        DOMElements.previewPane.removeEventListener('mousedown', handleMouseDown);
+        // Remove drag listeners from page containers (garbage collection usually handles this, 
+        // but explicit removal if we stored references would be good. Here we rely on DOM replacement)
     };
 };
 

@@ -989,8 +989,9 @@
              gap: 0.5rem;
              padding: 0.5rem;
         }
-        .options-preview-pane.placement-mode {
-            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>') 12 12, crosshair;
+        .options-preview-pane.drag-over {
+            background-color: var(--drop-zone-hover-bg);
+            border: 2px dashed var(--primary-indigo);
         }
         .pdf-page-container {
             position: relative;
@@ -1074,6 +1075,7 @@
         .typed-signature-preview.font-pacifico { font-family: 'Pacifico', cursive; }
         .typed-signature-preview.font-kalam { font-family: 'Kalam', cursive; }
         
+        /* New Signature Palette 3-Slot Styles */
         #signature-palette {
             margin-top: 1rem;
             padding-top: 1rem;
@@ -1082,35 +1084,78 @@
         #signature-palette h4 {
             margin-bottom: 0.5rem;
         }
-        #signature-instructions {
-             margin-bottom: 0.5rem;
-             padding: 0.5rem;
-             background-color: var(--drop-zone-bg);
-             border-radius: 0.25rem;
-             text-align: center;
-             font-size: 0.85rem;
-        }
-        .saved-signature {
-            padding: 0.5rem;
-            border: 2px solid transparent;
-            border-radius: 0.25rem;
-            cursor: pointer;
+        .signature-slot {
+            border: 1px solid var(--input-border);
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
             background-color: var(--drop-zone-bg);
-            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .slot-header {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+        .slot-empty {
             display: flex;
             justify-content: center;
+            align-items: center;
         }
-        .saved-signature.active {
-            border-color: var(--primary-indigo);
-            box-shadow: 0 0 0 2px var(--primary-indigo);
+        .slot-filled {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
         }
-        .saved-signature img {
-            max-width: 150px;
-            max-height: 50px;
+        .slot-filled img {
+            max-width: 80px;
+            max-height: 40px;
             object-fit: contain;
+            cursor: grab; /* Indicates drag */
+            border: 1px dashed transparent;
         }
-        html[data-theme="dark"] .saved-signature img {
+        .slot-filled img:hover {
+            border-color: var(--primary-indigo);
+        }
+        html[data-theme="dark"] .slot-filled img {
             filter: invert(1);
+        }
+        .slot-actions {
+             display: flex;
+             gap: 0.25rem;
+        }
+        .icon-btn {
+            background: none;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 4px;
+            color: var(--text-light);
+            transition: all 0.2s;
+        }
+        .icon-btn:hover {
+            border-color: var(--primary-indigo);
+            color: var(--primary-indigo);
+        }
+        .icon-btn.add-btn {
+            width: 100%;
+            padding: 0.5rem;
+            border-style: dashed;
+        }
+        .icon-btn.add-btn:hover {
+            background-color: var(--drop-zone-hover-bg);
+        }
+
+        /* Undo/Redo Controls */
+        #undo-redo-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            justify-content: flex-end;
         }
         
         .placed-signature {
