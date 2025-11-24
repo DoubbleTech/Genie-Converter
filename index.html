@@ -11,11 +11,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Caveat&family=Pacifico&family=Kalam&display=swap" rel="stylesheet">
     
-    <!-- Google Analytics & Search Console Placeholder -->
-    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=YOUR_GA_ID"></script> -->
-    <!-- <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'YOUR_GA_ID'); </script> -->
-    <!-- <meta name="google-site-verification" content="YOUR_CONSOLE_VERIFICATION_CODE" /> -->
-
     <style>
         :root {
             --primary-indigo: #4f46e5;
@@ -76,6 +71,7 @@
 
         html {
             scroll-behavior: smooth;
+            scroll-padding-top: 100px; /* Ensures content isn't hidden behind sticky header when scrolling */
         }
         
         @keyframes subtleGradient {
@@ -469,9 +465,74 @@
             height: 72px; /* Increased from 60px */
         }
 
+        /* --- INFO SECTIONS (About & Contact) --- */
+        .info-section {
+            margin-top: 4rem;
+            text-align: center;
+            padding: 2rem 0;
+            border-top: 1px solid var(--header-border);
+            scroll-margin-top: 100px; /* Backup for browsers ignoring html padding */
+        }
+        .info-content {
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--text-light);
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+        .lead-text {
+            font-size: 1.25rem;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+        }
+        .contact-grid {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+        .contact-card {
+            background-color: var(--card-background);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--header-border);
+            width: 300px;
+            text-align: center;
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .contact-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-indigo);
+            box-shadow: var(--card-hover-shadow);
+        }
+        .contact-card svg {
+            width: 48px;
+            height: 48px;
+            color: var(--primary-indigo);
+            margin-bottom: 1rem;
+        }
+        .contact-card h3 {
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+        .contact-card a {
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: color 0.2s;
+        }
+        .contact-card a:hover {
+            color: var(--primary-indigo);
+        }
+
         footer {
             padding: 3rem 0;
-            margin-top: 4rem;
             background: transparent;
             text-align: center;
         }
@@ -2020,10 +2081,9 @@
                 <a href="#" class="logo">GenieConverter</a>
                 <nav>
                     <ul class="nav-links">
-                        <li><a href="#">Home</a></li>
                         <li><a href="#tools-grid">All Tools</a></li>
-                        <li><a href="#">About Us</a></li>
-                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#about-us">About Us</a></li>
+                        <li><a href="#contact-us">Contact Us</a></li>
                     </ul>
                 </nav>
             </div>
@@ -2049,7 +2109,7 @@
         
         <section class="hero">
             <h1 class="main-title">Every File Tool You Need, In One Place</h1>
-            <p class="main-subtitle">Securely merge, split, compress, and convert your files directly in your browser. No uploads required, ensuring your data remains private.</p>
+            <p class="main-subtitle">Securely merge, split, compress, and convert, and edit your files directly in your browser. No uploads required, ensuring your data remains private.</p>
         </section>
 
         <section class="search-and-filter">
@@ -2078,6 +2138,30 @@
                 <!-- Tools will be rendered here by JavaScript -->
             </div>
         </div>
+
+        <section id="about-us" class="info-section">
+            <h2 class="category-title">About Us</h2>
+            <div class="info-content">
+                <p class="lead-text">This web application is a proud product of <strong><a href="https://doubbletech.com" target="_blank" style="text-decoration: none; color: inherit;">Doubble Tech</a></strong>.</p>
+                <p>Doubble Tech is a leading innovator in digital solutions, committed to creating intuitive, high-performance software that simplifies complex tasks. We believe in the power of technology to enhance productivity and user experience, delivering secure and efficient tools for the modern web.</p>
+            </div>
+        </section>
+
+        <section id="contact-us" class="info-section">
+            <h2 class="category-title">Contact Us</h2>
+            <div class="contact-grid">
+                <div class="contact-card">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    <h3>Email Us</h3>
+                    <a href="mailto:info@genieConverter.com">info@genieConverter.com</a>
+                </div>
+                <div class="contact-card">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    <h3>Call Us</h3>
+                    <a href="tel:+966571986405">+966 57 198 6405</a>
+                </div>
+            </div>
+        </section>
     </main>
 
     <footer>
@@ -2086,7 +2170,7 @@
                 <a href="#">Privacy Policy</a>
                 <a href="#">Terms of Service</a>
             </div>
-            <p>Designed and maintained by <a href="https://your-link.com" target="_blank">Doubble Tech</a>.</p>
+            <p>Designed and maintained by <a href="https://doubbletech.com" target="_blank">Doubble Tech</a>.</p>
         </div>
     </footer>
     
