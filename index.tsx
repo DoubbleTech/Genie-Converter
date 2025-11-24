@@ -521,7 +521,7 @@ const openToolModal = (tool: Tool) => {
         DOMElements.processBtnContainer.style.display = 'block';
         DOMElements.initialView.style.display = 'flex';
         DOMElements.fileInput.accept = tool.accept;
-        const isMultiple = ['merge-pdf', 'organize-pdf', 'sign-pdf', 'stamp-pdf', 'image-to-pdf', 'image-to-gif'].includes(tool.id);
+        const isMultiple = ['merge-pdf', 'organize-pdf', 'sign-pdf', 'stamp-pdf', 'watermark', 'image-to-pdf', 'image-to-gif'].includes(tool.id);
         DOMElements.fileInput.multiple = isMultiple;
         (getElement('.drop-text')).textContent = isMultiple ? 'or drop files here' : 'or drop file here';
         (getElement<HTMLButtonElement>('#select-file-btn')).textContent = isMultiple ? 'Select Files' : 'Select File';
@@ -580,8 +580,8 @@ const handleFilesSelected = async (files: FileList | File[]) => {
 
     if (currentTool?.id === 'sign-pdf') {
         await showSignatureUI(filesArray, 'sign');
-    } else if (currentTool?.id === 'stamp-pdf') {
-        await showSignatureUI(filesArray, 'stamp'); // Reusing Signature UI logic for Stamps
+    } else if (currentTool?.id === 'stamp-pdf' || currentTool?.id === 'watermark') {
+        await showSignatureUI(filesArray, currentTool.id === 'watermark' ? 'watermark' : 'stamp'); // Reuse logic for Stamp/Watermark
     } else if (currentTool?.id === 'organize-pdf') {
         await showOrganizeUI(filesArray);
     } else {
@@ -650,7 +650,7 @@ const renderTextToSpeechUI = () => {
 };
 
 // Consolidated UI for Sign PDF and Stamp PDF
-const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' = 'sign') => {
+const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' | 'watermark' = 'sign') => {
     currentFiles = files;
     DOMElements.initialView.style.display = 'none';
     DOMElements.optionsView.className = mode === 'sign' ? 'sign-mode' : 'stamp-mode';
@@ -793,8 +793,8 @@ const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' = 'sign') =
         container.innerHTML = '';
 
         const createSlotUI = (type: 'draw' | 'type' | 'upload', title: string) => {
-            // For Stamp mode, we skip "Draw"
-            if (mode === 'stamp' && type === 'draw') return;
+            // For Stamp/Watermark mode, we skip "Draw"
+            if ((mode === 'stamp' || mode === 'watermark') && type === 'draw') return;
 
             const slot = document.createElement('div');
             slot.className = 'signature-slot';
@@ -849,10 +849,11 @@ const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' = 'sign') =
     };
 
     // --- UI SETUP ---
+    const toolTitle = mode === 'sign' ? 'Create Signature' : mode === 'stamp' ? 'Create Stamp' : 'Create Watermark';
     const sidebarHTML = `
         <div id="signature-creator" style="flex-grow: 1; display: flex; flex-direction: column;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h4>${mode === 'sign' ? 'Create Signature' : 'Create Stamp'}</h4>
+                <h4>${toolTitle}</h4>
                 <div id="undo-redo-controls">
                     <button id="undo-btn" class="icon-btn" title="Undo" disabled>${ICONS['undo']}</button>
                     <button id="redo-btn" class="icon-btn" title="Redo" disabled>${ICONS['redo']}</button>
@@ -860,7 +861,7 @@ const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' = 'sign') =
             </div>
             <div class="signature-tabs">
                 ${mode === 'sign' ? '<button class="signature-tab-btn active" data-tab="draw">Draw</button>' : ''}
-                <button class="signature-tab-btn ${mode === 'stamp' ? 'active' : ''}" data-tab="type">Type</button>
+                <button class="signature-tab-btn ${mode !== 'sign' ? 'active' : ''}" data-tab="type">Type</button>
                 <button class="signature-tab-btn" data-tab="upload">Upload</button>
             </div>
             
@@ -877,8 +878,8 @@ const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' = 'sign') =
                 </div>
             </div>` : ''}
 
-            <div id="signature-tab-content-type" class="signature-tab-content ${mode === 'stamp' ? 'active' : ''}">
-                <input type="text" id="typed-signature-input" class="option-group" placeholder="${mode === 'sign' ? 'Type your name' : 'e.g. APPROVED'}">
+            <div id="signature-tab-content-type" class="signature-tab-content ${mode !== 'sign' ? 'active' : ''}">
+                <input type="text" id="typed-signature-input" class="option-group" placeholder="${mode === 'sign' ? 'Type your name' : mode === 'watermark' ? 'e.g. DRAFT' : 'e.g. APPROVED'}">
                 <div class="option-group">
                     <label for="signature-color-type">Color</label>
                     <input type="color" id="signature-color-type" value="${signatureColor}">
@@ -906,12 +907,12 @@ const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' = 'sign') =
                  <input type="file" id="signature-upload-input" hidden accept="image/png, image/jpeg">
             </div>
             <div id="signature-palette">
-                <h4 style="margin-top: 1rem;">Your ${mode === 'sign' ? 'Signatures' : 'Stamps'}</h4>
+                <h4 style="margin-top: 1rem;">Your ${mode === 'sign' ? 'Signatures' : mode === 'stamp' ? 'Stamps' : 'Watermarks'}</h4>
                 <div id="signature-palette-slots"></div>
             </div>
             <div id="signature-instructions" class="placeholder-text" style="margin-top: 1rem;">Drag from palette to document.</div>
             <div id="selected-signature-editor" class="option-group" style="display: none; margin-top: 1rem; border-top: 1px solid var(--input-border); padding-top: 1rem;">
-                <h4>Edit Placed ${mode === 'sign' ? 'Signature' : 'Stamp'}</h4>
+                <h4>Edit Placed ${mode === 'sign' ? 'Signature' : mode === 'stamp' ? 'Stamp' : 'Watermark'}</h4>
                 <label for="signature-opacity">Opacity</label>
                 <div class="slider-container">
                     <input type="range" id="signature-opacity" min="0.1" max="1" step="0.1" value="1">
@@ -1031,7 +1032,8 @@ const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' = 'sign') =
     const previews = document.querySelectorAll<HTMLElement>('.typed-signature-preview');
 
     const updateTypedPreviews = () => {
-        const text = typedInput.value || (mode === 'sign' ? 'Your Name' : 'SAMPLE');
+        const defaultText = mode === 'sign' ? 'Your Name' : mode === 'watermark' ? 'DRAFT' : 'SAMPLE';
+        const text = typedInput.value || defaultText;
         const color = colorTypeInput.value;
         const size = parseInt(fontSizeSlider.value);
         fontSizeValue.textContent = `${size}px`;
@@ -1052,11 +1054,12 @@ const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' = 'sign') =
     
     previews.forEach(p => {
         p.addEventListener('click', () => {
-            const text = typedInput.value || (mode === 'sign' ? 'Your Name' : 'SAMPLE');
+            const defaultText = mode === 'sign' ? 'Your Name' : mode === 'watermark' ? 'DRAFT' : 'SAMPLE';
+            const text = typedInput.value || defaultText;
             const font = p.dataset.font!;
             const color = colorTypeInput.value;
             const size = parseInt(fontSizeSlider.value);
-            const imgSrc = textToImage(text, font, color, size, mode === 'stamp');
+            const imgSrc = textToImage(text, font, color, size, mode !== 'sign');
             signatureSlots.type = imgSrc;
             renderSignaturePalette();
             updateInstructionText(`Typed ${mode} saved! Drag it from the palette to the document.`);
@@ -1149,7 +1152,7 @@ const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' = 'sign') =
         signatureEl.querySelector<HTMLButtonElement>('.delete-signature-btn')!.onclick = (event) => {
             event.stopPropagation();
             removePlacedSignature();
-            updateInstructionText(`${mode === 'sign' ? 'Signature' : 'Stamp'} removed.`);
+            updateInstructionText(`${mode === 'sign' ? 'Signature' : mode === 'stamp' ? 'Stamp' : 'Watermark'} removed.`);
         };
         container.appendChild(signatureEl);
     };
@@ -1179,7 +1182,7 @@ const showSignatureUI = async (files: File[], mode: 'sign' | 'stamp' = 'sign') =
             renderPlacedSignatureElement(newSigState, pageContainer);
             placedSignature = newSigState;
             addToHistory();
-            updateInstructionText(`${mode === 'sign' ? 'Signature' : 'Stamp'} placed! Drag to move, resize, or undo.`);
+            updateInstructionText(`${mode === 'sign' ? 'Signature' : mode === 'stamp' ? 'Stamp' : 'Watermark'} placed! Drag to move, resize, or undo.`);
         };
         img.src = src;
     };
@@ -1818,9 +1821,13 @@ const processSignPdf = async (files: File[], placedSignatures: any[], updateProg
         });
     }
 
-    updateProgress(95, 'Saving signed document...');
+    updateProgress(95, 'Saving document...');
     const signedPdfBytes = await mergedPdfDoc.save();
-    return [{ filename: currentTool?.id === 'stamp-pdf' ? 'stamped_document.pdf' : 'signed_document.pdf', blob: new Blob([signedPdfBytes], { type: 'application/pdf' }) }];
+    let filename = 'signed_document.pdf';
+    if (currentTool?.id === 'stamp-pdf') filename = 'stamped_document.pdf';
+    else if (currentTool?.id === 'watermark') filename = 'watermarked_document.pdf';
+
+    return [{ filename: filename, blob: new Blob([signedPdfBytes], { type: 'application/pdf' }) }];
 };
 
 const processProtectPdf = async (files: File[], updateProgress: (p: number, t: string) => void) => {
@@ -1914,7 +1921,7 @@ const startProcessing = async () => {
     const toolId = currentTool?.id;
     if (!toolId) return;
     
-    if ((toolId === 'sign-pdf' || toolId === 'stamp-pdf') && signatureKeydownHandler) {
+    if ((toolId === 'sign-pdf' || toolId === 'stamp-pdf' || toolId === 'watermark') && signatureKeydownHandler) {
         document.removeEventListener('keydown', signatureKeydownHandler);
         signatureKeydownHandler = null;
     }
@@ -1945,7 +1952,7 @@ const startProcessing = async () => {
             );
             const pagesWithDocs = pageData.map((p: any) => ({ ...p, doc: docs[p.fileIndex] }));
             downloads = await processOrganizePdf(pagesWithDocs, updateProgress);
-        } else if (toolId === 'sign-pdf' || toolId === 'stamp-pdf') {
+        } else if (toolId === 'sign-pdf' || toolId === 'stamp-pdf' || toolId === 'watermark') {
             const placedSignatures = JSON.parse(DOMElements.optionsView.dataset.placedSignatures!);
             downloads = await processSignPdf(currentFiles, placedSignatures, updateProgress);
         } else if (toolId === 'text-to-speech') {
