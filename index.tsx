@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Modality, LiveServerMessage, Blob as GenAIBlob } from "@google/genai";
 
 // --- ICON DEFINITIONS ---
@@ -69,7 +68,7 @@ const ICONS = {
     // File Type Icons
     'file-pdf': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm-2 16c-2.05 0-3.81-1.24-4.58-3h1.71c.63.9 1.68 1.5 2.87 1.5 1.93 0 3.5-1.57 3.5-3.5S13.93 9.5 12 9.5c-1.18 0-2.24.6-2.87 1.5H7.42c.77-1.76 2.53-3 4.58-3 2.76 0 5 2.24 5 5s-2.24 5-5 5zm-3-4.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5-1.5.67-1.5 1.5z"/></svg>`,
     'file-doc': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 12H9v2h4v-2zm3-4H9v2h7V10zm-2-4H9v2h5V6z"/></svg>`,
-    'file-xls': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM9.91 17.42l-1.41-1.41 1.06-1.06-1.06-1.06-1.41 1.41-1.06-1.06 1.41-1.41 1.06-1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06zM15 18h-3v-2h3v2zm0-4h-3v-2h3v2zm0-4h-3V8h3v2z"/></svg>`,
+    'file-xls': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM9.91 17.42l-1.41-1.41 1.06-1.06-1.06-1.06-1.41 1.41-1.06-1.06 1.41-1.41 1.06-1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06zM15 18h-3v-2h3v2zm0-4h-3v-2h3v2zm0-4h-3V8h3v2z"/></svg>`,
     'file-ppt': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 9H8v2h5v4H8v2h5c1.1 0 2-.9 2-2v-1.5c0-1.38-1.12-2.5-2.5-2.5S13 12.12 13 13.5V11z"/></svg>`,
     'file-img': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6v-2h12v2zm0-4H6v-2h12v2zm-4.32-2.68-2.36-3.14-2.82 3.52H6l4.09-5.11 2.54 3.39z"/></svg>`,
     'file-audio': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM10 18c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm4-3H8V7h6v2z"/></svg>`,
@@ -372,6 +371,51 @@ const base64ToBlob = (base64: string, contentType: string = 'image/png'): Blob =
     }
     const byteArray = new Uint8Array(byteNumbers);
     return new Blob([byteArray], { type: contentType });
+};
+
+// WAV Header Helper Function
+const writeString = (view: DataView, offset: number, string: string) => {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+    }
+};
+
+const createWavBlob = (audioData: Uint8Array, sampleRate: number = 24000): Blob => {
+    const buffer = new ArrayBuffer(44 + audioData.length);
+    const view = new DataView(buffer);
+
+    // RIFF identifier
+    writeString(view, 0, 'RIFF');
+    // file length
+    view.setUint32(4, 36 + audioData.length, true);
+    // RIFF type
+    writeString(view, 8, 'WAVE');
+    // format chunk identifier
+    writeString(view, 12, 'fmt ');
+    // format chunk length
+    view.setUint32(16, 16, true);
+    // sample format (raw)
+    view.setUint16(20, 1, true);
+    // channel count
+    view.setUint16(22, 1, true);
+    // sample rate
+    view.setUint32(24, sampleRate, true);
+    // byte rate (sample rate * block align)
+    view.setUint32(28, sampleRate * 2, true);
+    // block align (channel count * bytes per sample)
+    view.setUint16(32, 2, true);
+    // bits per sample
+    view.setUint16(34, 16, true);
+    // data chunk identifier
+    writeString(view, 36, 'data');
+    // data chunk length
+    view.setUint32(40, audioData.length, true);
+
+    // Write the audio data
+    const bytes = new Uint8Array(buffer, 44);
+    bytes.set(audioData);
+
+    return new Blob([buffer], { type: 'audio/wav' });
 };
 
 const getFileTypeIcon = (file: File): string => {
@@ -749,8 +793,8 @@ const renderTextToSpeechUI = () => {
                 </select>
             </div>
         </div>
-        <div class="process-btn-container" style="margin-top: 1rem;">
-             <button id="process-btn-tts" class="btn-primary">Convert to Audio</button>
+        <div class="tts-btn-container" style="margin-top: 1rem;">
+             <button id="process-btn-tts" class="btn-primary">Let Genie Process</button>
         </div>
     `;
 
@@ -1621,10 +1665,27 @@ const showCompleteUI = (downloads: { filename: string; blob: Blob }[]) => {
 
     DOMElements.downloadArea.innerHTML = '';
 
+    // Add Audio Player for TTS or Audio tools
+    const isAudioTool = currentTool?.id === 'text-to-speech' || currentTool?.id === 'trim-audio' || currentTool?.id.includes('audio');
+    let audioPreviewHTML = '';
+    
+    if (isAudioTool && downloads.length === 1 && downloads[0].blob.type.startsWith('audio/')) {
+        const audioUrl = URL.createObjectURL(downloads[0].blob);
+        audioPreviewHTML = `
+            <div style="width: 100%; max-width: 400px; margin: 0 auto 1.5rem auto;">
+                <audio controls style="width: 100%;">
+                    <source src="${audioUrl}" type="${downloads[0].blob.type}">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        `;
+    }
+
     if (downloads.length === 1) {
         const download = downloads[0];
         const url = URL.createObjectURL(download.blob);
         DOMElements.downloadArea.innerHTML = `
+            ${audioPreviewHTML}
             <div class="download-actions">
                 <a href="${url}" download="${download.filename}" class="download-btn">Download File</a>
                 <button id="start-over-complete" class="btn-secondary">Start Over</button>
@@ -1632,6 +1693,7 @@ const showCompleteUI = (downloads: { filename: string; blob: Blob }[]) => {
         `;
     } else {
         DOMElements.downloadArea.innerHTML = `
+            ${audioPreviewHTML}
             <div class="download-actions">
                 <button id="download-all-zip" class="download-btn">Download All (.zip)</button>
                 <button id="start-over-complete" class="btn-secondary">Start Over</button>
@@ -1870,15 +1932,11 @@ const processTextToSpeech = async (updateProgress: (p: number, t: string) => voi
     if (!base64Audio) throw new Error("No audio generated.");
 
     const audioBytes = decode(base64Audio);
-    const blob = new Blob([audioBytes], { type: 'audio/mp3' }); // Gemini TTS output is typically raw or encoded, wrapping as blob for download
     
-    // Note: The raw output might need a proper wav header or be pcm. 
-    // For simplicity in this demo without complex wav encoders, we download the raw blob 
-    // or assume the browser can handle it or use a container format if the API provided one. 
-    // The API returns raw PCM usually. We might need to wrap it.
-    // However, sticking to the prompt's request for a file download:
+    // Convert raw PCM data to WAV
+    const wavBlob = createWavBlob(audioBytes);
     
-    return [{ filename: 'generated_speech.mp3', blob: blob }];
+    return [{ filename: 'generated_speech.wav', blob: wavBlob }];
 };
 
 
