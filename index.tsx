@@ -68,7 +68,7 @@ const ICONS = {
     // File Type Icons
     'file-pdf': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm-2 16c-2.05 0-3.81-1.24-4.58-3h1.71c.63.9 1.68 1.5 2.87 1.5 1.93 0 3.5-1.57 3.5-3.5S13.93 9.5 12 9.5c-1.18 0-2.24.6-2.87 1.5H7.42c.77-1.76 2.53-3 4.58-3 2.76 0 5 2.24 5 5s-2.24 5-5 5zm-3-4.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5-1.5.67-1.5 1.5z"/></svg>`,
     'file-doc': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 12H9v2h4v-2zm3-4H9v2h7V10zm-2-4H9v2h5V6z"/></svg>`,
-    'file-xls': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM9.91 17.42l-1.41-1.41 1.06-1.06-1.06-1.06-1.41 1.41-1.06-1.06 1.41-1.41 1.06-1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06zM15 18h-3v-2h3v2zm0-4h-3v-2h3v2zm0-4h-3V8h3v2z"/></svg>`,
+    'file-xls': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM9.91 17.42l-1.41-1.41 1.06-1.06-1.06-1.06-1.41 1.41-1.06-1.06 1.41-1.41 1.06-1.06-1.41-1.41 1.06 1.06-1.41-1.41 1.06 1.06zM15 18h-3v-2h3v2zm0-4h-3v-2h3v2zm0-4h-3V8h3v2z"/></svg>`,
     'file-ppt': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 9H8v2h5v4H8v2h5c1.1 0 2-.9 2-2v-1.5c0-1.38-1.12-2.5-2.5-2.5S13 12.12 13 13.5V11z"/></svg>`,
     'file-img': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6v-2h12v2zm0-4H6v-2h12v2zm-4.32-2.68-2.36-3.14-2.82 3.52H6l4.09-5.11 2.54 3.39z"/></svg>`,
     'file-audio': `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM10 18c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm4-3H8V7h6v2z"/></svg>`,
@@ -124,14 +124,18 @@ let sttFileProcessingController: AbortController | null = null;
 // --- API INITIALIZATION ---
 let ai: GoogleGenAI | null = null;
 try {
-    if (!process.env.API_KEY) {
-        throw new Error("API_KEY environment variable not found.");
+    // Check if process is defined (to avoid ReferenceError in browser) and if API_KEY exists
+    // @ts-ignore
+    const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : null;
+    
+    if (!apiKey) {
+        console.warn("API_KEY environment variable not found. AI tools will fail if used.");
+    } else {
+        ai = new GoogleGenAI({ apiKey: apiKey });
     }
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 } catch (error) {
     console.warn(
-        "AI services could not be initialized. AI-powered tools will be disabled. " +
-        "This is expected if an API key is not provided in the environment configuration.",
+        "AI services could not be initialized.",
         error
     );
 }
@@ -195,19 +199,6 @@ const TOOLS: Record<string, Tool> = {
     'speech-to-text-hi-IN': { id: 'speech-to-text-hi-IN', title: 'Speech to Text Hindi', subtitle: 'Transcribe Hindi audio to text', icon: ICONS['flag-in'], accept: 'audio/*', isFileTool: false, language: 'hi-IN' },
     'speech-to-text-ur-PK': { id: 'speech-to-text-ur-PK', title: 'Speech to Text Urdu', subtitle: 'Transcribe Urdu audio to text', icon: ICONS['flag-pk'], accept: 'audio/*', isFileTool: false, language: 'ur-PK' },
 };
-
-// Gracefully disable AI tools if the API key is missing
-if (!ai) {
-    const aiToolIds = Object.keys(TOOLS).filter(id => 
-        id === 'background-remover' || id.startsWith('speech-to-text-') || id === 'text-to-speech'
-    );
-    aiToolIds.forEach(id => {
-        if (TOOLS[id]) {
-            TOOLS[id].isComingSoon = true;
-            TOOLS[id].subtitle = 'AI service unavailable. Configure API key.';
-        }
-    });
-}
 
 const CATEGORIES: Category[] = [
     { title: 'PDF Tools', tools: ['merge-pdf', 'split-pdf', 'compress-pdf', 'organize-pdf', 'sign-pdf', 'stamp-pdf', 'watermark', 'rotate-pdf', 'page-numbers', 'protect-pdf', 'unlock-pdf', 'ocr-pdf', 'pdfa'] },
@@ -1890,7 +1881,7 @@ function decode(base64: string) {
 
 const processTextToSpeech = async (updateProgress: (p: number, t: string) => void) => {
     updateProgress(10, 'Initializing AI service...');
-    if (!ai) throw new Error("AI Service unavailable.");
+    if (!ai) throw new Error("API Key not configured. Please add your Google Gemini API Key to the environment variables on your server.");
     
     const text = getElement<HTMLTextAreaElement>('#tts-text-input').value;
     const voiceType = getElement<HTMLSelectElement>('#tts-voice').value;
