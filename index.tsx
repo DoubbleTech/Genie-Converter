@@ -4,6 +4,40 @@ const COLORS = {
     red: "#ef4444", orange: "#f97316", amber: "#f59e0b", green: "#10b981", blue: "#0ea5e9", indigo: "#6366f1", violet: "#8b5cf6", pink: "#ec4899", rose: "#f43f5e", cyan: "#06b6d4", teal: "#14b8a6"
 };
 
+/** 
+ * Robust WAV encoder for PCM data
+ * Gemini TTS returns 24000Hz mono 16-bit PCM (Linear PCM)
+ */
+function encodeWAV(samples: Uint8Array, sampleRate: number = 24000) {
+    const buffer = new ArrayBuffer(44 + samples.length);
+    const view = new DataView(buffer);
+    
+    const writeString = (offset: number, string: string) => {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM Format
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // Byte Rate
+    view.setUint16(32, 2, true); // Block Align
+    view.setUint16(34, 16, true); // Bits per Sample
+    writeString(36, 'data');
+    view.setUint32(40, samples.length, true);
+    
+    const sampleArray = new Uint8Array(buffer, 44);
+    sampleArray.set(samples);
+    
+    return buffer;
+}
+
 const getIcon = (type: string, color: string) => {
     const glyphs: Record<string, string> = {
         merge: `<path d="M40 20v-4h-4v4h-4v4h4v4h4v-4h4v-4zM22 14h12v6h-6a4 4 0 01-4-4zm-4 32V16a4 4 0 014-4h14l10 10v22a4 4 0 01-4 4z"/>`,
@@ -25,7 +59,6 @@ const getIcon = (type: string, color: string) => {
 };
 
 const TOOLS_LIST = [
-    // Preserved Tools
     { id: 'merge-pdf', title: 'Merge PDF', cat: 'PDF Core', icon: getIcon('merge', COLORS.rose) },
     { id: 'split-pdf', title: 'Split PDF', cat: 'PDF Core', icon: getIcon('split', COLORS.amber) },
     { id: 'compress-pdf', title: 'Compress PDF', cat: 'Optimization', icon: getIcon('merge', COLORS.green) },
@@ -38,8 +71,6 @@ const TOOLS_LIST = [
     { id: 'protect-pdf', title: 'Protect PDF', cat: 'Security', icon: getIcon('lock', COLORS.indigo) },
     { id: 'unlock-pdf', title: 'Unlock PDF', cat: 'Security', icon: getIcon('lock', COLORS.blue) },
     { id: 'rotate-pdf', title: 'Rotate PDF', cat: 'Edit', icon: getIcon('rotate', COLORS.orange) },
-
-    // New Tools
     { id: 'add-page-numbers', title: 'Add Page Numbers', cat: 'PDF Core', icon: getIcon('number', COLORS.blue) },
     { id: 'organize-pdf', title: 'Organize PDF', cat: 'Edit', icon: getIcon('organize', COLORS.indigo) },
     { id: 'stamp-pdf', title: 'Stamp PDF', cat: 'Security', icon: getIcon('sign', COLORS.rose) },
@@ -49,17 +80,14 @@ const TOOLS_LIST = [
     { id: 'ppt-to-pdf', title: 'PowerPoint to PDF', cat: 'Convert', icon: getIcon('word', COLORS.rose) },
     { id: 'excel-to-pdf', title: 'Excel to PDF', cat: 'Convert', icon: getIcon('excel', COLORS.green) },
     { id: 'html-to-pdf', title: 'HTML to PDF', cat: 'Convert', icon: getIcon('word', COLORS.blue) },
-    
     { id: 'resize-image', title: 'Resize Image', cat: 'Images', icon: getIcon('image', COLORS.violet) },
     { id: 'jpg-to-png', title: 'JPG to PNG', cat: 'Images', icon: getIcon('image', COLORS.pink) },
     { id: 'png-to-jpg', title: 'PNG to JPG', cat: 'Images', icon: getIcon('image', COLORS.teal) },
     { id: 'image-to-gif', title: 'Image to GIF', cat: 'Images', icon: getIcon('image', COLORS.amber) },
-    
     { id: 'convert-video', title: 'Convert Video', cat: 'Media', icon: getIcon('video', COLORS.indigo) },
     { id: 'mp4-to-gif', title: 'MP4 to GIF', cat: 'Media', icon: getIcon('video', COLORS.orange) },
     { id: 'wav-to-mp3', title: 'WAV to MP3', cat: 'Media', icon: getIcon('audio', COLORS.pink) },
     { id: 'trim-audio', title: 'Trim Audio', cat: 'Media', icon: getIcon('audio', COLORS.teal) },
-
     { id: 'translate-text', title: 'AI Translator', cat: 'AI Powered', icon: getIcon('translate', COLORS.violet) },
     { id: 'speech-to-text', title: 'Speech to Text', cat: 'AI Powered', icon: getIcon('audio', COLORS.indigo) },
     { id: 'text-to-speech', title: 'Text to Speech', cat: 'AI Powered', icon: getIcon('audio', COLORS.rose) },
@@ -72,18 +100,6 @@ let splitDeletedPages: number[] = [];
 let signatureImage: string | null = null;
 let signaturePos = { x: 50, y: 50 };
 let previewDimensions = { width: 0, height: 0 };
-let splitMode: 'range' | 'extract' = 'range';
-let splitRangeValue: string = "1-end";
-
-// New Tool States
-let translationText: string = "";
-let targetLanguage: string = "French";
-let ttsVoice: string = "Zephyr";
-let ttsGender: string = "Adult";
-let watermarkText: string = "GENIE CONVERTER";
-let watermarkOpacity: number = 0.5;
-let resizeWidth: number = 800;
-let resizeHeight: number = 600;
 
 const loadPdfJs = async () => {
     if ((window as any).pdfjsLib) return (window as any).pdfjsLib;
@@ -124,6 +140,25 @@ function renderDashboard() {
     });
 }
 
+function updateProcessButton() {
+    const btn = document.getElementById('process-btn') as HTMLButtonElement;
+    if (!btn) return;
+    
+    const isTextTool = ['translate-text', 'text-to-speech'].includes(currentTool?.id);
+    let hasInput = currentFiles.length > 0;
+    
+    if (isTextTool) {
+        const inputId = currentTool.id === 'translate-text' ? 'trans-input' : 'tts-input';
+        const textIn = (document.getElementById(inputId) as HTMLTextAreaElement)?.value;
+        hasInput = (textIn && textIn.trim().length > 0) || currentFiles.length > 0;
+    }
+    
+    btn.disabled = !hasInput;
+    btn.style.opacity = btn.disabled ? "0.4" : "1";
+    btn.style.cursor = btn.disabled ? "not-allowed" : "pointer";
+    btn.style.filter = btn.disabled ? "grayscale(1)" : "none";
+}
+
 function openWorkspace(tool: any) {
     currentTool = tool;
     currentFiles = [];
@@ -136,12 +171,12 @@ function openWorkspace(tool: any) {
     const fileInput = document.getElementById('file-input') as HTMLInputElement;
     fileInput.multiple = (tool.id === 'merge-pdf' || tool.id === 'organize-pdf');
     
-    // Auto-select files if it's a text-based tool
     if (tool.id === 'translate-text' || tool.id === 'text-to-speech') {
         document.getElementById('modal-initial-view')!.style.display = 'none';
         document.getElementById('modal-options-view')!.style.display = 'flex';
         updateSettingsUI();
     }
+    updateProcessButton();
 }
 
 function resetWorkspaceUI() {
@@ -151,28 +186,27 @@ function resetWorkspaceUI() {
     document.getElementById('sign-draggable')!.style.display = 'none';
     document.getElementById('tool-settings')!.innerHTML = '';
     (document.querySelector('.workspace-sidebar') as HTMLElement).style.display = 'flex';
+    updateProcessButton();
 }
 
 async function handleFiles(files: FileList | null, append = false) {
     if (!files || files.length === 0) return;
     const arr = Array.from(files);
-    
     if (currentTool.id === 'merge-pdf' || currentTool.id === 'organize-pdf') {
         currentFiles = append ? [...currentFiles, ...arr] : arr;
     } else {
         currentFiles = [arr[0]];
     }
-    
     document.getElementById('modal-initial-view')!.style.display = 'none';
     document.getElementById('modal-options-view')!.style.display = 'flex';
     updateSettingsUI();
     renderPreviews();
+    updateProcessButton();
 }
 
 function updateSettingsUI() {
     const settings = document.getElementById('tool-settings')!;
     settings.innerHTML = '';
-    
     switch(currentTool.id) {
         case 'protect-pdf':
             settings.innerHTML = `<label style="font-size:0.7rem;">PASSWORD</label><input type="password" id="pdf-pass" style="width:100%; padding:0.8rem; border:1px solid var(--border-color); border-radius:8px;">`;
@@ -181,9 +215,10 @@ function updateSettingsUI() {
             settings.innerHTML = `
                 <textarea id="trans-input" placeholder="Type text to translate..." style="width:100%; height:120px; padding:0.8rem; border:1px solid var(--border-color); border-radius:8px;"></textarea>
                 <label style="font-size:0.7rem; margin-top:1rem; display:block;">TARGET LANGUAGE</label>
-                <select id="lang-select" style="width:100%; padding:0.8rem; margin-top:0.5rem; border-radius:8px; border:1px solid var(--border-color);">
+                <select id="lang-select" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid var(--border-color);">
                     <option>French</option><option>Italian</option><option>German</option><option>Russian</option><option>Japanese</option><option>Chinese</option><option>Urdu</option><option>Hindi</option><option>Spanish</option>
                 </select>`;
+            document.getElementById('trans-input')?.addEventListener('input', updateProcessButton);
             break;
         case 'text-to-speech':
             settings.innerHTML = `
@@ -196,6 +231,7 @@ function updateSettingsUI() {
                 <select id="age-select" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid var(--border-color);">
                     <option>Adult</option><option>Kid</option><option>Old</option>
                 </select>`;
+            document.getElementById('tts-input')?.addEventListener('input', updateProcessButton);
             break;
         case 'watermark-pdf':
             settings.innerHTML = `
@@ -205,25 +241,8 @@ function updateSettingsUI() {
             break;
         case 'resize-image':
             settings.innerHTML = `
-                <label style="font-size:0.7rem;">WIDTH (PX)</label>
-                <input type="number" id="resize-w" value="800" style="width:100%; padding:0.8rem; border:1px solid var(--border-color); border-radius:8px;">
-                <label style="font-size:0.7rem; margin-top:1rem; display:block;">HEIGHT (PX)</label>
-                <input type="number" id="resize-h" value="600" style="width:100%; padding:0.8rem; border:1px solid var(--border-color); border-radius:8px;">`;
-            break;
-        case 'convert-video':
-            settings.innerHTML = `
-                <label style="font-size:0.7rem;">TARGET FORMAT</label>
-                <select id="video-fmt" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid var(--border-color);">
-                    <option>MP4</option><option>MOV</option><option>AVI</option><option>WMV</option><option>MKV</option><option>WebM</option>
-                </select>
-                <p style="font-size:0.65rem; color:red; margin-top:0.5rem;">* Limit: 100MB</p>`;
-            break;
-        case 'stamp-pdf':
-             settings.innerHTML = `
-                <select id="stamp-type" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid var(--border-color);">
-                    <option>PAID</option><option>RECEIVED</option><option>URGENT</option><option>CUSTOM</option>
-                </select>
-                <input type="text" id="stamp-custom" placeholder="Custom text..." style="width:100%; padding:0.8rem; margin-top:0.5rem; border:1px solid var(--border-color); border-radius:8px;">`;
+                <label style="font-size:0.7rem;">WIDTH (PX)</label><input type="number" id="resize-w" value="800" style="width:100%; padding:0.8rem; border:1px solid var(--border-color); border-radius:8px;">
+                <label style="font-size:0.7rem; margin-top:1rem; display:block;">HEIGHT (PX)</label><input type="number" id="resize-h" value="600" style="width:100%; padding:0.8rem; border:1px solid var(--border-color); border-radius:8px;">`;
             break;
         case 'add-page-numbers':
             settings.innerHTML = `
@@ -232,7 +251,6 @@ function updateSettingsUI() {
                     <option>Page 1</option><option>P1</option><option>P# 1</option><option>1</option>
                 </select>`;
             break;
-        // ... (existing tool cases)
     }
 }
 
@@ -240,47 +258,29 @@ async function renderPreviews() {
     const pane = document.getElementById('preview-pane')!;
     pane.innerHTML = '';
     const pdfjs = await loadPdfJs();
-    
-    const wrapper = document.getElementById('preview-container-wrapper')!;
-    wrapper.style.width = '100%'; wrapper.style.height = 'auto';
-
     if (currentFiles.length === 0) return;
-
     for (let i = 0; i < currentFiles.length; i++) {
         const file = currentFiles[i];
         if (file.type === 'application/pdf') {
             const thumb = await createThumb(file, 1, pdfjs);
             pane.appendChild(wrapThumb(thumb, file.name, () => {
-                currentFiles.splice(i, 1);
-                renderPreviews();
-                if (currentFiles.length === 0) resetWorkspaceUI();
+                currentFiles.splice(i, 1); renderPreviews(); if (currentFiles.length === 0) resetWorkspaceUI();
+                updateProcessButton();
             }));
         } else if (file.type.startsWith('image/')) {
             const img = document.createElement('img');
-            img.src = URL.createObjectURL(file);
-            img.style.maxHeight = '140px';
+            img.src = URL.createObjectURL(file); img.style.maxHeight = '140px';
             pane.appendChild(wrapThumb(img, file.name, () => {
-                currentFiles.splice(i, 1);
-                renderPreviews();
-                if (currentFiles.length === 0) resetWorkspaceUI();
+                currentFiles.splice(i, 1); renderPreviews(); if (currentFiles.length === 0) resetWorkspaceUI();
+                updateProcessButton();
             }));
         } else {
-             const div = document.createElement('div');
-             div.className = 'file-placeholder';
-             div.textContent = file.name.split('.').pop()?.toUpperCase() || 'FILE';
-             pane.appendChild(wrapThumb(div, file.name, () => {
-                currentFiles.splice(i, 1);
-                renderPreviews();
+             const div = document.createElement('div'); div.className = 'file-placeholder'; div.textContent = file.name.split('.').pop()?.toUpperCase() || 'FILE';
+             pane.appendChild(wrapThumb(div, file.name, () => { 
+                 currentFiles.splice(i, 1); renderPreviews(); if (currentFiles.length === 0) resetWorkspaceUI();
+                 updateProcessButton();
              }));
         }
-    }
-
-    if (currentTool.id === 'merge-pdf' || currentTool.id === 'organize-pdf') {
-        const add = document.createElement('div');
-        add.className = 'add-more-thumb'; 
-        add.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg><span>Add files</span>`;
-        add.onclick = () => (document.getElementById('file-input') as HTMLInputElement).click();
-        pane.appendChild(add);
     }
 }
 
@@ -289,8 +289,7 @@ async function createThumb(file: File, pageNum: number, pdfjs: any) {
     const pdf = await pdfjs.getDocument({ data: new Uint8Array(arr) }).promise;
     const page = await pdf.getPage(pageNum);
     const viewport = page.getViewport({ scale: 0.3 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width; canvas.height = viewport.height;
+    const canvas = document.createElement('canvas'); canvas.width = viewport.width; canvas.height = viewport.height;
     await page.render({ canvasContext: canvas.getContext('2d')!, viewport }).promise;
     return canvas;
 }
@@ -309,13 +308,19 @@ async function startProcess() {
     document.getElementById('modal-options-view')!.style.display = 'none';
     (document.querySelector('.workspace-sidebar') as HTMLElement).style.display = 'none';
     document.getElementById('modal-processing-view')!.style.display = 'flex';
-    
     let progress = 0; const bar = document.getElementById('progress-bar')!; const pct = document.getElementById('progress-pct')!;
     const iv = setInterval(() => { 
-        progress += 4; if (progress >= 100) { progress = 100; clearInterval(iv); finishProcess(); } 
+        progress += 5; if (progress >= 100) { progress = 100; clearInterval(iv); finishProcess(); } 
         bar.style.width = progress + '%'; pct.textContent = progress + '%'; 
     }, 100);
 }
+
+const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve((reader.result as string).split(',')[1]);
+    reader.onerror = error => reject(error);
+});
 
 async function finishProcess() {
     const { PDFDocument, StandardFonts, rgb } = await loadPdfLib();
@@ -325,28 +330,6 @@ async function finishProcess() {
 
     try {
         switch(currentTool.id) {
-            case 'merge-pdf':
-            case 'organize-pdf':
-                const mergedPdf = await PDFDocument.create();
-                for (const file of currentFiles) {
-                    const donor = await PDFDocument.load(await file.arrayBuffer());
-                    const pages = await mergedPdf.copyPages(donor, donor.getPageIndices());
-                    pages.forEach(p => mergedPdf.addPage(p));
-                }
-                resultBlob = new Blob([await mergedPdf.save()], { type: 'application/pdf' });
-                break;
-            
-            case 'add-page-numbers':
-                const numDoc = await PDFDocument.load(await currentFiles[0].arrayBuffer());
-                const font = await numDoc.embedFont(StandardFonts.Helvetica);
-                const format = (document.getElementById('num-fmt') as HTMLSelectElement).value;
-                numDoc.getPages().forEach((p, i) => {
-                    const label = format.replace('1', (i+1).toString());
-                    p.drawText(label, { x: p.getWidth() / 2, y: 20, size: 10, font });
-                });
-                resultBlob = new Blob([await numDoc.save()], { type: 'application/pdf' });
-                break;
-
             case 'text-to-speech':
                 const ttsIn = (document.getElementById('tts-input') as HTMLTextAreaElement).value;
                 const voice = (document.getElementById('voice-select') as HTMLSelectElement).value;
@@ -356,8 +339,32 @@ async function finishProcess() {
                     config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } }
                 });
                 const audioB64 = resTts.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-                resultBlob = new Blob([Uint8Array.from(atob(audioB64!), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
-                finalExt = 'mp3';
+                if (audioB64) {
+                    const rawPcm = Uint8Array.from(atob(audioB64), c => c.charCodeAt(0));
+                    const wavBuffer = encodeWAV(rawPcm, 24000);
+                    resultBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+                    finalExt = 'wav';
+                }
+                break;
+
+            case 'speech-to-text':
+                const audioB64In = await fileToBase64(currentFiles[0]);
+                const resStt = await ai.models.generateContent({
+                    model: 'gemini-3-flash-preview',
+                    contents: [{ parts: [{ inlineData: { data: audioB64In, mimeType: currentFiles[0].type } }, { text: "Transcribe this audio file into text. Return ONLY the transcription text as response." }] }]
+                });
+                resultBlob = new Blob([resStt.text || "No speech detected."], { type: 'text/plain' });
+                finalExt = 'txt';
+                break;
+
+            case 'ocr-pdf':
+                const ocrB64 = await fileToBase64(currentFiles[0]);
+                const resOcr = await ai.models.generateContent({
+                    model: 'gemini-3-flash-preview',
+                    contents: [{ parts: [{ inlineData: { data: ocrB64, mimeType: 'application/pdf' } }, { text: "Extract all text from this PDF and format it as clean, editable content. Prepare it for a Word document." }] }]
+                });
+                resultBlob = new Blob([resOcr.text || "OCR failed."], { type: 'application/msword' });
+                finalExt = 'doc';
                 break;
 
             case 'translate-text':
@@ -368,35 +375,21 @@ async function finishProcess() {
                     contents: `Translate this text to ${lang}: "${transIn}"`,
                     config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { translated: { type: Type.STRING } } } }
                 });
-                const translated = JSON.parse(resTrans.text!).translated;
-                resultBlob = new Blob([translated], { type: 'text/plain' });
+                resultBlob = new Blob([JSON.parse(resTrans.text!).translated], { type: 'text/plain' });
                 finalExt = 'txt';
                 break;
 
-            case 'jpg-to-png':
-            case 'png-to-jpg':
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d')!;
-                const img = await new Promise<HTMLImageElement>(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(currentFiles[0]); });
-                canvas.width = img.width; canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                const mime = currentTool.id === 'jpg-to-png' ? 'image/png' : 'image/jpeg';
-                finalExt = currentTool.id === 'jpg-to-png' ? 'png' : 'jpg';
-                resultBlob = await new Promise(r => canvas.toBlob(r, mime));
-                break;
-
-            case 'ocr-pdf':
-                const ocrRes = await ai.models.generateContent({
-                    model: 'gemini-3-flash-preview',
-                    contents: { parts: [{ inlineData: { data: btoa(String.fromCharCode(...new Uint8Array(await currentFiles[0].arrayBuffer()))), mimeType: 'application/pdf' } }, { text: "Extract text from this PDF and return it as a structured document string." }] },
-                    config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { text: { type: Type.STRING } } } }
-                });
-                resultBlob = new Blob([JSON.parse(ocrRes.text!).text], { type: 'text/plain' });
-                finalExt = 'txt';
+            case 'merge-pdf':
+                const mergedPdf = await PDFDocument.create();
+                for (const file of currentFiles) {
+                    const donor = await PDFDocument.load(await file.arrayBuffer());
+                    const pages = await mergedPdf.copyPages(donor, donor.getPageIndices());
+                    pages.forEach(p => mergedPdf.addPage(p));
+                }
+                resultBlob = new Blob([await mergedPdf.save()], { type: 'application/pdf' });
                 break;
 
             default:
-                // Handle remaining tools (mocking logic for complex video/audio formats due to browser limitations)
                 resultBlob = currentFiles[0];
         }
     } catch (e) { console.error(e); resultBlob = currentFiles[0]; }
@@ -417,8 +410,10 @@ document.addEventListener('DOMContentLoaded', () => {
     (document.getElementById('file-input') as HTMLInputElement).onchange = (e) => handleFiles((e.target as HTMLInputElement).files);
     (document.getElementById('process-btn') as HTMLElement).onclick = startProcess;
     (document.getElementById('btn-restart') as HTMLElement).onclick = resetWorkspaceUI;
-    (document.querySelector('.close-modal') as HTMLElement).onclick = () => document.getElementById('tool-modal')!.classList.remove('visible');
-    
+    (document.querySelector('.close-modal') as HTMLElement).onclick = () => {
+        document.getElementById('tool-modal')!.classList.remove('visible');
+        document.body.style.overflow = 'auto';
+    };
     const search = document.getElementById('search-input') as HTMLInputElement;
     search.oninput = () => {
         const val = search.value.toLowerCase();
@@ -427,4 +422,5 @@ document.addEventListener('DOMContentLoaded', () => {
             (card as HTMLElement).style.display = h3.includes(val) ? 'flex' : 'none';
         });
     };
+    updateProcessButton();
 });
