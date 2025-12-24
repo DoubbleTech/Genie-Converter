@@ -42,7 +42,8 @@ const loadConversionLibs = async () => {
     await Promise.all([
         loadScript('mammoth-js', 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js'),
         loadScript('html2canvas-js', 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
-        loadScript('jspdf-js', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+        loadScript('jspdf-js', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+        loadScript('xlsx-js', 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js')
     ]);
 };
 
@@ -137,6 +138,7 @@ let signAllPages: boolean = false;
 let splitMode: 'custom' | 'fixed' = 'custom';
 let splitRanges: { from: number, to: number }[] = [{ from: 1, to: 1 }];
 let compressionLevel: 'extreme' | 'recommended' | 'less' = 'recommended';
+let excelFormat: 'xlsx' | 'csv' = 'xlsx';
 let pageNumMode: 'single' | 'facing' = 'single';
 let pageNumPos: number = 8;
 let pageNumMargin: 'recommended' | 'small' | 'big' = 'recommended';
@@ -187,6 +189,7 @@ function openWorkspace(tool: any) {
     splitMode = 'custom';
     splitRanges = [{ from: 1, to: 1 }];
     compressionLevel = 'recommended';
+    excelFormat = 'xlsx';
     
     pageNumMode = 'single';
     pageNumPos = 8;
@@ -291,6 +294,11 @@ async function handleFiles(files: FileList | null, append = false) {
 
 (window as any).setCompressionLevel = (level: 'extreme' | 'recommended' | 'less') => {
     compressionLevel = level;
+    updateSettingsUI();
+};
+
+(window as any).setExcelFormat = (format: 'xlsx' | 'csv') => {
+    excelFormat = format;
     updateSettingsUI();
 };
 
@@ -408,6 +416,21 @@ function updateSettingsUI() {
         });
         html += `</div>`;
         settings.innerHTML = html;
+    } else if (currentTool.id === 'pdf-to-excel') {
+        settings.innerHTML = `
+            <label style="font-weight:800; font-size:1.1rem; margin-bottom: 1rem; display: block;">Output Format</label>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; background:white; padding:1rem; border:1px solid #cbd5e1; border-radius:10px; cursor:pointer; ${excelFormat === 'xlsx' ? 'border-color:' + COLORS.skyBlue : ''}">
+                    <input type="radio" name="xlformat" ${excelFormat === 'xlsx' ? 'checked' : ''} onchange="window.setExcelFormat('xlsx')">
+                    <span style="font-weight:700;">Excel (.xlsx)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:0.5rem; background:white; padding:1rem; border:1px solid #cbd5e1; border-radius:10px; cursor:pointer; ${excelFormat === 'csv' ? 'border-color:' + COLORS.skyBlue : ''}">
+                    <input type="radio" name="xlformat" ${excelFormat === 'csv' ? 'checked' : ''} onchange="window.setExcelFormat('csv')">
+                    <span style="font-weight:700;">CSV (.csv)</span>
+                </label>
+            </div>
+            <p style="font-size:0.8rem; color:#64748b; margin-top:1.5rem; line-height:1.4;">Genie will extract all tables found in your PDF and organize them into rows and columns.</p>
+        `;
     } else if (currentTool.id === 'split-pdf') {
         let rangesHtml = splitRanges.map((r, i) => `
             <div style="margin-bottom:1rem; border:1px solid #ddd; padding:0.8rem; border-radius:10px; background:white;">
@@ -535,7 +558,7 @@ async function renderPreviews() {
         const wrapper = document.getElementById('preview-container-wrapper')!;
         wrapper.style.width = viewport.width + 'px'; wrapper.style.height = viewport.height + 'px';
         previewDimensions = { width: viewport.width, height: viewport.height };
-    } else if (currentTool.id === 'split-pdf' || currentTool.id === 'add-page-numbers' || currentTool.id === 'compress-pdf' || currentTool.id === 'pdf-to-word' || currentTool.id === 'ocr-pdf' || currentTool.id === 'word-to-pdf') {
+    } else if (currentTool.id === 'split-pdf' || currentTool.id === 'add-page-numbers' || currentTool.id === 'compress-pdf' || currentTool.id === 'pdf-to-word' || currentTool.id === 'ocr-pdf' || currentTool.id === 'word-to-pdf' || currentTool.id === 'pdf-to-excel') {
         pane.className = 'file-grid';
         const wrapper = document.getElementById('preview-container-wrapper')!;
         wrapper.style.width = '100%'; wrapper.style.height = 'auto';
@@ -678,6 +701,36 @@ async function finishProcess() {
             resultBlob = pdf.output('blob');
             document.body.removeChild(renderContainer);
             finalExt = 'pdf';
+        } else if (currentTool.id === 'pdf-to-excel') {
+            const b64 = await fileToBase64(currentFiles[0]);
+            const res = await ai.models.generateContent({
+                model: 'gemini-3-flash-preview',
+                contents: [{ 
+                    parts: [
+                        { inlineData: { data: b64, mimeType: 'application/pdf' } }, 
+                        { text: "Extract all tables from this PDF. Return ONLY a JSON array where each element is another array representing a row of the table. If multiple tables exist, combine them. Return ONLY the JSON." }
+                    ] 
+                }]
+            });
+            
+            let jsonText = res.text || "[]";
+            jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const tableData = JSON.parse(jsonText);
+            
+            const XLSX = (window as any).XLSX;
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(tableData);
+            XLSX.utils.book_append_sheet(wb, ws, "Genie_Extract");
+            
+            if (excelFormat === 'csv') {
+                const csvData = XLSX.utils.sheet_to_csv(ws);
+                resultBlob = new Blob([csvData], { type: 'text/csv' });
+                finalExt = 'csv';
+            } else {
+                const xlData = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                resultBlob = new Blob([xlData], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                finalExt = 'xlsx';
+            }
         } else if (currentTool.id === 'pdf-to-word' || currentTool.id === 'ocr-pdf') {
             const b64 = await fileToBase64(currentFiles[0]);
             const res = await ai.models.generateContent({
