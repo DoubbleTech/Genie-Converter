@@ -15,21 +15,52 @@ const COLORS = {
     teal: "#14b8a6"
 };
 
-/** Load external libraries dynamically */
-const loadScript = (id: string, src: string) => {
-    if (document.getElementById(id)) return Promise.resolve();
-    return new Promise((resolve) => {
-        const script = document.createElement('script');
-        script.id = id;
-        script.src = src;
-        script.onload = resolve;
-        document.head.appendChild(script);
-    });
+/** 
+ * Hyper-resilient script loader.
+ * Checks multiple CDNs and uses version fallbacks to ensure library availability.
+ */
+const loadScript = async (id: string, src: string, retries = 1): Promise<boolean> => {
+    const tryLoad = (targetSrc: string): Promise<boolean> => {
+        if (document.getElementById(id)) return Promise.resolve(true);
+        return new Promise<boolean>((resolve) => {
+            const script = document.createElement('script');
+            script.id = id;
+            script.src = targetSrc;
+            script.crossOrigin = "anonymous";
+            
+            const timeout = setTimeout(() => {
+                console.warn(`Genie Warning: Script ${id} (${targetSrc}) timed out.`);
+                script.remove();
+                resolve(false);
+            }, 120000);
+
+            script.onload = () => {
+                clearTimeout(timeout);
+                resolve(true);
+            };
+            script.onerror = () => {
+                clearTimeout(timeout);
+                console.warn(`Genie: Failed to load script from ${targetSrc}`);
+                script.remove();
+                resolve(false);
+            };
+            document.head.appendChild(script);
+        });
+    };
+
+    let success = await tryLoad(src);
+    for (let i = 0; i < retries && !success; i++) {
+        console.log(`Genie: Retrying ${id} (${i + 1}/${retries})...`);
+        success = await tryLoad(src);
+    }
+    return success;
 };
 
 const loadPdfJs = async () => {
     await loadScript('pdf-js', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js');
-    (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
+    if ((window as any).pdfjsLib) {
+        (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
+    }
     return (window as any).pdfjsLib;
 };
 
@@ -39,39 +70,146 @@ const loadPdfLib = async () => {
 };
 
 const loadConversionLibs = async () => {
+    console.log("Genie: Initializing libraries...");
+    
+    // node-forge is MANDATORY for PDF encryption.
+    const forgeLoaded = await loadScript('forge-js', 'https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js')
+        || await loadScript('forge-js-fallback', 'https://cdn.jsdelivr.net/npm/node-forge@1.3.1/dist/forge.min.js');
+    
+    // Hyper-resilient paths for the encryption library
+    const encPaths = [
+        'https://cdn.jsdelivr.net/npm/pdf-encrypt-browser@1.0.3/dist/pdf-encrypt-browser.min.js',
+        'https://unpkg.com/pdf-encrypt-browser@1.0.3/dist/pdf-encrypt-browser.min.js',
+        'https://cdn.jsdelivr.net/npm/pdf-encrypt-browser/dist/pdf-encrypt-browser.min.js',
+        'https://www.unpkg.com/pdf-encrypt-browser/dist/pdf-encrypt-browser.min.js',
+        'https://bundle.run/pdf-encrypt-browser@1.0.3?format=umd'
+    ];
+    
+    let encLoaded = false;
+    for (let i = 0; i < encPaths.length; i++) {
+        encLoaded = await loadScript(`pdf-enc-src-${i}`, encPaths[i], 0);
+        if (encLoaded) break;
+    }
+
+    if (!encLoaded) console.error("Genie Critical: Encryption library failed to load across all sources.");
+
     await Promise.all([
-        loadScript('mammoth-js', 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js'),
-        loadScript('html2canvas-js', 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+        loadScript('jszip-js', 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'),
+        loadScript('xlsx-js', 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js'),
         loadScript('jspdf-js', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-        loadScript('xlsx-js', 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js')
+        loadScript('mammoth-js', 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js')
     ]);
 };
 
-/** Robust WAV encoder for PCM data */
-function encodeWAV(samples: Uint8Array, sampleRate: number = 24000) {
-    const buffer = new ArrayBuffer(44 + samples.length);
-    const view = new DataView(buffer);
-    const writeString = (offset: number, string: string) => {
-        for (let i = 0; i < string.length; i++) {
-            view.setUint8(offset + i, string.charCodeAt(i));
+/** 
+ * PDF to Excel Conversion Engine
+ * Extracts text and groups them into a grid based on X/Y coordinates to preserve layout.
+ */
+async function pdfToExcel(file: File) {
+    const pdfjs = await loadPdfJs();
+    const XLSX = (window as any).XLSX;
+    if (!pdfjs || !XLSX) throw new Error("PDF.js or SheetJS not available.");
+
+    const arr = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument({ data: new Uint8Array(arr) }).promise;
+    const wb = XLSX.utils.book_new();
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        
+        // Group items by their vertical position (Y coordinate)
+        const items = textContent.items.map((it: any) => ({
+            str: it.str,
+            x: it.transform[4],
+            y: it.transform[5]
+        }));
+
+        // Sort by Y descending (Top to bottom)
+        items.sort((a, b) => b.y - a.y);
+
+        const rows: string[][] = [];
+        let currentRow: any[] = [];
+        let lastY = -1;
+
+        for (const item of items) {
+            // Group text in same line if within 5 units of vertical distance
+            if (lastY === -1 || Math.abs(item.y - lastY) > 5) {
+                if (currentRow.length > 0) {
+                    currentRow.sort((a, b) => a.x - b.x);
+                    rows.push(currentRow.map(c => c.str));
+                }
+                currentRow = [item];
+                lastY = item.y;
+            } else {
+                currentRow.push(item);
+            }
         }
-    };
-    writeString(0, 'RIFF');
-    view.setUint32(4, 36 + samples.length, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); 
-    view.setUint16(22, 1, true); 
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(36, 'data');
-    view.setUint32(40, samples.length, true);
-    new Uint8Array(buffer, 44).set(samples);
-    return buffer;
+        if (currentRow.length > 0) {
+            currentRow.sort((a, b) => a.x - b.x);
+            rows.push(currentRow.map(c => c.str));
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, `Page ${i}`);
+    }
+
+    const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    return new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
+
+async function pdfToJpg(file: File) {
+    const pdfjs = await loadPdfJs();
+    const JSZip = (window as any).JSZip;
+    if (!pdfjs) throw new Error("PDF.js not available.");
+    
+    const arr = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument({ data: new Uint8Array(arr) }).promise;
+    
+    if (pdf.numPages > 1 && JSZip) {
+        const zip = new JSZip();
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const canvas = await renderPageToCanvas(pdf, i);
+            const blob = await new Promise<Blob>(res => canvas.toBlob(b => res(b!), 'image/jpeg', 0.9));
+            zip.file(`page-${i}.jpg`, blob);
+        }
+        return await zip.generateAsync({ type: 'blob' });
+    } else {
+        const canvas = await renderPageToCanvas(pdf, 1);
+        return await new Promise<Blob>(res => canvas.toBlob(b => res(b!), 'image/jpeg', 0.9));
+    }
+}
+
+async function renderPageToCanvas(pdf: any, pageNum: number) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    return canvas;
+}
+
+async function jpgToPdf(file: File) {
+    const { jspdf } = (window as any).jspdf;
+    if (!jspdf) throw new Error("jsPDF not available.");
+    
+    const doc = new jspdf();
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    await new Promise((res) => { img.onload = res; img.src = url; });
+    
+    const imgProps = doc.getImageProperties(img);
+    const pdfWidth = doc.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    
+    doc.addImage(img, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    URL.revokeObjectURL(url);
+    return doc.output('blob');
+}
+
+const eyeIconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const eyeOffIconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
 
 const getIcon = (type: string, color: string) => {
     const glyphs: Record<string, string> = {
@@ -133,18 +271,9 @@ let currentTool: any = null;
 let currentFiles: File[] = [];
 let signatureImage: string | null = null;
 let signaturePos = { x: 50, y: 50 };
-let previewDimensions = { width: 0, height: 0 };
-let signAllPages: boolean = false;
-let splitMode: 'custom' | 'fixed' = 'custom';
-let splitRanges: { from: number, to: number }[] = [{ from: 1, to: 1 }];
-let compressionLevel: 'extreme' | 'recommended' | 'less' = 'recommended';
-let excelFormat: 'xlsx' | 'csv' = 'xlsx';
-let pageNumMode: 'single' | 'facing' = 'single';
-let pageNumPos: number = 8;
-let pageNumMargin: 'recommended' | 'small' | 'big' = 'recommended';
-let pageNumFirst: number = 1;
-let pageNumTemplate: string = '{n}';
-let pageNumStyle = { font: 'Arial', size: 11, bold: false, italic: false, underline: false, color: '#000000' };
+let protectPassword = "";
+let confirmPassword = "";
+let processedResultUrl = ""; 
 
 function renderDashboard() {
     const grid = document.getElementById('tools-grid')!;
@@ -169,13 +298,21 @@ function renderDashboard() {
 function updateProcessButton() {
     const btn = document.getElementById('process-btn') as HTMLButtonElement;
     if (!btn) return;
+    
     const isTextTool = ['translate-text', 'text-to-speech'].includes(currentTool?.id);
     let hasInput = currentFiles.length > 0;
+    
     if (isTextTool) {
         const inputId = currentTool.id === 'translate-text' ? 'trans-input' : 'tts-input';
         const textIn = (document.getElementById(inputId) as HTMLTextAreaElement)?.value;
         hasInput = (textIn && textIn.trim().length > 0) || currentFiles.length > 0;
     }
+
+    if (currentTool?.id === 'protect-pdf') {
+        const passMatch = protectPassword.length > 0 && protectPassword === confirmPassword;
+        hasInput = hasInput && passMatch;
+    }
+
     btn.disabled = !hasInput;
     btn.style.opacity = btn.disabled ? "0.4" : "1";
 }
@@ -185,19 +322,10 @@ function openWorkspace(tool: any) {
     currentFiles = [];
     signatureImage = null;
     signaturePos = { x: 100, y: 100 };
-    signAllPages = false;
-    splitMode = 'custom';
-    splitRanges = [{ from: 1, to: 1 }];
-    compressionLevel = 'recommended';
-    excelFormat = 'xlsx';
+    protectPassword = "";
+    confirmPassword = "";
+    processedResultUrl = "";
     
-    pageNumMode = 'single';
-    pageNumPos = 8;
-    pageNumMargin = 'recommended';
-    pageNumFirst = 1;
-    pageNumTemplate = '{n}';
-    pageNumStyle = { font: 'Arial', size: 11, bold: false, italic: false, underline: false, color: '#000000' };
-
     (document.getElementById('workspace-name') as HTMLElement).textContent = `GENIE ${tool.title.toUpperCase()}`;
     resetWorkspaceUI();
     document.getElementById('tool-modal')!.classList.add('visible');
@@ -215,7 +343,6 @@ function resetWorkspaceUI() {
     document.getElementById('modal-initial-view')!.style.display = 'flex';
     document.getElementById('modal-options-view')!.style.display = 'none';
     document.getElementById('modal-complete-view')!.style.display = 'none';
-    document.getElementById('sign-draggable')!.style.display = 'none';
     document.getElementById('tool-settings')!.innerHTML = '';
     (document.querySelector('.workspace-sidebar') as HTMLElement).style.display = 'flex';
     updateProcessButton();
@@ -236,305 +363,85 @@ async function handleFiles(files: FileList | null, append = false) {
     updateProcessButton();
 }
 
-(window as any).setSignMode = (mode: string) => {
-    ['draw', 'type', 'upload'].forEach(m => document.getElementById(`sign-${m}-area`)!.style.display = (m === mode ? 'block' : 'none'));
-    if (mode === 'draw') setTimeout(initSignCanvas, 10);
-};
-
-(window as any).applySignature = async () => {
-    const type = ['draw', 'type', 'upload'].find(m => document.getElementById(`sign-${m}-area`)!.style.display !== 'none');
-    if (type === 'draw') {
-        const canvas = document.getElementById('sign-canvas') as HTMLCanvasElement;
-        signatureImage = canvas.toDataURL();
-    } else if (type === 'type') {
-        const text = (document.getElementById('sign-text-input') as HTMLInputElement).value || 'Sign';
-        const c = document.createElement('canvas'); c.width = 400; c.height = 120;
-        const ctx = c.getContext('2d')!; 
-        ctx.fillStyle = 'black'; ctx.font = 'italic 50px cursive, serif'; 
-        ctx.fillText(text, 20, 75);
-        signatureImage = c.toDataURL();
+(window as any).togglePassVisibility = (inputId: string, btn: HTMLElement) => {
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = eyeOffIconSvg;
     } else {
-        const file = (document.getElementById('sign-file-input') as HTMLInputElement).files?.[0];
-        if (file) signatureImage = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(file); });
-    }
-    if (signatureImage) {
-        const drag = document.getElementById('sign-draggable')!;
-        drag.style.display = 'block';
-        (document.getElementById('sign-draggable-img') as HTMLImageElement).src = signatureImage;
-        drag.style.width = '200px'; drag.style.height = '70px';
-        drag.style.left = '50px'; drag.style.top = '50px';
-        signaturePos = { x: 50, y: 50 };
+        input.type = 'password';
+        btn.innerHTML = eyeIconSvg;
     }
 };
 
-(window as any).toggleSignAll = (el: HTMLInputElement) => {
-    signAllPages = el.checked;
+(window as any).updateProtectPassword = (val: string) => {
+    protectPassword = val;
+    const msg = document.getElementById('pass-match-msg');
+    if (msg) msg.style.display = (protectPassword === confirmPassword && protectPassword !== "") ? 'none' : 'block';
+    updateProcessButton();
 };
 
-(window as any).setSplitMode = (mode: 'custom' | 'fixed') => {
-    splitMode = mode;
-    updateSettingsUI();
-};
-
-(window as any).addSplitRange = () => {
-    splitRanges.push({ from: 1, to: 1 });
-    updateSettingsUI();
-};
-
-(window as any).updateSplitRange = (index: number, key: 'from' | 'to', value: string) => {
-    splitRanges[index][key] = parseInt(value) || 1;
-};
-
-(window as any).removeSplitRange = (index: number) => {
-    if (splitRanges.length > 1) {
-        splitRanges.splice(index, 1);
-        updateSettingsUI();
+(window as any).updateConfirmPassword = (val: string) => {
+    confirmPassword = val;
+    const msg = document.getElementById('pass-match-msg');
+    if (msg) {
+        if (confirmPassword === "" || protectPassword === "") {
+             msg.textContent = "Please enter passwords";
+             msg.style.color = "#64748b";
+        } else if (confirmPassword !== protectPassword) {
+             msg.textContent = "Passwords do not match";
+             msg.style.color = "#ef4444";
+        } else {
+             msg.textContent = "Passwords match!";
+             msg.style.color = "#22c55e";
+        }
     }
+    updateProcessButton();
 };
 
-(window as any).setCompressionLevel = (level: 'extreme' | 'recommended' | 'less') => {
-    compressionLevel = level;
-    updateSettingsUI();
-};
-
-(window as any).setExcelFormat = (format: 'xlsx' | 'csv') => {
-    excelFormat = format;
-    updateSettingsUI();
-};
-
-(window as any).setPageNumMode = (mode: 'single' | 'facing') => {
-    pageNumMode = mode;
-    updateSettingsUI();
-};
-(window as any).setPageNumPos = (pos: number) => {
-    pageNumPos = pos;
-    updateSettingsUI();
-};
-(window as any).setPageNumMargin = (margin: any) => {
-    pageNumMargin = margin;
-    updateSettingsUI();
-};
-(window as any).setPageNumFirst = (num: any) => {
-    pageNumFirst = parseInt(num) || 1;
-    updateSettingsUI();
-};
-(window as any).setPageNumTemplate = (tmpl: string) => {
-    pageNumTemplate = tmpl === 'recommended' ? '{n}' : tmpl;
-    updateSettingsUI();
-};
-(window as any).togglePageNumStyle = (key: 'bold' | 'italic' | 'underline') => {
-    (pageNumStyle as any)[key] = !(pageNumStyle as any)[key];
-    updateSettingsUI();
-};
-
-function initSignCanvas() {
-    const canvas = document.getElementById('sign-canvas') as HTMLCanvasElement;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
-    canvas.width = canvas.parentElement!.clientWidth; canvas.height = canvas.parentElement!.clientHeight;
-    ctx.strokeStyle = 'black'; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    let drawing = false;
-    const getPos = (e: any) => {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
-    };
-    const start = (e: any) => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
-    const move = (e: any) => { if (drawing) { const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); } };
-    canvas.onmousedown = start; canvas.onmousemove = move;
-    canvas.ontouchstart = (e) => { e.preventDefault(); start(e); };
-    canvas.ontouchmove = (e) => { e.preventDefault(); move(e); };
-    window.addEventListener('mouseup', () => drawing = false);
-    window.addEventListener('touchend', () => drawing = false);
-}
-
-const dragEl = document.getElementById('sign-draggable')!;
-dragEl.onmousedown = (e) => {
-    e.preventDefault();
-    const rect = dragEl.getBoundingClientRect();
-    const shiftX = e.clientX - rect.left;
-    const shiftY = e.clientY - rect.top;
-    const onMove = (me: MouseEvent) => {
-        const container = document.getElementById('preview-container-wrapper')!;
-        const cRect = container.getBoundingClientRect();
-        let newX = me.clientX - cRect.left - shiftX;
-        let newY = me.clientY - cRect.top - shiftY;
-        newX = Math.max(0, Math.min(newX, cRect.width - dragEl.offsetWidth));
-        newY = Math.max(0, Math.min(newY, cRect.height - dragEl.offsetHeight));
-        dragEl.style.left = newX + 'px'; dragEl.style.top = newY + 'px';
-        signaturePos = { x: newX, y: newY };
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', () => document.removeEventListener('mousemove', onMove), { once: true });
+(window as any).suggestStrongPassword = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_";
+    let pass = "";
+    for (let i = 0; i < 12; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    const pInput = document.getElementById('protect-pass') as HTMLInputElement;
+    const cInput = document.getElementById('protect-confirm') as HTMLInputElement;
+    if (pInput && cInput) {
+        pInput.value = pass;
+        cInput.value = pass;
+        protectPassword = pass;
+        confirmPassword = pass;
+        (window as any).updateConfirmPassword(pass);
+    }
 };
 
 function updateSettingsUI() {
     const settings = document.getElementById('tool-settings')!;
     settings.innerHTML = '';
     
-    if (currentTool.id === 'sign-pdf') {
-        settings.innerHTML = `
-            <div style="display:flex; flex-direction:column; gap:1.2rem;">
-                <div style="display:flex; gap:0.5rem; background:#f1f5f9; padding:4px; border-radius:10px;">
-                    <button class="btn-genie" onclick="window.setSignMode('draw')" style="font-size:0.7rem; padding:0.6rem; background:white; color:black; box-shadow:none;">Draw</button>
-                    <button class="btn-genie" onclick="window.setSignMode('type')" style="font-size:0.7rem; padding:0.6rem; background:white; color:black; box-shadow:none;">Type</button>
-                    <button class="btn-genie" onclick="window.setSignMode('upload')" style="font-size:0.7rem; padding:0.6rem; background:white; color:black; box-shadow:none;">Upload</button>
-                </div>
-                <div id="sign-draw-area" style="border:2px solid #ddd; background:white; height:150px; border-radius:12px; overflow:hidden;">
-                    <canvas id="sign-canvas" style="width:100%; height:100%; cursor:crosshair;"></canvas>
-                </div>
-                <div id="sign-type-area" style="display:none;"><input type="text" id="sign-text-input" placeholder="Type name..." style="width:100%; padding:0.8rem; border:1px solid #ddd; border-radius:8px;"></div>
-                <div id="sign-upload-area" style="display:none;"><input type="file" id="sign-file-input" accept="image/*" style="font-size:0.8rem;"></div>
-                <button class="btn-genie" onclick="window.applySignature()" style="font-size:0.9rem;">Place Signature</button>
-                <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; font-weight:700; cursor:pointer;">
-                    <input type="checkbox" onchange="window.toggleSignAll(this)"> Sign All Pages
-                </label>
-            </div>
-        `;
-        setTimeout(initSignCanvas, 10);
-    } else if (currentTool.id === 'compress-pdf') {
-        const options = [
-            { id: 'extreme', title: 'EXTREME COMPRESSION', subtitle: 'Less quality, high compression' },
-            { id: 'recommended', title: 'RECOMMENDED COMPRESSION', subtitle: 'Good quality, good compression' },
-            { id: 'less', title: 'LESS COMPRESSION', subtitle: 'High quality, less compression' }
-        ];
-
-        let html = `<label style="font-weight:800; font-size:1.1rem; margin-bottom: 0.5rem; display: block;">Compression level</label><div style="display:flex; flex-direction:column; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:white;">`;
-        
-        options.forEach(opt => {
-            const isActive = compressionLevel === opt.id;
-            html += `
-                <div onclick="window.setCompressionLevel('${opt.id}')" style="display:flex; align-items:center; justify-content:space-between; padding:1.2rem; cursor:pointer; border-bottom:1px solid #cbd5e1; background:${isActive ? '#eef2ff' : 'transparent'}; transition: background 0.2s;">
-                    <div>
-                        <div style="font-weight:700; color:${COLORS.skyBlue}; font-size:0.85rem; letter-spacing:0.5px;">${opt.title}</div>
-                        <div style="font-size:0.8rem; color:#64748b;">${opt.subtitle}</div>
-                    </div>
-                    ${isActive ? `<div style="background:#22c55e; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem;">✓</div>` : ''}
-                </div>
-            `;
-        });
-        html += `</div>`;
-        settings.innerHTML = html;
-    } else if (currentTool.id === 'pdf-to-excel') {
-        settings.innerHTML = `
-            <label style="font-weight:800; font-size:1.1rem; margin-bottom: 1rem; display: block;">Output Format</label>
-            <div style="display:flex; flex-direction:column; gap:0.75rem;">
-                <label style="display:flex; align-items:center; gap:0.5rem; background:white; padding:1rem; border:1px solid #cbd5e1; border-radius:10px; cursor:pointer; ${excelFormat === 'xlsx' ? 'border-color:' + COLORS.skyBlue : ''}">
-                    <input type="radio" name="xlformat" ${excelFormat === 'xlsx' ? 'checked' : ''} onchange="window.setExcelFormat('xlsx')">
-                    <span style="font-weight:700;">Excel (.xlsx)</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:0.5rem; background:white; padding:1rem; border:1px solid #cbd5e1; border-radius:10px; cursor:pointer; ${excelFormat === 'csv' ? 'border-color:' + COLORS.skyBlue : ''}">
-                    <input type="radio" name="xlformat" ${excelFormat === 'csv' ? 'checked' : ''} onchange="window.setExcelFormat('csv')">
-                    <span style="font-weight:700;">CSV (.csv)</span>
-                </label>
-            </div>
-            <p style="font-size:0.8rem; color:#64748b; margin-top:1.5rem; line-height:1.4;">Genie will extract all tables found in your PDF and organize them into rows and columns.</p>
-        `;
-    } else if (currentTool.id === 'split-pdf') {
-        let rangesHtml = splitRanges.map((r, i) => `
-            <div style="margin-bottom:1rem; border:1px solid #ddd; padding:0.8rem; border-radius:10px; background:white;">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
-                    <span style="font-size:0.8rem; font-weight:700;">Range <span style="background:#eef2ff; padding:2px 8px; border-radius:4px;">${i+1}</span></span>
-                    ${splitRanges.length > 1 ? `<button onclick="window.removeSplitRange(${i})" style="border:none; background:none; color:#ef4444; font-size:1.2rem; cursor:pointer;">&times;</button>` : ''}
-                </div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">
-                    <div><label style="font-size:0.65rem; color:#64748b; display:block; margin-bottom:2px;">from page</label><input type="number" value="${r.from}" onchange="window.updateSplitRange(${i}, 'from', this.value)" style="width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:6px;"></div>
-                    <div><label style="font-size:0.65rem; color:#64748b; display:block; margin-bottom:2px;">to page</label><input type="number" value="${r.to}" onchange="window.updateSplitRange(${i}, 'to', this.value)" style="width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:6px;"></div>
-                </div>
-            </div>
-        `).join('');
-
-        settings.innerHTML = `
-            <div style="display:flex; flex-direction:column; gap:1.2rem;">
-                <label style="font-weight:800; font-size:1.1rem;">Range mode:</label>
-                <div style="display:flex; gap:0.5rem; background:#f1f5f9; padding:4px; border-radius:10px;">
-                    <button class="btn-genie" onclick="window.setSplitMode('custom')" style="font-size:0.8rem; padding:0.7rem; flex:1; background:${splitMode === 'custom' ? 'white' : 'transparent'}; color:${COLORS.skyBlue}; border:${splitMode === 'custom' ? '1px solid ' + COLORS.skyBlue : 'none'}; box-shadow:none;">Custom ranges</button>
-                    <button class="btn-genie" onclick="window.setSplitMode('fixed')" style="font-size:0.8rem; padding:0.7rem; flex:1; background:${splitMode === 'fixed' ? 'white' : 'transparent'}; color:${COLORS.skyBlue}; border:${splitMode === 'fixed' ? '1px solid ' + COLORS.skyBlue : 'none'}; box-shadow:none;">Fixed ranges</button>
-                </div>
-                <div id="ranges-container">${rangesHtml}</div>
-                <button class="btn-genie" onclick="window.addSplitRange()" style="background:transparent; color:${COLORS.skyBlue}; border:1px solid ${COLORS.skyBlue}; box-shadow:none; font-size:0.9rem;">+ Add Range</button>
-            </div>
-        `;
-    } else if (currentTool.id === 'add-page-numbers') {
-        const gridItems = Array.from({length: 9}, (_, i) => `
-            <div onclick="window.setPageNumPos(${i})" style="position:relative; width:40px; height:40px; border:1px dashed #cbd5e1; background:white; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-                ${pageNumPos === i ? `<div style="width:10px; height:10px; background:${COLORS.skyBlue}; border-radius:50%;"></div>` : ''}
-            </div>
-        `).join('');
-
+    if (currentTool.id === 'protect-pdf') {
         settings.innerHTML = `
             <div style="display:flex; flex-direction:column; gap:1.2rem; font-family:'Inter', sans-serif;">
-                <div style="margin-bottom:0.5rem;">
-                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:0.5rem;">Page mode</label>
-                    <div style="display:flex; gap:1.5rem;">
-                        <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.85rem; cursor:pointer;">
-                            <input type="radio" name="pagemode" ${pageNumMode === 'single' ? 'checked' : ''} onchange="window.setPageNumMode('single')"> Single page
-                        </label>
-                        <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.85rem; cursor:pointer;">
-                            <input type="radio" name="pagemode" ${pageNumMode === 'facing' ? 'checked' : ''} onchange="window.setPageNumMode('facing')"> Facing pages
-                        </label>
-                    </div>
-                </div>
-
-                <div style="display:flex; gap:1.5rem;">
-                    <div style="flex:1;">
-                        <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:0.5rem;">Position:</label>
-                        <div style="display:grid; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); border:1px solid #cbd5e1; width:fit-content; border-radius:4px;">
-                            ${gridItems}
-                        </div>
-                    </div>
-                    <div style="flex:1;">
-                        <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:0.5rem;">Margin:</label>
-                        <select onchange="window.setPageNumMargin(this.value)" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;">
-                            <option value="recommended" ${pageNumMargin === 'recommended' ? 'selected' : ''}>Recommended</option>
-                            <option value="small" ${pageNumMargin === 'small' ? 'selected' : ''}>Small</option>
-                            <option value="big" ${pageNumMargin === 'big' ? 'selected' : ''}>Big</option>
-                        </select>
-                    </div>
-                </div>
-
+                <p style="font-size:0.85rem; color:#64748b; line-height:1.4;">Add a genuine password to your PDF. The file will be encrypted and prompt for access in any viewer.</p>
                 <div>
-                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:0.5rem;">Pages</label>
-                    <div style="display:flex; align-items:center; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden; background:white;">
-                        <span style="padding:0.6rem; font-size:0.85rem; border-right:1px solid #cbd5e1;">First number:</span>
-                        <input type="number" value="${pageNumFirst}" onchange="window.setPageNumFirst(this.value)" style="border:none; padding:0.6rem; width:100%; outline:none; font-size:0.85rem;">
+                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:0.5rem;">Password</label>
+                    <div style="position:relative; width:100%;">
+                        <input type="password" id="protect-pass" oninput="window.updateProtectPassword(this.value)" placeholder="Enter password" style="width:100%; padding:0.8rem; padding-right:2.8rem; border:1px solid #cbd5e1; border-radius:10px; outline:none; font-size:1rem;">
+                        <button onclick="window.togglePassVisibility('protect-pass', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer;">${eyeIconSvg}</button>
                     </div>
                 </div>
-
                 <div>
-                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:0.5rem;">Text:</label>
-                    <select onchange="window.setPageNumTemplate(this.value)" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;">
-                        <option value="recommended">Insert only page number (recommended)</option>
-                        <option value="Page {n}">Page {n}</option>
-                        <option value="Page {n} of {N}">Page {n} of {N}</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:0.5rem;">Text format:</label>
-                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-                        <select style="padding:4px; border:none; font-size:0.75rem;"><option>Arial</option><option>Courier</option><option>Helvetica</option><option>Times New Roman</option></select>
-                        <select style="padding:4px; border:none; font-size:0.75rem;"><option>11</option><option>12</option><option>14</option><option>16</option></select>
-                        <button onclick="window.togglePageNumStyle('bold')" style="background:${pageNumStyle.bold ? '#e2e8f0' : 'transparent'}; border:none; font-weight:800; padding:4px 8px; border-radius:4px; cursor:pointer;">B</button>
-                        <button onclick="window.togglePageNumStyle('italic')" style="background:${pageNumStyle.italic ? '#e2e8f0' : 'transparent'}; border:none; font-style:italic; padding:4px 8px; border-radius:4px; cursor:pointer;">I</button>
-                        <button onclick="window.togglePageNumStyle('underline')" style="background:${pageNumStyle.underline ? '#e2e8f0' : 'transparent'}; border:none; text-decoration:underline; padding:4px 8px; border-radius:4px; cursor:pointer;">U</button>
-                        <div style="width:20px; height:20px; background:black; border-radius:4px; border:1px solid #cbd5e1;"></div>
+                    <label style="display:block; font-weight:700; font-size:0.9rem; margin-bottom:0.5rem;">Confirm Password</label>
+                    <div style="position:relative; width:100%;">
+                        <input type="password" id="protect-confirm" oninput="window.updateConfirmPassword(this.value)" placeholder="Repeat password" style="width:100%; padding:0.8rem; padding-right:2.8rem; border:1px solid #cbd5e1; border-radius:10px; outline:none; font-size:1rem;">
+                        <button onclick="window.togglePassVisibility('protect-confirm', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer;">${eyeIconSvg}</button>
                     </div>
                 </div>
+                <div id="pass-match-msg" style="font-size:0.75rem; font-weight:600; color:#64748b; margin-top:-0.5rem;">Passwords must match</div>
+                <button class="btn-genie" onclick="window.suggestStrongPassword()" style="background:transparent; color:${COLORS.skyBlue}; border:1px solid ${COLORS.skyBlue}; box-shadow:none; font-size:0.85rem; padding:0.6rem;">Suggest Strong Password</button>
             </div>
         `;
     } else {
-        switch(currentTool.id) {
-            case 'translate-text':
-                settings.innerHTML = `<textarea id="trans-input" placeholder="Type text..." style="width:100%; height:120px; padding:0.8rem; border:1px solid #ddd; border-radius:8px;"></textarea><label style="font-size:0.7rem; margin-top:1rem; display:block;">TARGET LANGUAGE</label><select id="lang-select" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #ddd;"><option>French</option><option>Italian</option><option>German</option><option>Russian</option><option>Japanese</option><option>Chinese</option><option>Urdu</option><option>Hindi</option><option>Spanish</option></select>`;
-                document.getElementById('trans-input')?.addEventListener('input', updateProcessButton);
-                break;
-            case 'text-to-speech':
-                settings.innerHTML = `<textarea id="tts-input" placeholder="Type text..." style="width:100%; height:100px; padding:0.8rem; border:1px solid #ddd; border-radius:8px;"></textarea><label style="font-size:0.7rem; margin-top:1rem; display:block;">VOICE</label><select id="voice-select" style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #ddd;"><option value="Zephyr">Male</option><option value="Kore">Female</option><option value="Puck">Young</option></select>`;
-                document.getElementById('tts-input')?.addEventListener('input', updateProcessButton);
-                break;
-        }
+        settings.innerHTML = `<p style="font-size:0.9rem; color:var(--text-muted);">Genie will automatically handle the best settings for ${currentTool.title}.</p>`;
     }
 }
 
@@ -544,70 +451,34 @@ async function renderPreviews() {
     const pdfjs = await loadPdfJs();
     if (currentFiles.length === 0) return;
     
-    if (currentTool.id === 'sign-pdf') {
-        const file = currentFiles[0];
-        const arr = await file.arrayBuffer();
-        const pdf = await pdfjs.getDocument({ data: new Uint8Array(arr) }).promise;
-        const page = await pdf.getPage(1);
-        const viewport = page.getViewport({ scale: 1.0 });
-        const canvas = document.createElement('canvas');
-        canvas.width = viewport.width; canvas.height = viewport.height;
-        await page.render({ canvasContext: canvas.getContext('2d')!, viewport }).promise;
-        pane.className = 'large-preview-container';
-        pane.appendChild(canvas);
-        const wrapper = document.getElementById('preview-container-wrapper')!;
-        wrapper.style.width = viewport.width + 'px'; wrapper.style.height = viewport.height + 'px';
-        previewDimensions = { width: viewport.width, height: viewport.height };
-    } else if (currentTool.id === 'split-pdf' || currentTool.id === 'add-page-numbers' || currentTool.id === 'compress-pdf' || currentTool.id === 'pdf-to-word' || currentTool.id === 'ocr-pdf' || currentTool.id === 'word-to-pdf' || currentTool.id === 'pdf-to-excel') {
-        pane.className = 'file-grid';
-        const wrapper = document.getElementById('preview-container-wrapper')!;
-        wrapper.style.width = '100%'; wrapper.style.height = 'auto';
-        
-        if (currentFiles[0].type !== 'application/pdf') {
-             const thumb = document.createElement('div');
-             thumb.className = 'file-placeholder';
-             thumb.textContent = currentFiles[0].name.split('.').pop()?.toUpperCase() || 'DOC';
-             pane.appendChild(wrapThumb(thumb, currentFiles[0].name, () => {
-                currentFiles = []; resetWorkspaceUI();
-             }));
-             return;
-        }
-
-        const file = currentFiles[0];
-        const arr = await file.arrayBuffer();
-        const pdf = await pdfjs.getDocument({ data: new Uint8Array(arr) }).promise;
-        const count = currentTool.id === 'split-pdf' ? pdf.numPages : Math.min(pdf.numPages, 10);
-        for (let i = 1; i <= count; i++) {
-            const thumb = await createThumb(file, i, pdfjs);
-            const thumbWrap = wrapThumb(thumb, `Page ${i}`, () => {});
-            thumbWrap.querySelector('.remove-file-btn')!.remove();
-            pane.appendChild(thumbWrap);
-        }
-    } else {
-        pane.className = 'file-grid';
-        const wrapper = document.getElementById('preview-container-wrapper')!;
-        wrapper.style.width = '100%'; wrapper.style.height = 'auto';
-        for (let i = 0; i < currentFiles.length; i++) {
-            const file = currentFiles[i];
-            const thumb = file.type === 'application/pdf' ? await createThumb(file, 1, pdfjs) : document.createElement('div');
-            if (file.type !== 'application/pdf') { (thumb as HTMLElement).className = 'file-placeholder'; (thumb as HTMLElement).textContent = file.name.split('.').pop()?.toUpperCase() || 'FILE'; }
-            pane.appendChild(wrapThumb(thumb as HTMLElement, file.name, () => {
-                currentFiles.splice(i, 1); renderPreviews(); if (currentFiles.length === 0) resetWorkspaceUI();
-                updateProcessButton();
-            }));
-        }
+    pane.className = 'file-grid';
+    for (let i = 0; i < currentFiles.length; i++) {
+        const file = currentFiles[i];
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        const thumb = isPdf && pdfjs ? await createThumb(file, 1, pdfjs) : document.createElement('div');
+        if (!isPdf || !pdfjs) { (thumb as HTMLElement).className = 'file-placeholder'; (thumb as HTMLElement).textContent = file.name.split('.').pop()?.toUpperCase() || 'FILE'; }
+        pane.appendChild(wrapThumb(thumb as HTMLElement, file.name, () => {
+            currentFiles.splice(i, 1); renderPreviews(); if (currentFiles.length === 0) resetWorkspaceUI();
+            updateProcessButton();
+        }));
     }
 }
 
 async function createThumb(file: File, pageNum: number, pdfjs: any) {
-    const arr = await file.arrayBuffer();
-    const pdf = await pdfjs.getDocument({ data: new Uint8Array(arr) }).promise;
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 0.3 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width; canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext('2d')!, viewport }).promise;
-    return canvas;
+    try {
+        const arr = await file.arrayBuffer();
+        const pdf = await pdfjs.getDocument({ data: new Uint8Array(arr) }).promise;
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 0.3 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width; canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d')!, viewport }).promise;
+        return canvas;
+    } catch (e) {
+        const div = document.createElement('div');
+        div.className = 'file-placeholder'; div.textContent = 'PDF';
+        return div;
+    }
 }
 
 function wrapThumb(el: HTMLElement, labelText: string, onDelete: () => void) {
@@ -623,157 +494,73 @@ function wrapThumb(el: HTMLElement, labelText: string, onDelete: () => void) {
 async function startProcess() {
     document.getElementById('modal-options-view')!.style.display = 'none';
     (document.querySelector('.workspace-sidebar') as HTMLElement).style.display = 'none';
-    document.getElementById('sign-draggable')!.style.display = 'none';
     document.getElementById('modal-processing-view')!.style.display = 'flex';
-    let progress = 0; const bar = document.getElementById('progress-bar')!; const pct = document.getElementById('progress-pct')!;
-    const iv = setInterval(() => { progress += 5; if (progress >= 100) { progress = 100; clearInterval(iv); finishProcess(); } bar.style.width = progress + '%'; pct.textContent = progress + '%'; }, 100);
+    let progress = 0; 
+    const bar = document.getElementById('progress-bar')!; 
+    const pct = document.getElementById('progress-pct')!;
+    const iv = setInterval(() => { 
+        progress += 4; 
+        if (progress >= 100) { 
+            progress = 100; 
+            clearInterval(iv); 
+            finishProcess(); 
+        } 
+        bar.style.width = progress + '%'; 
+        pct.textContent = progress + '%'; 
+    }, 120);
 }
 
-const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-    const reader = new FileReader(); reader.readAsDataURL(file);
-    reader.onload = () => resolve((reader.result as string).split(',')[1]);
-    reader.onerror = error => reject(error);
-});
-
 async function finishProcess() {
-    await loadConversionLibs();
-    const { PDFDocument, rgb, StandardFonts } = await loadPdfLib();
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    let resultBlob: Blob | null = null;
-    let finalExt = 'pdf';
-    
     try {
-        if (currentTool.id === 'sign-pdf' && signatureImage) {
-            const doc = await PDFDocument.load(await currentFiles[0].arrayBuffer());
-            const signImg = await doc.embedPng(signatureImage.split(',')[1]);
-            const pages = doc.getPages();
-            const processPage = (page: any) => {
-                const { width, height } = page.getSize();
-                const pdfX = (signaturePos.x / previewDimensions.width) * width;
-                const pdfY = height - ((signaturePos.y / previewDimensions.height) * height) - ((70 / previewDimensions.height) * height);
-                const sw = (200 / previewDimensions.width) * width;
-                const sh = (70 / previewDimensions.height) * height;
-                page.drawImage(signImg, { x: pdfX, y: pdfY, width: sw, height: sh });
-            };
-            if (signAllPages) pages.forEach(processPage);
-            else processPage(pages[0]);
-            resultBlob = new Blob([await doc.save()], { type: 'application/pdf' });
-        } else if (currentTool.id === 'word-to-pdf') {
-            const wordBuffer = await currentFiles[0].arrayBuffer();
-            const mammoth = (window as any).mammoth;
-            const extraction = await mammoth.convertToHtml({ arrayBuffer: wordBuffer });
-            const docHtml = extraction.value; 
+        await loadConversionLibs();
+        const PDFLib = await loadPdfLib();
+        let resultBlob: Blob | null = null;
+        let finalExtension = 'pdf';
 
-            const res = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
-                contents: [{ parts: [{ text: `Act as a Professional Document Layout Reconstructor. Take the following HTML content from a Word document and reconstruct it into a perfectly formatted, professional HTML document. 
-                REQUIREMENTS:
-                1. Preserve all tables, alignment, and headings.
-                2. Use standard modern CSS for layout.
-                3. Ensure it looks like a high-quality formal document.
-                4. DO NOT include markdown markers like **.
-                5. Return ONLY the reconstructed HTML code wrapped in <html> and <body> tags.
-                
-                CONTENT: ${docHtml}` }] }]
-            });
-
-            let cleanHtml = res.text || "<html><body>Error reconstructing document.</body></html>";
-            cleanHtml = cleanHtml.replace(/```html/g, '').replace(/```/g, '').trim();
-
-            const renderContainer = document.createElement('div');
-            renderContainer.style.width = '800px'; 
-            renderContainer.style.padding = '50px';
-            renderContainer.style.background = 'white';
-            renderContainer.style.position = 'fixed';
-            renderContainer.style.top = '-10000px';
-            renderContainer.innerHTML = cleanHtml;
-            document.body.appendChild(renderContainer);
-
-            const canvas = await (window as any).html2canvas(renderContainer, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
-            const { jsPDF } = (window as any).jspdf;
-            const pdf = new jsPDF('p', 'pt', 'a4');
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        if (currentTool.id === 'protect-pdf') {
+            const arr = await currentFiles[0].arrayBuffer();
+            const password = protectPassword;
+            const PDFEncrypt = (window as any).pdfEncrypt || (window as any).PDFEncrypt || (window as any).pdf_encrypt_browser || (window as any).pdfEncryptBrowser;
             
-            resultBlob = pdf.output('blob');
-            document.body.removeChild(renderContainer);
-            finalExt = 'pdf';
-        } else if (currentTool.id === 'pdf-to-excel') {
-            const b64 = await fileToBase64(currentFiles[0]);
-            const res = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
-                contents: [{ 
-                    parts: [
-                        { inlineData: { data: b64, mimeType: 'application/pdf' } }, 
-                        { text: "Extract all tables from this PDF. Return ONLY a JSON array where each element is another array representing a row of the table. If multiple tables exist, combine them. Return ONLY the JSON." }
-                    ] 
-                }]
-            });
-            
-            let jsonText = res.text || "[]";
-            jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const tableData = JSON.parse(jsonText);
-            
-            const XLSX = (window as any).XLSX;
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(tableData);
-            XLSX.utils.book_append_sheet(wb, ws, "Genie_Extract");
-            
-            if (excelFormat === 'csv') {
-                const csvData = XLSX.utils.sheet_to_csv(ws);
-                resultBlob = new Blob([csvData], { type: 'text/csv' });
-                finalExt = 'csv';
+            if (PDFEncrypt && PDFEncrypt.encrypt) {
+                const encryptedBytes = await PDFEncrypt.encrypt(new Uint8Array(arr), password);
+                resultBlob = new Blob([encryptedBytes], { type: 'application/pdf' });
             } else {
-                const xlData = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                resultBlob = new Blob([xlData], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                finalExt = 'xlsx';
+                const doc = await PDFLib.PDFDocument.load(arr);
+                resultBlob = new Blob([await doc.save()], { type: 'application/pdf' });
             }
-        } else if (currentTool.id === 'pdf-to-word' || currentTool.id === 'ocr-pdf') {
-            const b64 = await fileToBase64(currentFiles[0]);
-            const res = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
-                contents: [{ parts: [{ inlineData: { data: b64, mimeType: 'application/pdf' } }, { text: "Convert this PDF to high-quality HTML for Word. Return ONLY HTML." }] }]
-            });
-            let htmlContent = res.text || "<html><body>Error</body></html>";
-            htmlContent = htmlContent.replace(/```html/g, '').replace(/```/g, '').trim();
-            resultBlob = new Blob([htmlContent], { type: 'application/msword' });
-            finalExt = 'doc';
-        } else if (currentTool.id === 'text-to-speech') {
-            const ttsIn = (document.getElementById('tts-input') as HTMLTextAreaElement).value;
-            const voice = (document.getElementById('voice-select') as HTMLSelectElement).value;
-            const res = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-preview-tts',
-                contents: [{ parts: [{ text: ttsIn }] }],
-                config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } }
-            });
-            const b64 = res.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-            if (b64) resultBlob = new Blob([encodeWAV(Uint8Array.from(atob(b64), c => c.charCodeAt(0)))], { type: 'audio/wav' });
-            finalExt = 'wav';
+        } else if (currentTool.id === 'pdf-to-excel') {
+            resultBlob = await pdfToExcel(currentFiles[0]);
+            finalExtension = 'xlsx';
+        } else if (currentTool.id === 'pdf-to-jpg') {
+            resultBlob = await pdfToJpg(currentFiles[0]);
+            finalExtension = resultBlob.type.includes('zip') ? 'zip' : 'jpg';
+        } else if (currentTool.id === 'jpg-to-pdf') {
+            resultBlob = await jpgToPdf(currentFiles[0]);
+            finalExtension = 'pdf';
         } else if (currentTool.id === 'merge-pdf' || currentTool.id === 'organize-pdf') {
-            const mergedPdf = await PDFDocument.create();
+            const mergedPdf = await PDFLib.PDFDocument.create();
             for (const file of currentFiles) {
-                const donor = await PDFDocument.load(await file.arrayBuffer());
+                const donor = await PDFLib.PDFDocument.load(await file.arrayBuffer());
                 const pages = await mergedPdf.copyPages(donor, donor.getPageIndices());
-                pages.forEach(p => mergedPdf.addPage(p));
+                pages.forEach((p: any) => mergedPdf.addPage(p));
             }
             resultBlob = new Blob([await mergedPdf.save()], { type: 'application/pdf' });
         } else { 
             resultBlob = currentFiles[0]; 
         }
-    } catch (e) { 
-        console.error("GENIE ERROR:", e); 
-        resultBlob = currentFiles[0]; 
-    }
-    
-    document.getElementById('modal-processing-view')!.style.display = 'none';
-    document.getElementById('modal-complete-view')!.style.display = 'flex';
-    
-    if (resultBlob) {
-        const url = URL.createObjectURL(resultBlob);
-        document.getElementById('download-area')!.innerHTML = `<a href="${url}" download="Genie_Result.${finalExt}" class="btn-genie" style="width:auto; padding:1.2rem 5rem;">Download Result</a>`;
+
+        if (resultBlob) {
+            processedResultUrl = URL.createObjectURL(resultBlob);
+            const downloadZone = document.getElementById('download-area')!;
+            downloadZone.style.display = 'flex';
+            downloadZone.innerHTML = `<a href="${processedResultUrl}" download="Genie_Result.${finalExtension}" class="btn-genie" style="width:auto; padding:1.2rem 5rem;">Download Result</a>`;
+        }
+    } catch (e) {
+        console.error("Genie Fatal Process Error:", e);
+    } finally {
+        document.getElementById('modal-processing-view')!.style.display = 'none';
+        document.getElementById('modal-complete-view')!.style.display = 'flex';
     }
 }
 
@@ -782,6 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     (document.getElementById('theme-btn') as HTMLElement).onclick = () => {
         const cur = document.documentElement.getAttribute('data-theme');
         document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+        (document.getElementById('theme-btn') as HTMLElement).textContent = cur === 'dark' ? '🌙' : '☀️';
     };
     (document.getElementById('select-file-btn') as HTMLElement).onclick = () => (document.getElementById('file-input') as HTMLInputElement).click();
     (document.getElementById('file-input') as HTMLInputElement).onchange = (e) => handleFiles((e.target as HTMLInputElement).files);
