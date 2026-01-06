@@ -95,17 +95,212 @@ const loadConversionLibs = async () => {
 
     if (!encLoaded) console.error("Genie Critical: Encryption library failed to load across all sources.");
 
+    // Load libraries for various conversions
     await Promise.all([
         loadScript('jszip-js', 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'),
         loadScript('xlsx-js', 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js'),
         loadScript('jspdf-js', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-        loadScript('mammoth-js', 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js')
+        loadScript('mammoth-js', 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js'),
+        loadScript('gif-js', 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js'),
+        // FFmpeg.wasm (0.12.x) - Loading UMD builds
+        loadScript('ffmpeg-js', 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.js'),
+        loadScript('ffmpeg-util', 'https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/util.js')
     ]);
 };
 
 /** 
- * PDF to Excel Conversion Engine (Dual Mode: Native Text & AI OCR)
+ * Conversion Engines
  */
+
+async function convertImage(file: File, mimeType: string): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return reject("Canvas failure");
+                ctx.drawImage(img, 0, 0);
+                canvas.toBlob((blob) => {
+                    if (blob) resolve(blob);
+                    else reject("Blob generation failed");
+                }, mimeType, 0.95);
+            };
+            img.onerror = () => reject("Image loading error");
+            img.src = e.target?.result as string;
+        };
+        reader.onerror = () => reject("File reading error");
+        reader.readAsDataURL(file);
+    });
+}
+
+async function resizeImage(file: File) {
+    return new Promise<Blob>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let targetW = 0;
+                let targetH = 0;
+
+                if (resizeMode === 'percentage') {
+                    const factor = resizePercentage / 100;
+                    targetW = Math.round(img.width * factor);
+                    targetH = Math.round(img.height * factor);
+                } else {
+                    targetW = resizeWidth;
+                    targetH = resizeHeight;
+                }
+
+                if (resizeNoEnlarge) {
+                    if (targetW > img.width) targetW = img.width;
+                    if (targetH > img.height) targetH = img.height;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = targetW;
+                canvas.height = targetH;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return reject("Canvas context error");
+
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, targetW, targetH);
+
+                canvas.toBlob((blob) => {
+                    if (blob) resolve(blob);
+                    else reject("Blob generation failed");
+                }, file.type || 'image/jpeg', 0.95);
+            };
+            img.src = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Helper to get GIF worker blob URL to avoid cross-origin worker script issues
+async function getGifWorkerUrl() {
+    try {
+        const response = await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js');
+        if (!response.ok) throw new Error("Failed to load worker");
+        const txt = await response.text();
+        const blob = new Blob([txt], { type: 'application/javascript' });
+        return URL.createObjectURL(blob);
+    } catch (e) {
+        console.warn("Genie: Could not load local worker, trying fallback options.", e);
+        return null;
+    }
+}
+
+async function imageToGif(files: File[]) {
+    const GIF = (window as any).GIF;
+    if (!GIF) throw new Error("GIF.js not loaded");
+
+    const workerUrl = await getGifWorkerUrl();
+    
+    // We determine the GIF size based on the first image
+    const firstImage = await createImageBitmap(files[0]);
+    const width = firstImage.width;
+    const height = firstImage.height;
+    
+    // Initialize GIF encoder
+    const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: width,
+        height: height,
+        workerScript: workerUrl
+    });
+
+    // Add frames
+    for (const file of files) {
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+        });
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if(ctx) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0,0,width,height);
+            // Draw image centered or scaled? Let's fit it.
+            ctx.drawImage(img, 0, 0, width, height);
+            gif.addFrame(canvas, { delay: gifDelay });
+        }
+    }
+
+    return new Promise<Blob>((resolve, reject) => {
+        gif.on('finished', (blob: Blob) => {
+            if(workerUrl) URL.revokeObjectURL(workerUrl);
+            resolve(blob);
+        });
+        gif.render();
+    });
+}
+
+async function convertVideo(file: File) {
+    // Basic Environment Check: FFmpeg.wasm requires COOP/COEP headers to use SharedArrayBuffer
+    if (!window.crossOriginIsolated) {
+        throw new Error("This browser environment does not support high-performance video conversion. The server must enable 'Cross-Origin-Opener-Policy' and 'Cross-Origin-Embedder-Policy' headers.");
+    }
+
+    const FFmpegWASM = (window as any).FFmpegWASM;
+    const FFmpegUtil = (window as any).FFmpegUtil;
+    
+    if (!FFmpegWASM || !FFmpegUtil) throw new Error("FFmpeg libraries failed to load.");
+
+    const { FFmpeg } = FFmpegWASM;
+    const { fetchFile } = FFmpegUtil;
+    
+    const ffmpeg = new FFmpeg();
+    
+    // Hook into progress
+    ffmpeg.on('progress', ({ progress, time }: any) => {
+        // progress is 0-1
+        const pct = Math.round(progress * 100);
+        const bar = document.getElementById('progress-bar');
+        const txt = document.getElementById('progress-pct');
+        if (bar) bar.style.width = `${pct}%`;
+        if (txt) txt.textContent = `${pct}%`;
+    });
+
+    try {
+        await ffmpeg.load({
+            coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.js',
+            wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.wasm'
+        });
+
+        const inputName = `input_${file.name.replace(/\s/g, '_')}`;
+        const outputName = `output.${targetVideoFormat}`;
+
+        await ffmpeg.writeFile(inputName, await fetchFile(file));
+        
+        // Execute conversion
+        await ffmpeg.exec(['-i', inputName, outputName]);
+        
+        const data = await ffmpeg.readFile(outputName);
+        
+        // Clean up memory
+        // await ffmpeg.deleteFile(inputName);
+        // await ffmpeg.deleteFile(outputName);
+        ffmpeg.terminate();
+
+        return new Blob([data], { type: `video/${targetVideoFormat}` });
+    } catch (e: any) {
+        // If load or exec fails, try to terminate and rethrow
+        try { ffmpeg.terminate(); } catch (err) {}
+        throw new Error(`FFmpeg Error: ${e.message || "Conversion failed"}`);
+    }
+}
+
 async function pdfToExcel(file: File) {
     const pdfjs = await loadPdfJs();
     const XLSX = (window as any).XLSX;
@@ -575,7 +770,7 @@ const eyeOffIconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="non
 
 const getIcon = (type: string, color: string) => {
     const glyphs: Record<string, string> = {
-        merge: `<path d="M40 20v-4h-4v4h-4v4h4v4h4v-4h4v-4zM22 14h12v6h-6a4 4 0 01-4-4zm-4 32V16a4 4 0 014-4h14l10 10v22a4 4 0 01-4 4z"/>`,
+        merge: `<path d="M40 20v-4h-4v4h4v4h4v-4h4v-4zM22 14h12v6h-6a4 4 0 01-4-4zm-4 32V16a4 4 0 014-4h14l10 10v22a4 4 0 01-4 4z"/>`,
         split: `<path d="M44 12v20H20V12h24zm0 24v20H20V36h24zM16 30h32v4H16zm10-12h4v4h-4zm0 24h4v4h-4z"/>`,
         word: `<path d="M20 12h24v40H20z" opacity=".2"/><path d="M24 24l4 16 4-16m4 0l4 16 4-16" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`,
         excel: `<path d="M20 12h24v40H20z" opacity=".2"/><path d="M26 24l12 16m0-16L26 40" stroke="#fff" stroke-width="4" stroke-linecap="round"/>`,
@@ -587,7 +782,7 @@ const getIcon = (type: string, color: string) => {
         video: `<path d="M48 16l-10 6v10l10 6V16zM16 12h24a4 4 0 014 4v16a4 4 0 01-4 4H16a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/>`,
         translate: `<path d="M28 16h16v16h-16zM16 32h16v16h-16z" fill="#fff" opacity=".3"/><path d="M20 20l12 12m0-12L20 32" stroke="#fff" stroke-width="3"/>`,
         ocr: `<path d="M16 16h32v32H16z" fill="none" stroke="#fff" stroke-width="3"/><path d="M24 24h16m-16 8h10m-10 8h16" stroke="#fff" stroke-width="2"/>`,
-        organize: `<path d="M12 12h16v16H12zM36 12h16v16H36zM12 36h16v16H12zM36 36h16v16H36z" fill="#fff"/>`,
+        organize: `<path d="M12 12h16v16H12zM36 12h16v16H36zM12 36h16v16H12zM36 36h16v16H12zM36 36h16v16H36z" fill="#fff"/>`,
         number: `<path d="M32 12v40M20 24h24m-24 16h24" stroke="#fff" stroke-width="3"/>`
     };
     return `<svg viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="${color}"/><g fill="#fff">${glyphs[type] || glyphs.merge}</g></svg>`;
@@ -616,9 +811,10 @@ const TOOLS_LIST = [
     { id: 'excel-to-pdf', title: 'Excel to PDF', cat: 'Convert', icon: getIcon('excel', COLORS.green) },
     { id: 'html-to-pdf', title: 'HTML to PDF', cat: 'Convert', icon: getIcon('word', COLORS.blue) },
     { id: 'resize-image', title: 'Resize Image', cat: 'Images', icon: getIcon('image', COLORS.violet) },
+    { id: 'image-to-gif', title: 'Image to GIF', cat: 'Images', icon: getIcon('image', COLORS.amber) },
     { id: 'jpg-to-png', title: 'JPG to PNG', cat: 'Images', icon: getIcon('image', COLORS.pink) },
     { id: 'png-to-jpg', title: 'PNG to JPG', cat: 'Images', icon: getIcon('image', COLORS.teal) },
-    { id: 'image-to-gif', title: 'Image to GIF', cat: 'Images', icon: getIcon('image', COLORS.amber) },
+    { id: 'image-to-gif-old', title: 'Image to GIF (Legacy)', cat: 'Images', icon: getIcon('image', COLORS.amber) },
     { id: 'convert-video', title: 'Convert Video', cat: 'Media', icon: getIcon('video', COLORS.indigo) },
     { id: 'mp4-to-gif', title: 'MP4 to GIF', cat: 'Media', icon: getIcon('video', COLORS.orange) },
     { id: 'wav-to-mp3', title: 'WAV to MP3', cat: 'Media', icon: getIcon('audio', COLORS.pink) },
@@ -658,16 +854,36 @@ let watermarkColor = "#94a3b8"; // Slate-400
 // Rotate State
 let rotateAngle = 0;
 
+// Resize State
+let resizeMode = 'pixels'; 
+let resizeWidth = 436;
+let resizeHeight = 338;
+let resizeMaintainRatio = true;
+let resizeNoEnlarge = false;
+let resizePercentage = 50; 
+let originalImageRatio = 1;
+
+// GIF State
+let gifDelay = 500;
+let gifLoop = true;
+
+// Video State
+let targetVideoFormat = "mp4";
+
 function renderDashboard() {
     const grid = document.getElementById('tools-grid')!;
     grid.innerHTML = '';
-    const categories = Array.from(new Set(TOOLS_LIST.map(t => t.cat)));
+    
+    // Filter out the legacy or duplicate tools if any, just to be clean
+    const uniqueTools = TOOLS_LIST.filter(t => t.id !== 'image-to-gif-old');
+    
+    const categories = Array.from(new Set(uniqueTools.map(t => t.cat)));
     categories.forEach(cat => {
         const sec = document.createElement('section');
         sec.className = 'tools-section';
         sec.innerHTML = `<div class="section-header">${cat}</div><div class="category-grid"></div>`;
         const catGrid = sec.querySelector('.category-grid')!;
-        TOOLS_LIST.filter(t => t.cat === cat).forEach(tool => {
+        uniqueTools.filter(t => t.cat === cat).forEach(tool => {
             const card = document.createElement('div');
             card.className = 'tool-card';
             card.innerHTML = `<div class="icon">${tool.icon}</div><h3>${tool.title}</h3><p>Fast Genie magic.</p>`;
@@ -685,7 +901,7 @@ function updateProcessButton() {
     const isTextTool = ['translate-text', 'text-to-speech'].includes(currentTool?.id);
     let hasInput = currentFiles.length > 0;
     
-    if (currentTool?.id === 'organize-pdf') {
+    if (currentTool?.id === 'organize-pdf' || currentTool?.id === 'image-to-gif') {
         hasInput = pagesManifest.length > 0;
     }
 
@@ -742,11 +958,18 @@ function openWorkspace(tool: any) {
     // Reset Rotate Defaults
     rotateAngle = 0;
 
+    // Reset GIF Defaults
+    gifDelay = 500;
+    gifLoop = true;
+
+    // Reset Video Defaults
+    targetVideoFormat = "mp4";
+
     (document.getElementById('workspace-name') as HTMLElement).textContent = `GENIE ${tool.title.toUpperCase()}`;
     resetWorkspaceUI();
     document.getElementById('tool-modal')!.classList.add('visible');
     const fileInput = document.getElementById('file-input') as HTMLInputElement;
-    fileInput.multiple = (tool.id === 'merge-pdf' || tool.id === 'organize-pdf');
+    fileInput.multiple = (tool.id === 'merge-pdf' || tool.id === 'organize-pdf' || tool.id === 'image-to-gif');
     if (tool.id === 'translate-text' || tool.id === 'text-to-speech') {
         document.getElementById('modal-initial-view')!.style.display = 'none';
         document.getElementById('modal-options-view')!.style.display = 'flex';
@@ -768,8 +991,8 @@ async function handleFiles(files: FileList | null, append = false) {
     if (!files || files.length === 0) return;
     const arr = Array.from(files);
 
-    if (currentTool.id === 'organize-pdf') {
-        // Special Handling for Organize PDF: Extract Pages
+    if (currentTool.id === 'organize-pdf' || currentTool.id === 'image-to-gif') {
+        // Special Handling for Organize PDF & GIF: Extract Pages/Images
         if (!append) pagesManifest = [];
         document.getElementById('modal-initial-view')!.style.display = 'none';
         document.getElementById('modal-options-view')!.style.display = 'flex';
@@ -785,6 +1008,21 @@ async function handleFiles(files: FileList | null, append = false) {
     } else {
         currentFiles = [arr[0]];
     }
+
+    // New: Preload dimensions for image tools
+    if ((currentTool.id === 'resize-image' || currentTool.id === 'jpg-to-png' || currentTool.id === 'png-to-jpg') && currentFiles[0]) {
+        const img = new Image();
+        img.onload = () => {
+            originalImageRatio = img.width / img.height;
+            if (currentTool.id === 'resize-image') {
+                resizeWidth = img.width;
+                resizeHeight = img.height;
+            }
+            updateSettingsUI();
+        };
+        img.src = URL.createObjectURL(currentFiles[0]);
+    }
+
     document.getElementById('modal-initial-view')!.style.display = 'none';
     document.getElementById('modal-options-view')!.style.display = 'flex';
     updateSettingsUI();
@@ -793,6 +1031,20 @@ async function handleFiles(files: FileList | null, append = false) {
 }
 
 async function extractPages(files: File[]) {
+    // If GIF tool, just create thumbnails from images
+    if (currentTool.id === 'image-to-gif') {
+        for (const file of files) {
+            const thumb = await createImageThumb(file);
+            pagesManifest.push({
+                file: file,
+                pageIndex: 0, // Not used for images
+                thumb: thumb
+            });
+        }
+        renderOrganizeGrid();
+        return;
+    }
+
     const pdfjs = await loadPdfJs();
     if (!pdfjs) return;
 
@@ -861,13 +1113,11 @@ function renderOrganizeGrid() {
         };
 
         // Clone the canvas so we don't lose it from memory if reused
-        const canvas = item.thumb; 
-        // Note: item.thumb is already a canvas element or div. 
-        // If it's a canvas, it can only be in one place in DOM.
-        // renderOrganizeGrid removes it from DOM when innerHTML='', so appending is safe.
+        // For images (GIF tool), thumb is an IMG or Canvas. Cloning works for both if we do it right.
+        const content = item.thumb.cloneNode(true);
         
         wrapper.appendChild(removeBtn);
-        wrapper.appendChild(canvas);
+        wrapper.appendChild(content);
         
         const label = document.createElement('div'); 
         label.textContent = `${index + 1}`; 
@@ -990,6 +1240,40 @@ function renderOrganizeGrid() {
     // Re-render previews to show rotation
     renderPreviews();
 };
+
+// Resize Handlers
+(window as any).setResizeMode = (mode: string) => { resizeMode = mode; updateSettingsUI(); };
+(window as any).setResizePct = (pct: number) => { resizePercentage = pct; updateSettingsUI(); };
+(window as any).toggleResizeRatio = (val: boolean) => resizeMaintainRatio = val;
+(window as any).toggleResizeNoEnlarge = (val: boolean) => resizeNoEnlarge = val;
+(window as any).updateResizeW = (val: string) => {
+    resizeWidth = parseInt(val) || 0;
+    if (resizeMaintainRatio && originalImageRatio) {
+        resizeHeight = Math.round(resizeWidth / originalImageRatio);
+        const hInput = document.getElementById('resize-h') as HTMLInputElement;
+        if(hInput) hInput.value = resizeHeight.toString();
+    }
+};
+(window as any).updateResizeH = (val: string) => {
+    resizeHeight = parseInt(val) || 0;
+    if (resizeMaintainRatio && originalImageRatio) {
+        resizeWidth = Math.round(resizeHeight * originalImageRatio);
+        const wInput = document.getElementById('resize-w') as HTMLInputElement;
+        if(wInput) wInput.value = resizeWidth.toString();
+    }
+};
+
+// GIF Handlers
+(window as any).updateGifDelay = (val: string) => {
+    gifDelay = parseInt(val);
+    const label = document.getElementById('gif-delay-label');
+    if(label) label.textContent = `${gifDelay} ms`;
+};
+(window as any).toggleGifLoop = (val: boolean) => { gifLoop = val; };
+
+// Video Handlers
+(window as any).updateTargetVideoFormat = (val: string) => { targetVideoFormat = val; };
+
 
 function updateSettingsUI() {
     const settings = document.getElementById('tool-settings')!;
@@ -1172,16 +1456,128 @@ function updateSettingsUI() {
                 </div>
             </div>
         `;
-    } else if (currentTool.id === 'organize-pdf') {
+    } else if (currentTool.id === 'organize-pdf' || currentTool.id === 'image-to-gif') {
+        const isGif = currentTool.id === 'image-to-gif';
         settings.innerHTML = `
             <div style="display:flex; flex-direction:column; gap:1.2rem;">
                 <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.5;">
-                    Drag and drop pages to reorder them.<br>Hover over a page to delete it.
+                    Drag and drop to reorder.<br>These ${isGif ? 'frames' : 'pages'} will be ${isGif ? 'animated in sequence' : 'in your new PDF'}.
                 </p>
                 <button class="btn-genie" onclick="document.getElementById('file-input').click()" 
                     style="background:white; color:var(--primary-blue); border:2px dashed var(--primary-blue); box-shadow:none; padding:1rem;">
-                    <span style="font-size:1.2rem;">+</span> Add More Pages
+                    <span style="font-size:1.2rem;">+</span> Add More ${isGif ? 'Frames' : 'Pages'}
                 </button>
+                
+                ${isGif ? `
+                    <div style="margin-top:1.5rem; border-top:1px solid #e2e8f0; padding-top:1.5rem;">
+                         <div style="margin-bottom:1.2rem;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                                <label style="font-size:0.85rem; font-weight:700; color:#334155;">Frame Delay</label>
+                                <span id="gif-delay-label" style="font-size:0.85rem; font-weight:700; color:var(--primary-blue);">${gifDelay} ms</span>
+                            </div>
+                            <input type="range" min="50" max="2000" step="10" value="${gifDelay}" oninput="window.updateGifDelay(this.value)" style="width:100%; accent-color:var(--primary-blue);">
+                         </div>
+                         <div style="display:flex; align-items:center; justify-content:space-between;">
+                            <label style="font-size:0.85rem; font-weight:700; color:#334155;">Loop Animation</label>
+                            <label class="switch" style="position:relative; display:inline-block; width:36px; height:20px;">
+                                <input type="checkbox" ${gifLoop ? 'checked' : ''} onchange="window.toggleGifLoop(this.checked)" style="opacity:0; width:0; height:0;">
+                                <span class="slider" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#cbd5e1; transition:.4s; border-radius:34px;"></span>
+                                <span class="knob" style="position:absolute; content:''; height:14px; width:14px; left:3px; bottom:3px; background-color:white; transition:.4s; border-radius:50%;"></span>
+                            </label>
+                            <style>
+                                .switch input:checked + .slider { background-color: var(--primary-blue); }
+                                .switch input:checked ~ .knob { transform: translateX(16px); }
+                            </style>
+                        </div>
+                    </div>
+                `: ''}
+            </div>
+        `;
+    } else if (currentTool.id === 'resize-image') {
+        settings.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                <h2 style="font-size:1.8rem; font-weight:700; color:#334155; text-align:center;">Resize options</h2>
+                <div style="display:flex; border:1px solid #cbd5e1; border-radius:12px; overflow:hidden;">
+                    <button onclick="window.setResizeMode('pixels')" style="flex:1; padding:1.5rem; background:${resizeMode==='pixels'?'white':'#f8fafc'}; border:none; border-right:1px solid #cbd5e1; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+                        <div style="position:relative;">
+                            ${resizeMode==='pixels'?'<div style="position:absolute; top:-10px; left:-10px; color:#22c55e; font-weight:bold;">✓</div>':''}
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="${resizeMode==='pixels'?'#1e293b':'#94a3b8'}" stroke-width="2"><path d="M7 7l10 10m0-10L7 17"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                        </div>
+                        <span style="font-weight:700; color:${resizeMode==='pixels'?'#1e293b':'#94a3b8'};">By pixels</span>
+                    </button>
+                    <button onclick="window.setResizeMode('percentage')" style="flex:1; padding:1.5rem; background:${resizeMode==='percentage'?'white':'#f8fafc'}; border:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+                        <div style="position:relative;">
+                            ${resizeMode==='percentage'?'<div style="position:absolute; top:-10px; left:-10px; color:#22c55e; font-weight:bold;">✓</div>':''}
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="${resizeMode==='percentage'?'#1e293b':'#94a3b8'}" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+                        </div>
+                        <span style="font-weight:700; color:${resizeMode==='percentage'?'#1e293b':'#94a3b8'};">By percentage</span>
+                    </button>
+                </div>
+
+                ${resizeMode === 'pixels' ? `
+                    <div style="display:flex; flex-direction:column; gap:1.2rem;">
+                        <p style="color:#64748b; font-size:0.95rem;">Resize all images to a <b>exact size</b> of</p>
+                        <div>
+                            <label style="display:block; font-weight:700; margin-bottom:0.5rem; color:#334155;">Width (px):</label>
+                            <input type="number" id="resize-w" value="${resizeWidth}" oninput="window.updateResizeW(this.value)" style="width:100%; padding:0.8rem; border:1px solid #cbd5e1; border-radius:8px; text-align:right; font-size:1.1rem; outline:none;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-weight:700; margin-bottom:0.5rem; color:#334155;">Height (px):</label>
+                            <input type="number" id="resize-h" value="${resizeHeight}" oninput="window.updateResizeH(this.value)" style="width:100%; padding:0.8rem; border:1px solid #cbd5e1; border-radius:8px; text-align:right; font-size:1.1rem; outline:none;">
+                        </div>
+                        <label style="display:flex; align-items:center; gap:0.8rem; cursor:pointer; font-weight:600; color:#334155;">
+                            <input type="checkbox" ${resizeMaintainRatio?'checked':''} onchange="window.toggleResizeRatio(this.checked)" style="width:20px; height:20px; accent-color:#22c55e;"> Maintain aspect ratio
+                        </label>
+                        <label style="display:flex; align-items:center; gap:0.8rem; cursor:pointer; font-weight:600; color:#334155;">
+                            <input type="checkbox" ${resizeNoEnlarge?'checked':''} onchange="window.toggleResizeNoEnlarge(this.checked)" style="width:20px; height:20px; accent-color:#22c55e;"> Do not enlarge if smaller
+                        </label>
+                    </div>
+                ` : `
+                    <div style="display:flex; flex-direction:column; border:1px solid #cbd5e1; border-radius:12px; overflow:hidden;">
+                        ${[25, 50, 75].map(p => `
+                            <div onclick="window.setResizePct(${p})" style="padding:1.5rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #cbd5e1; cursor:pointer; background:${resizePercentage===p?'#f1f5f9':'transparent'};">
+                                <span style="font-weight:700; color:#3b82f6;">${p}% SMALLER</span>
+                                ${resizePercentage===p ? '<div style="background:#22c55e; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:14px;">✓</div>' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `}
+            </div>
+        `;
+    } else if (currentTool.id === 'jpg-to-png') {
+        settings.innerHTML = `
+            <div style="text-align:center; padding:1rem;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--primary-blue)" stroke-width="2" style="margin-bottom:1rem;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <h3 style="font-weight:700; color:#1e293b; margin-bottom:0.5rem;">JPG to PNG</h3>
+                <p style="font-size:0.9rem; color:#64748b; line-height:1.4;">High-quality, lossless conversion. Every detail is preserved in a 24-bit PNG buffer.</p>
+            </div>
+        `;
+    } else if (currentTool.id === 'png-to-jpg') {
+        settings.innerHTML = `
+            <div style="text-align:center; padding:1rem;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--primary-blue)" stroke-width="2" style="margin-bottom:1rem;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <h3 style="font-weight:700; color:#1e293b; margin-bottom:0.5rem;">PNG to JPG</h3>
+                <p style="font-size:0.9rem; color:#64748b; line-height:1.4;">Smart conversion with optimized compression for smaller file sizes without visible quality loss.</p>
+            </div>
+        `;
+    } else if (currentTool.id === 'convert-video') {
+        settings.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                <h2 style="font-size:1.5rem; font-weight:700; color:#334155; text-align:center;">Output Format</h2>
+                <div style="position:relative;">
+                    <select onchange="window.updateTargetVideoFormat(this.value)" style="width:100%; padding:1rem; border:2px solid #cbd5e1; border-radius:12px; font-size:1.1rem; font-weight:700; color:#334155; appearance:none; background:white;">
+                        <option value="mp4" ${targetVideoFormat === 'mp4' ? 'selected' : ''}>MP4 (H.264)</option>
+                        <option value="avi" ${targetVideoFormat === 'avi' ? 'selected' : ''}>AVI</option>
+                        <option value="mov" ${targetVideoFormat === 'mov' ? 'selected' : ''}>MOV (QuickTime)</option>
+                        <option value="webm" ${targetVideoFormat === 'webm' ? 'selected' : ''}>WEBM</option>
+                        <option value="mkv" ${targetVideoFormat === 'mkv' ? 'selected' : ''}>MKV</option>
+                        <option value="flv" ${targetVideoFormat === 'flv' ? 'selected' : ''}>FLV</option>
+                    </select>
+                    <div style="position:absolute; right:1rem; top:50%; transform:translateY(-50%); pointer-events:none; color:#64748b;">▼</div>
+                </div>
+                <p style="font-size:0.85rem; color:#64748b; line-height:1.5; text-align:center;">
+                    Genie uses standard codecs compatible with most devices. <br>Conversion happens locally in your browser.
+                </p>
             </div>
         `;
     } else {
@@ -1199,8 +1595,19 @@ async function renderPreviews() {
     for (let i = 0; i < currentFiles.length; i++) {
         const file = currentFiles[i];
         const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-        const thumb = isPdf && pdfjs ? await createThumb(file, 1, pdfjs) : document.createElement('div');
-        if (!isPdf || !pdfjs) { (thumb as HTMLElement).className = 'file-placeholder'; (thumb as HTMLElement).textContent = file.name.split('.').pop()?.toUpperCase() || 'FILE'; }
+        const isVideo = file.type.startsWith('video/');
+        
+        let thumb;
+        if (isPdf && pdfjs) {
+            thumb = await createThumb(file, 1, pdfjs);
+        } else if (isVideo) {
+            thumb = await createVideoThumb(file);
+        } else {
+            thumb = document.createElement('div');
+            (thumb as HTMLElement).className = 'file-placeholder'; 
+            (thumb as HTMLElement).textContent = file.name.split('.').pop()?.toUpperCase() || 'FILE';
+        }
+
         pane.appendChild(wrapThumb(thumb as HTMLElement, file.name, () => {
             currentFiles.splice(i, 1); renderPreviews(); if (currentFiles.length === 0) resetWorkspaceUI();
             updateProcessButton();
@@ -1233,6 +1640,61 @@ async function createThumb(file: File, pageNum: number, pdfjs: any) {
     }
 }
 
+async function createVideoThumb(file: File) {
+    const video = document.createElement('video');
+    video.src = URL.createObjectURL(file);
+    video.muted = true;
+    video.playsInline = true;
+    // Seek to 1s to grab a frame, avoiding black start frames
+    video.currentTime = 1;
+    
+    await new Promise((resolve) => {
+        video.onloadeddata = resolve;
+        video.onerror = resolve; // Fallback
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 120; // Approx 16:9 thumbnail
+    const ctx = canvas.getContext('2d');
+    if(ctx) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0,0,200,120);
+        // Draw video centered
+        const ratio = video.videoWidth / video.videoHeight;
+        let dw = 200, dh = 120;
+        if (ratio > (200/120)) dh = 200 / ratio;
+        else dw = 120 * ratio;
+        
+        ctx.drawImage(video, (200-dw)/2, (120-dh)/2, dw, dh);
+        
+        // Add play icon overlay
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath();
+        ctx.arc(100, 60, 20, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(95, 50);
+        ctx.lineTo(110, 60);
+        ctx.lineTo(95, 70);
+        ctx.fill();
+    }
+    
+    // Revoke url to free mem
+    // URL.revokeObjectURL(video.src); // Keep for now as user might play preview later? No, thumbnails static.
+    return canvas;
+}
+
+async function createImageThumb(file: File) {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '200px';
+    img.style.borderRadius = '8px';
+    return img;
+}
+
 function wrapThumb(el: HTMLElement, labelText: string, onDelete: () => void) {
     const wrap = document.createElement('div'); wrap.className = 'page-thumb';
     const removeBtn = document.createElement('button'); removeBtn.className = 'remove-file-btn';
@@ -1253,22 +1715,27 @@ async function startProcess() {
     
     // Progress simulation - if OCR is on, we update it manually in the function
     const iv = setInterval(() => { 
-        if (!useOCR && progress < 100) progress += 4;
+        if (!useOCR && currentTool.id !== 'convert-video' && progress < 100) progress += 4;
         // If OCR is on, the loop inside pdfToExcel updates the text, we just keep bar moving slightly
         if (useOCR && progress < 90) progress += 0.5;
 
-        if (progress >= 100 && !useOCR) { 
+        // Video conversion handles its own progress via ffmpeg event
+        if (currentTool.id === 'convert-video') {
+            // Do nothing, let ffmpeg update UI directly
+        } else if (progress >= 100 && !useOCR) { 
             progress = 100; 
             clearInterval(iv); 
             finishProcess(); 
         }
         
-        bar.style.width = progress + '%'; 
-        if (!useOCR) pct.textContent = Math.round(progress) + '%'; 
+        if (currentTool.id !== 'convert-video') {
+             bar.style.width = progress + '%'; 
+             if (!useOCR) pct.textContent = Math.round(progress) + '%'; 
+        }
     }, 120);
 
-    // If OCR, we trigger finishProcess immediately so the async logic runs while interval updates visuals
-    if (useOCR) {
+    // If OCR or Video, we trigger finishProcess immediately so the async logic runs while interval updates visuals
+    if (useOCR || currentTool.id === 'convert-video') {
         try {
             await finishProcess();
         } catch(e) { console.error(e); }
@@ -1279,6 +1746,9 @@ async function startProcess() {
 }
 
 async function finishProcess() {
+    let hasError = false;
+    let errorMessage = "";
+    
     try {
         await loadConversionLibs();
         const PDFLib = await loadPdfLib();
@@ -1312,6 +1782,24 @@ async function finishProcess() {
             resultBlob = await watermarkPdf(currentFiles[0]);
         } else if (currentTool.id === 'rotate-pdf') {
             resultBlob = await rotatePdf(currentFiles[0]);
+        } else if (currentTool.id === 'jpg-to-png') {
+            resultBlob = await convertImage(currentFiles[0], 'image/png');
+            finalExtension = 'png';
+        } else if (currentTool.id === 'png-to-jpg') {
+            resultBlob = await convertImage(currentFiles[0], 'image/jpeg');
+            finalExtension = 'jpg';
+        } else if (currentTool.id === 'image-to-gif') {
+            // GIF uses the reordered manifest files
+            const gifFiles = pagesManifest.map(p => p.file);
+            resultBlob = await imageToGif(gifFiles);
+            finalExtension = 'gif';
+        } else if (currentTool.id === 'convert-video') {
+            resultBlob = await convertVideo(currentFiles[0]);
+            finalExtension = targetVideoFormat;
+        } else if (currentTool.id === 'resize-image') {
+            resultBlob = await resizeImage(currentFiles[0]);
+            // Attempt to preserve original extension, fallback to jpg
+            finalExtension = currentFiles[0].name.split('.').pop() || 'jpg';
         } else if (currentTool.id === 'organize-pdf') {
             const newPdf = await PDFLib.PDFDocument.create();
             // Cache loaded source documents to avoid parsing multiple times
@@ -1348,11 +1836,40 @@ async function finishProcess() {
             downloadZone.style.display = 'flex';
             downloadZone.innerHTML = `<a href="${processedResultUrl}" download="Genie_Result.${finalExtension}" class="btn-genie" style="width:auto; padding:1.2rem 5rem;">Download Result</a>`;
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error("Genie Fatal Process Error:", e);
+        hasError = true;
+        errorMessage = e.message || "An unknown error occurred during processing.";
     } finally {
         document.getElementById('modal-processing-view')!.style.display = 'none';
-        document.getElementById('modal-complete-view')!.style.display = 'flex';
+        
+        const completeView = document.getElementById('modal-complete-view')!;
+        completeView.style.display = 'flex';
+        
+        const icon = completeView.querySelector('div') as HTMLElement; 
+        const h2 = completeView.querySelector('h2') as HTMLElement;
+        const msg = completeView.querySelector('.success-footer span') as HTMLElement;
+        
+        if (hasError) {
+             // Error State UI
+             icon.style.background = '#ef4444'; // Red
+             icon.innerHTML = '!'; // Warning sign
+             icon.style.boxShadow = '0 10px 25px rgba(239, 68, 68, 0.3)';
+             h2.textContent = "Error";
+             h2.style.color = '#ef4444';
+             msg.textContent = errorMessage;
+             msg.style.color = '#ef4444';
+             document.getElementById('download-area')!.innerHTML = '';
+        } else {
+             // Success State UI
+             icon.style.background = '#22c55e'; // Green
+             icon.innerHTML = '✓';
+             icon.style.boxShadow = '0 10px 25px rgba(34, 197, 94, 0.3)';
+             h2.textContent = "Success!";
+             h2.style.color = 'var(--text-main)';
+             msg.textContent = "Genie has finished processing your file securely in your browser.";
+             msg.style.color = 'var(--text-muted)';
+        }
     }
 }
 
