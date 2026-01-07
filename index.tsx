@@ -247,11 +247,6 @@ async function imageToGif(files: File[]) {
 }
 
 async function convertVideo(file: File) {
-    // Basic Environment Check: FFmpeg.wasm requires COOP/COEP headers to use SharedArrayBuffer
-    if (!window.crossOriginIsolated) {
-        throw new Error("This browser environment does not support high-performance video conversion. The server must enable 'Cross-Origin-Opener-Policy' and 'Cross-Origin-Embedder-Policy' headers.");
-    }
-
     const FFmpegWASM = (window as any).FFmpegWASM;
     const FFmpegUtil = (window as any).FFmpegUtil;
     
@@ -288,14 +283,12 @@ async function convertVideo(file: File) {
         
         const data = await ffmpeg.readFile(outputName);
         
-        // Clean up memory
-        // await ffmpeg.deleteFile(inputName);
-        // await ffmpeg.deleteFile(outputName);
-        ffmpeg.terminate();
+        // Clean up
+        ffmpeg.terminate(); 
 
         return new Blob([data], { type: `video/${targetVideoFormat}` });
     } catch (e: any) {
-        // If load or exec fails, try to terminate and rethrow
+        // Cleanup attempt
         try { ffmpeg.terminate(); } catch (err) {}
         throw new Error(`FFmpeg Error: ${e.message || "Conversion failed"}`);
     }
@@ -782,7 +775,7 @@ const getIcon = (type: string, color: string) => {
         video: `<path d="M48 16l-10 6v10l10 6V16zM16 12h24a4 4 0 014 4v16a4 4 0 01-4 4H16a4 4 0 01-4-4V16a4 4 0 014-4z" fill="#fff"/>`,
         translate: `<path d="M28 16h16v16h-16zM16 32h16v16h-16z" fill="#fff" opacity=".3"/><path d="M20 20l12 12m0-12L20 32" stroke="#fff" stroke-width="3"/>`,
         ocr: `<path d="M16 16h32v32H16z" fill="none" stroke="#fff" stroke-width="3"/><path d="M24 24h16m-16 8h10m-10 8h16" stroke="#fff" stroke-width="2"/>`,
-        organize: `<path d="M12 12h16v16H12zM36 12h16v16H36zM12 36h16v16H12zM36 36h16v16H12zM36 36h16v16H36z" fill="#fff"/>`,
+        organize: `<path d="M12 12h16v16H12zM36 12h16v16H36zM12 36h16v16H12zM36 36h16v16H36z" fill="#fff"/>`,
         number: `<path d="M32 12v40M20 24h24m-24 16h24" stroke="#fff" stroke-width="3"/>`
     };
     return `<svg viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="${color}"/><g fill="#fff">${glyphs[type] || glyphs.merge}</g></svg>`;
